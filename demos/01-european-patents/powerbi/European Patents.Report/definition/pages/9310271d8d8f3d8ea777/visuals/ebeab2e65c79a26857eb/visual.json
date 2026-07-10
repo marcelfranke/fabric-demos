@@ -1,0 +1,55 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "ebeab2e65c79a26857eb",
+  "position": {
+    "z": 1000,
+    "tabOrder": 1000,
+    "x": 792,
+    "y": 476,
+    "width": 464,
+    "height": 224
+  },
+  "visual": {
+    "visualType": "donutChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Patent"
+                    }
+                  },
+                  "Property": "Kind Code"
+                }
+              },
+              "queryRef": "Patent.Kind Code",
+              "nativeQueryRef": "Kind Code"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Patent"
+                    }
+                  },
+                  "Property": "Total Patents"
+                }
+              },
+              "queryRef": "Patent.Total Patents",
+              "nativeQueryRef": "Total Patents"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
