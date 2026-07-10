@@ -1,0 +1,106 @@
+/// One row per published EP patent (grain = publication). Sourced from gold_patent_summary.
+table Patent
+	lineageTag: 1375f247-0d9a-48af-8baf-a0ef010d79d9
+
+	/// Number of published patents in the current filter context.
+	measure 'Total Patents' = COUNTROWS(Patent)
+		formatString: #,##0
+		displayFolder: Counts
+		lineageTag: 6e5a3252-2fb8-47aa-8b0b-cb623a5b2e6c
+
+	/// Average number of named inventors per patent.
+	measure 'Avg Inventors per Patent' = AVERAGE(Patent[Inventor Count])
+		formatString: #,##0.0
+		displayFolder: Counts
+		lineageTag: bb26e9cc-4270-415f-b55b-c3addc44a3d9
+
+	/// EP publication number (e.g. EP1234567). Grain key.
+	column 'Patent Number'
+		dataType: string
+		lineageTag: c8c0dd08-ae46-41a7-816d-a30ec7b90f60
+		sourceColumn: patent_number
+
+	column 'Document Number'
+		dataType: string
+		isHidden
+		lineageTag: 2da5bb34-eb4e-4b9c-9f8a-7d1affda5437
+		sourceColumn: doc_number
+
+	/// Publication kind code (A1, A2, B1, ...).
+	column 'Kind Code'
+		dataType: string
+		lineageTag: a85386a6-eb00-49e1-bcea-7a47031036cc
+		sourceColumn: kind_code
+
+	column 'Publication Country'
+		dataType: string
+		lineageTag: 87f4bffe-7ee4-44a8-9ce3-49a12fc55188
+		dataCategory: Country
+		sourceColumn: country
+
+	/// Date the patent was published (B140).
+	column 'Publication Date'
+		dataType: dateTime
+		lineageTag: c8aa3fd8-7e43-46dc-ba57-c33f34132c33
+		sourceColumn: publication_date
+
+	column 'Application Number'
+		dataType: string
+		isHidden
+		lineageTag: 4bbcfd03-1e3e-4514-bf05-b8bc00c5efae
+		sourceColumn: application_number
+
+	/// Application filing date (B220).
+	column 'Filing Date'
+		dataType: dateTime
+		lineageTag: 29e6d34c-ce67-4b70-a0e4-489fe6adc755
+		sourceColumn: filing_date
+
+	/// Publication language (en/de/fr).
+	column Language
+		dataType: string
+		lineageTag: f3ebf09a-ea38-4436-85d1-4f9586d89cbf
+		sourceColumn: language
+
+	/// English title where available (B542 EN).
+	column 'Title (English)'
+		dataType: string
+		lineageTag: f5317677-0d37-4d2d-bf95-973feeb0b5da
+		sourceColumn: title_en
+
+	/// Primary IPC classification symbol.
+	column 'Main IPC'
+		dataType: string
+		lineageTag: 993e4a7a-316f-41f6-80ac-7df2312fc0f8
+		sourceColumn: main_ipc
+
+	/// First-letter IPC section (A-H).
+	column 'IPC Section'
+		dataType: string
+		lineageTag: 7f0460a7-885a-4496-a78a-f1f4c422c917
+		sourceColumn: ipc_section
+
+	column 'First Applicant'
+		dataType: string
+		lineageTag: b5577cb7-8e74-470a-ad4f-a3a31f306649
+		sourceColumn: first_applicant
+
+	column 'Applicant Country'
+		dataType: string
+		lineageTag: a9b98f9b-19a4-416b-a5ce-b27b6b89f398
+		dataCategory: Country
+		sourceColumn: applicant_country
+
+	column 'Inventor Count'
+		dataType: int64
+		isHidden
+		lineageTag: ac5ea44f-adb4-4848-bcc3-2e398865e374
+		summarizeBy: none
+		sourceColumn: inventor_count
+
+	partition Patent = entity
+		mode: directLake
+		source
+			entityName: gold_patent_summary
+			expressionSource: 'DirectLake - European Patents'
+
