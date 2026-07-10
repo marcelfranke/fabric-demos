@@ -1,0 +1,32 @@
+/// Priority claims (Paris Convention); many per patent.
+table Priority
+	lineageTag: b6c5d875-9945-4f78-b9e8-265247cc6f17
+
+	column 'Patent Number'
+		dataType: string
+		isHidden
+		lineageTag: f5c71610-f2e0-4f97-8dec-35c082f24c81
+		sourceColumn: patent_number
+
+	column 'Priority Number'
+		dataType: string
+		lineageTag: 087b5e89-252a-486d-857d-3a92dc0cc975
+		sourceColumn: number
+
+	column 'Priority Date'
+		dataType: string
+		lineageTag: 4ef5b506-aac5-4ead-9643-12104170271f
+		sourceColumn: date
+
+	column 'Priority Country'
+		dataType: string
+		lineageTag: 504b06f8-394c-4459-986e-c78a80bc8e1f
+		dataCategory: Country
+		sourceColumn: country
+
+	partition Priority = entity
+		mode: directLake
+		source
+			entityName: silver_patent_priorities
+			expressionSource: 'DirectLake - European Patents'
+

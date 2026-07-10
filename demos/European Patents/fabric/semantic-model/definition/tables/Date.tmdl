@@ -1,0 +1,53 @@
+/// Date dimension (2025-2026) for time-based analysis of publications.
+table Date
+	dataCategory: Time
+	lineageTag: 08b4695d-e57e-4ba9-baf0-4878b9425424
+
+	column Date
+		isNameInferred
+		sourceColumn: [Date]
+
+	column Year
+		isNameInferred
+		sourceColumn: [Year]
+
+	column Quarter
+		isNameInferred
+		sourceColumn: [Quarter]
+
+	column Month
+		isNameInferred
+		sortByColumn: 'Month Number'
+		sourceColumn: [Month]
+
+	column 'Month Number'
+		isNameInferred
+		summarizeBy: none
+		sourceColumn: [Month Number]
+
+	column 'Year Month'
+		isNameInferred
+		sourceColumn: [Year Month]
+
+	column 'ISO Week'
+		isNameInferred
+		sourceColumn: [ISO Week]
+
+	column 'Year Week'
+		isNameInferred
+		sourceColumn: [Year Week]
+
+	partition Date = calculated
+		mode: import
+		source =
+				ADDCOLUMNS(
+				  CALENDAR(DATE(2025,1,1), DATE(2026,12,31)),
+				  "Year", YEAR([Date]),
+				  "Quarter", "Q" & FORMAT([Date],"Q"),
+				  "Month", FORMAT([Date],"MMM"),
+				  "Month Number", MONTH([Date]),
+				  "Year Month", FORMAT([Date],"YYYY-MM"),
+				  "ISO Week", WEEKNUM([Date],21),
+				  "Year Week", FORMAT([Date],"YYYY") & "-W" & FORMAT(WEEKNUM([Date],21),"00")
+				)
+
