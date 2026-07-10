@@ -8,7 +8,7 @@ and instructions.
 
 | # | Demo | Description |
 |---|------|-------------|
-| 01 | [European Patents](./demos/European%20Patents) | Microsoft Fabric OneLake + Direct Lake Power BI semantic model over EPO patent data, with an Angular dashboard frontend. |
+| 01 | [European Patents](./demos/01-european-patents) | Microsoft Fabric OneLake + Direct Lake Power BI semantic model over EPO patent data, with an Angular dashboard frontend. |
 
 ## Getting started
 
@@ -16,7 +16,7 @@ Pick a demo from the table above and follow the README inside its folder. For
 example, to run the European Patents demo:
 
 ```bash
-cd "demos/European Patents"
+cd demos/01-european-patents
 npm install
 npm run dev
 ```
