@@ -6,6 +6,18 @@ serif + DM Sans + JetBrains Mono. Collapsible left rail, sticky frosted
 topbar, KPI grid, chart, and editorial-style list + detail views for
 projects and tasks.
 
+## Power BI report
+
+A validated 3-page / 21-visual Power BI report (PBIR) bound to the deployed
+Direct Lake semantic model lives in [`powerbi/`](./powerbi). The report passes
+validation (0 errors), but this tenant's Power BI ring currently rejects PBIR
+**API** import (its `version.json` schema is too new — "edited in a newer
+version of Power BI…"). To publish it, open
+[`powerbi/European Patents.pbip`](./powerbi/European%20Patents.pbip) in Power BI
+Desktop and publish from there. See [`powerbi/README.md`](./powerbi/README.md)
+for full details. The Fabric data backend it sits on is documented in
+[`fabric/`](./fabric).
+
 Two operating modes, picked on first launch:
 
 | Mode | Data source | UI writes | Best for |

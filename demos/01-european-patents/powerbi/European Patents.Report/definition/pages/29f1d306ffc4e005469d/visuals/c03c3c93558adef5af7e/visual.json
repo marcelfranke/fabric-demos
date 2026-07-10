@@ -1,0 +1,69 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "c03c3c93558adef5af7e",
+  "position": {
+    "z": 1000,
+    "tabOrder": 1000,
+    "x": 648,
+    "y": 448,
+    "width": 608,
+    "height": 252
+  },
+  "visual": {
+    "visualType": "pivotTable",
+    "query": {
+      "queryState": {
+        "Rows": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Applicant"
+                    }
+                  },
+                  "Property": "Applicant Name"
+                }
+              },
+              "queryRef": "Applicant.Applicant Name",
+              "nativeQueryRef": "Applicant Name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Applicant"
+                    }
+                  },
+                  "Property": "Applicant Country"
+                }
+              },
+              "queryRef": "Applicant.Applicant Country",
+              "nativeQueryRef": "Applicant Country"
+            }
+          ]
+        },
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Applicant"
+                    }
+                  },
+                  "Property": "Patents per Applicant"
+                }
+              },
+              "queryRef": "Applicant.Patents per Applicant",
+              "nativeQueryRef": "Patents per Applicant"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

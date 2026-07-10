@@ -1,0 +1,73 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "ef7555ffbf5fb80997ba",
+  "position": {
+    "z": 1000,
+    "tabOrder": 1000,
+    "x": 320,
+    "y": 476,
+    "width": 456,
+    "height": 224
+  },
+  "visual": {
+    "visualType": "barChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Patent"
+                    }
+                  },
+                  "Property": "IPC Section"
+                }
+              },
+              "queryRef": "Patent.IPC Section",
+              "nativeQueryRef": "IPC Section"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Patent"
+                    }
+                  },
+                  "Property": "Total Patents"
+                }
+              },
+              "queryRef": "Patent.Total Patents",
+              "nativeQueryRef": "Total Patents"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Patent"
+                  }
+                },
+                "Property": "Total Patents"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": false
+      }
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "c331109c629e542b805c",
+  "position": {
+    "z": 1000,
+    "tabOrder": 1000,
+    "x": 24,
+    "y": 448,
+    "width": 604,
+    "height": 252
+  },
+  "visual": {
+    "visualType": "azureMap",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Applicant"
+                    }
+                  },
+                  "Property": "Applicant Country"
+                }
+              },
+              "queryRef": "Applicant.Applicant Country",
+              "nativeQueryRef": "Applicant Country"
+            }
+          ]
+        },
+        "Size": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Applicant"
+                    }
+                  },
+                  "Property": "Patents per Applicant"
+                }
+              },
+              "queryRef": "Applicant.Patents per Applicant",
+              "nativeQueryRef": "Patents per Applicant"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
