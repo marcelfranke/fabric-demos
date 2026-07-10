@@ -1,0 +1,83 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "688e9b94ba38279bf414",
+  "position": {
+    "z": 1000,
+    "tabOrder": 1000,
+    "x": 648,
+    "y": 312,
+    "width": 608,
+    "height": 388
+  },
+  "visual": {
+    "visualType": "pivotTable",
+    "query": {
+      "queryState": {
+        "Rows": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Classification"
+                    }
+                  },
+                  "Property": "Section"
+                }
+              },
+              "queryRef": "Classification.Section",
+              "nativeQueryRef": "Section"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Classification"
+                    }
+                  },
+                  "Property": "Symbol"
+                }
+              },
+              "queryRef": "Classification.Symbol",
+              "nativeQueryRef": "Symbol"
+            }
+          ]
+        },
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Classification"
+                    }
+                  },
+                  "Property": "Total Classifications"
+                }
+              },
+              "queryRef": "Classification.Total Classifications",
+              "nativeQueryRef": "Total Classifications"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Classification"
+                    }
+                  },
+                  "Property": "Patents per Classification"
+                }
+              },
+              "queryRef": "Classification.Patents per Classification",
+              "nativeQueryRef": "Patents per Classification"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

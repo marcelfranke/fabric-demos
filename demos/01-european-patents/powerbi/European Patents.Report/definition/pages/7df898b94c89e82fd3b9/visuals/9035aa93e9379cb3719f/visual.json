@@ -1,0 +1,73 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "9035aa93e9379cb3719f",
+  "position": {
+    "z": 1000,
+    "tabOrder": 1000,
+    "x": 24,
+    "y": 312,
+    "width": 604,
+    "height": 388
+  },
+  "visual": {
+    "visualType": "treemap",
+    "query": {
+      "queryState": {
+        "Group": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Classification"
+                    }
+                  },
+                  "Property": "Symbol"
+                }
+              },
+              "queryRef": "Classification.Symbol",
+              "nativeQueryRef": "Symbol"
+            }
+          ]
+        },
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Classification"
+                    }
+                  },
+                  "Property": "Patents per Classification"
+                }
+              },
+              "queryRef": "Classification.Patents per Classification",
+              "nativeQueryRef": "Patents per Classification"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Classification"
+                  }
+                },
+                "Property": "Patents per Classification"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": false
+      }
+    }
+  }
+}
