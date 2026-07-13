@@ -1,0 +1,51 @@
+/// Patent applicants/assignees; many per patent.
+table Applicant
+	lineageTag: 18b1aae2-89f6-428d-a951-fbdedd8f068f
+
+	/// Distinct applicant/assignee organisations in context.
+	measure 'Distinct Applicants' = DISTINCTCOUNT(Applicant[Applicant Name])
+		formatString: #,##0
+		displayFolder: Counts
+		lineageTag: 5d594327-b3fc-437d-a343-18edab426c01
+
+	/// Distinct patents linked to the applicants in context. Put Applicant Name on an axis to rank applicants by patent count.
+	measure 'Patents per Applicant' = DISTINCTCOUNT(Applicant[Patent Number])
+		formatString: #,##0
+		displayFolder: Counts
+		lineageTag: 4323b932-5a5c-4cac-9a46-5fcf4e7b497a
+
+	column 'Patent Number'
+		dataType: string
+		isHidden
+		lineageTag: ce50d8d5-921f-4761-af9d-20cdcb4e62c1
+		sourceColumn: patent_number
+
+	column 'Applicant Name'
+		dataType: string
+		lineageTag: d7c41ee0-f69a-4688-8eef-8c7d92d12b05
+		sourceColumn: name
+
+	column 'Applicant Country'
+		dataType: string
+		lineageTag: a57a6a6b-8ddf-4c8d-afc5-44f8360bd377
+		dataCategory: Country
+		sourceColumn: country
+
+	column 'Applicant ID'
+		dataType: string
+		isHidden
+		lineageTag: f349512b-3f42-4e1e-aac4-510d1938f425
+		sourceColumn: iid
+
+	column 'Applicant Sequence'
+		dataType: string
+		isHidden
+		lineageTag: c899adce-42ba-448d-aa45-1783038a3220
+		sourceColumn: seq
+
+	partition Applicant = entity
+		mode: directLake
+		source
+			entityName: silver_patent_applicants
+			expressionSource: 'DirectLake - European Patents'
+

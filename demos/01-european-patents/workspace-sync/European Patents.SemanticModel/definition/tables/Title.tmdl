@@ -1,0 +1,27 @@
+/// Patent titles in multiple languages; many per patent.
+table Title
+	lineageTag: 6dcb355a-85fb-49b9-8781-970882819528
+
+	column 'Patent Number'
+		dataType: string
+		isHidden
+		lineageTag: d4a05e6a-2f56-4eb9-86a6-3f45eb06f81c
+		sourceColumn: patent_number
+
+	/// Title language code.
+	column Language
+		dataType: string
+		lineageTag: 2dc9c0da-3176-410c-92c9-ba3f8ad76b06
+		sourceColumn: lang
+
+	column Title
+		dataType: string
+		lineageTag: 3c320042-731d-40f9-9fb1-d0ffc678c90a
+		sourceColumn: text
+
+	partition Title = entity
+		mode: directLake
+		source
+			entityName: silver_patent_titles
+			expressionSource: 'DirectLake - European Patents'
+

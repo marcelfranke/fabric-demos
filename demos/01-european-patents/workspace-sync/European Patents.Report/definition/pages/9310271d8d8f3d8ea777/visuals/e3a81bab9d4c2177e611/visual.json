@@ -1,0 +1,79 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "e3a81bab9d4c2177e611",
+  "position": {
+    "z": 1000,
+    "tabOrder": 1000,
+    "x": 24,
+    "y": 80,
+    "width": 1232,
+    "height": 118
+  },
+  "visual": {
+    "visualType": "cardVisual",
+    "query": {
+      "queryState": {
+        "Data": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Patent"
+                    }
+                  },
+                  "Property": "Total Patents"
+                }
+              },
+              "queryRef": "Patent.Total Patents",
+              "nativeQueryRef": "Total Patents"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Applicant"
+                    }
+                  },
+                  "Property": "Distinct Applicants"
+                }
+              },
+              "queryRef": "Applicant.Distinct Applicants",
+              "nativeQueryRef": "Distinct Applicants"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Inventor"
+                    }
+                  },
+                  "Property": "Distinct Inventors"
+                }
+              },
+              "queryRef": "Inventor.Distinct Inventors",
+              "nativeQueryRef": "Distinct Inventors"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Patent"
+                    }
+                  },
+                  "Property": "Avg Inventors per Patent"
+                }
+              },
+              "queryRef": "Patent.Avg Inventors per Patent",
+              "nativeQueryRef": "Avg Inventors per Patent"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
