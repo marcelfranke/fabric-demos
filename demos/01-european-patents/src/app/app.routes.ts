@@ -26,24 +26,21 @@ export const routes: Routes = [
           import('./pages/dashboard/dashboard').then((m) => m.Dashboard),
       },
       {
-        path: 'projects',
+        path: 'patents',
         loadComponent: () =>
-          import('./pages/projects/projects-list').then((m) => m.ProjectsList),
+          import('./pages/patents/patents-list').then((m) => m.PatentsList),
       },
       {
-        path: 'projects/:id',
+        path: 'patents/:id',
         loadComponent: () =>
-          import('./pages/projects/project-detail').then((m) => m.ProjectDetail),
+          import('./pages/patents/patent-detail').then((m) => m.PatentDetail),
       },
       {
-        path: 'tasks',
+        path: 'applicants',
         loadComponent: () =>
-          import('./pages/tasks/tasks-list').then((m) => m.TasksList),
-      },
-      {
-        path: 'tasks/:id',
-        loadComponent: () =>
-          import('./pages/tasks/task-detail').then((m) => m.TaskDetail),
+          import('./pages/applicants/applicants-list').then(
+            (m) => m.ApplicantsList
+          ),
       },
       {
         path: 'settings',
@@ -54,4 +51,3 @@ export const routes: Routes = [
   },
   { path: '**', redirectTo: '' },
 ];
-

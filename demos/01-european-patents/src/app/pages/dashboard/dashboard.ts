@@ -1,25 +1,27 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { TitleCasePipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RouterLink } from '@angular/router';
 import { BaseChartDirective } from 'ng2-charts';
 import type { ChartConfiguration } from 'chart.js';
 
-import type { Project, Task } from '../../../../rayfin/data/schema';
-import { AppConfigService } from '../../services/app-config.service';
+import type { Applicant, Patent } from '../../../../rayfin/data/schema';
 import { DataService } from '../../services/data.service';
-import { GithubSyncService } from '../../services/github-sync.service';
+
+const IPC_SECTIONS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] as const;
+const IPC_SECTION_LABELS: Record<string, string> = {
+  A: 'Human necessities',
+  B: 'Operations & transport',
+  C: 'Chemistry & metallurgy',
+  D: 'Textiles & paper',
+  E: 'Fixed constructions',
+  F: 'Mechanical & heating',
+  G: 'Physics',
+  H: 'Electricity',
+};
 
 @Component({
   selector: 'app-dashboard',
-  imports: [
-    BaseChartDirective,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    RouterLink,
-    TitleCasePipe,
-  ],
+  imports: [BaseChartDirective, MatIconModule, RouterLink],
   template: `
     <div class="dashboard page-enter">
       <header class="hero">
@@ -29,13 +31,8 @@ import { GithubSyncService } from '../../services/github-sync.service';
           <em>{{ totalLabel() }}</em>
         </h1>
         <p class="hero__lead">
-          @if (appConfig.isSynced()) {
-            Synced from
-            <span class="mono">{{ appConfig.repo() }}</span> ·
-            {{ syncMeta() }}
-          } @else {
-            A snapshot of work in progress across your projects.
-          }
+          A snapshot of European patent publications, applicants and
+          inventors in this workspace.
         </p>
       </header>
 
@@ -51,64 +48,57 @@ import { GithubSyncService } from '../../services/github-sync.service';
           <div class="skeleton skeleton--card" style="height: 18rem"></div>
         </section>
       } @else {
-        <!-- KPI grid -->
         <section class="kpis">
           <article class="kpi kpi--feature">
-            <span class="kpi__label">Total</span>
+            <span class="kpi__label">Patents</span>
             <div class="kpi__value">
-              <span class="kpi__num">{{ tasks().length }}</span>
-              <span class="kpi__suffix">items</span>
+              <span class="kpi__num">{{ patents().length }}</span>
+              <span class="kpi__suffix">publications</span>
             </div>
             <div class="kpi__bar">
-              <span
-                class="kpi__bar-seg kpi__bar-seg--open"
-                [style.flexGrow]="kpis().open"
-              ></span>
-              <span
-                class="kpi__bar-seg kpi__bar-seg--in_progress"
-                [style.flexGrow]="kpis().in_progress"
-              ></span>
-              <span
-                class="kpi__bar-seg kpi__bar-seg--closed"
-                [style.flexGrow]="kpis().closed"
-              ></span>
+              @for (s of sectionBars(); track s.section) {
+                <span
+                  class="kpi__bar-seg"
+                  [style.flexGrow]="s.count"
+                  [style.background]="s.color"
+                ></span>
+              }
             </div>
           </article>
 
           <article class="kpi">
             <span class="kpi__label">
               <span class="dot dot--open"></span>
-              Open
+              Applicants
             </span>
-            <span class="kpi__num">{{ kpis().open }}</span>
-            <span class="kpi__delta">{{ pct(kpis().open) }}%</span>
+            <span class="kpi__num">{{ distinctApplicants() }}</span>
+            <span class="kpi__delta">distinct organisations</span>
           </article>
 
           <article class="kpi">
             <span class="kpi__label">
               <span class="dot dot--in_progress"></span>
-              In progress
+              Inventors
             </span>
-            <span class="kpi__num">{{ kpis().in_progress }}</span>
-            <span class="kpi__delta">{{ pct(kpis().in_progress) }}%</span>
+            <span class="kpi__num">{{ distinctInventors() }}</span>
+            <span class="kpi__delta">distinct people</span>
           </article>
 
           <article class="kpi">
             <span class="kpi__label">
               <span class="dot dot--closed"></span>
-              Closed
+              Avg inventors
             </span>
-            <span class="kpi__num">{{ kpis().closed }}</span>
-            <span class="kpi__delta">{{ pct(kpis().closed) }}%</span>
+            <span class="kpi__num">{{ avgInventors() }}</span>
+            <span class="kpi__delta">per patent</span>
           </article>
         </section>
 
-        <!-- Chart + recent -->
         <section class="split">
           <article class="panel panel--chart">
             <header class="panel__head">
-              <h3 class="panel__title">Tasks by status</h3>
-              <span class="eyebrow">Last {{ tasks().length }} items</span>
+              <h3 class="panel__title">Patents by IPC section</h3>
+              <span class="eyebrow">{{ patents().length }} publications</span>
             </header>
             <div class="chart-wrap">
               <canvas
@@ -122,28 +112,32 @@ import { GithubSyncService } from '../../services/github-sync.service';
 
           <article class="panel">
             <header class="panel__head">
-              <h3 class="panel__title">Recent activity</h3>
-              <a class="panel__link" routerLink="/tasks">
+              <h3 class="panel__title">Recent publications</h3>
+              <a class="panel__link" routerLink="/patents">
                 View all
                 <mat-icon>arrow_forward</mat-icon>
               </a>
             </header>
             @if (recent().length === 0) {
-              <p class="panel__empty">No tasks yet — they'll appear here.</p>
+              <p class="panel__empty">
+                No patents yet — they'll appear here.
+              </p>
             } @else {
               <ol class="feed">
-                @for (t of recent(); track t.id) {
+                @for (p of recent(); track p.id) {
                   <li class="feed__item">
-                    <span class="dot" [class]="'dot--' + t.status"></span>
-                    <a class="feed__title" [routerLink]="['/tasks', t.id]">
-                      {{ t.title }}
+                    <span class="feed__num mono">{{ p.patent_number }}</span>
+                    <a class="feed__title" [routerLink]="['/patents', p.id]">
+                      {{ p.title_en || '(untitled)' }}
                     </a>
                     <span class="feed__meta">
-                      <span class="pill pill--{{ statusPill(t.status) }}">
-                        {{ t.status | titlecase }}
-                      </span>
-                      @if (t.updated_at) {
-                        <span class="feed__time">{{ relative(t.updated_at) }}</span>
+                      @if (p.ipc_section) {
+                        <span class="pill pill--lime">{{ p.ipc_section }}</span>
+                      }
+                      @if (p.publication_date) {
+                        <span class="feed__time">
+                          {{ formatDate(p.publication_date) }}
+                        </span>
                       }
                     </span>
                   </li>
@@ -153,23 +147,25 @@ import { GithubSyncService } from '../../services/github-sync.service';
           </article>
         </section>
 
-        <!-- Projects strip -->
-        @if (projects().length > 0) {
+        @if (topApplicants().length > 0) {
           <section class="strip">
             <header class="strip__head">
-              <h3 class="panel__title">Projects</h3>
-              <a class="panel__link" routerLink="/projects">
-                Browse projects
+              <h3 class="panel__title">Top applicants</h3>
+              <a class="panel__link" routerLink="/applicants">
+                Full leaderboard
                 <mat-icon>arrow_forward</mat-icon>
               </a>
             </header>
             <div class="strip__grid">
-              @for (p of projects().slice(0, 4); track p.id) {
-                <a class="proj-card" [routerLink]="['/projects', p.id]">
-                  <span class="eyebrow">{{ taskCount(p.id) }} tasks</span>
-                  <h4 class="proj-card__title">{{ p.name }}</h4>
-                  @if (p.description) {
-                    <p class="proj-card__desc">{{ p.description }}</p>
+              @for (a of topApplicants(); track a.name) {
+                <a class="proj-card" routerLink="/applicants">
+                  <span class="eyebrow">
+                    {{ a.patents }}
+                    {{ a.patents === 1 ? 'patent' : 'patents' }}
+                  </span>
+                  <h4 class="proj-card__title">{{ a.name }}</h4>
+                  @if (a.country) {
+                    <p class="proj-card__desc mono">{{ a.country }}</p>
                   }
                   <span class="proj-card__arrow">
                     <mat-icon>north_east</mat-icon>
@@ -193,7 +189,6 @@ import { GithubSyncService } from '../../services/github-sync.service';
       gap: clamp(2rem, 4vw, 3.5rem);
     }
 
-    /* ── Hero ──────────────────────────────────────────────────── */
     .hero {
       display: flex;
       flex-direction: column;
@@ -229,13 +224,6 @@ import { GithubSyncService } from '../../services/github-sync.service';
       color: var(--cream);
     }
 
-    .loading {
-      display: flex;
-      justify-content: center;
-      padding: 4rem 0;
-    }
-
-    /* ── KPI cards ─────────────────────────────────────────────── */
     .kpis {
       display: grid;
       grid-template-columns: 2fr 1fr 1fr 1fr;
@@ -325,6 +313,7 @@ import { GithubSyncService } from '../../services/github-sync.service';
 
     .kpi__bar {
       display: flex;
+      gap: 2px;
       height: 0.375rem;
       border-radius: var(--radius-pill);
       overflow: hidden;
@@ -338,19 +327,6 @@ import { GithubSyncService } from '../../services/github-sync.service';
       transition: flex-grow var(--d-3) var(--ease-out);
     }
 
-    .kpi__bar-seg--open {
-      background: var(--emerald);
-    }
-
-    .kpi__bar-seg--in_progress {
-      background: var(--amber);
-    }
-
-    .kpi__bar-seg--closed {
-      background: var(--cream-dim);
-    }
-
-    /* ── Split: chart + recent ─────────────────────────────────── */
     .split {
       display: grid;
       grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
@@ -439,7 +415,6 @@ import { GithubSyncService } from '../../services/github-sync.service';
       padding: 1rem 0 0.5rem;
     }
 
-    /* Feed (recent tasks) */
     .feed {
       list-style: none;
       padding: 0;
@@ -461,6 +436,13 @@ import { GithubSyncService } from '../../services/github-sync.service';
       border-top: none;
     }
 
+    .feed__num {
+      font-family: var(--font-mono);
+      font-size: var(--text-caption);
+      letter-spacing: 0.04em;
+      color: var(--cream-dim);
+    }
+
     .feed__title {
       font-size: var(--text-body);
       color: var(--cream);
@@ -468,6 +450,7 @@ import { GithubSyncService } from '../../services/github-sync.service';
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      min-width: 0;
     }
 
     .feed__title:hover {
@@ -484,9 +467,9 @@ import { GithubSyncService } from '../../services/github-sync.service';
       font-family: var(--font-mono);
       font-size: var(--text-caption);
       color: var(--cream-dim);
+      white-space: nowrap;
     }
 
-    /* ── Projects strip ────────────────────────────────────────── */
     .strip {
       display: flex;
       flex-direction: column;
@@ -543,10 +526,6 @@ import { GithubSyncService } from '../../services/github-sync.service';
       font-size: var(--text-small);
       color: var(--cream-muted);
       line-height: 1.5;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
     }
 
     .proj-card__arrow {
@@ -572,29 +551,65 @@ import { GithubSyncService } from '../../services/github-sync.service';
 })
 export class Dashboard implements OnInit {
   private readonly data = inject(DataService);
-  private readonly sync = inject(GithubSyncService);
-  protected readonly appConfig = inject(AppConfigService);
 
-  protected readonly tasks = signal<Task[]>([]);
-  protected readonly projects = signal<Project[]>([]);
+  protected readonly patents = signal<Patent[]>([]);
+  protected readonly applicants = signal<Applicant[]>([]);
   protected readonly loading = signal(true);
   protected readonly greeting = greet();
 
-  protected readonly kpis = computed(() => {
-    const counts = { open: 0, in_progress: 0, closed: 0 };
-    for (const t of this.tasks()) counts[t.status]++;
-    return counts;
+  private readonly inventorNames = signal<Set<string>>(new Set());
+
+  protected readonly distinctApplicants = computed(() => {
+    const names = new Set<string>();
+    for (const a of this.applicants()) names.add(a.name);
+    return names.size;
+  });
+
+  protected readonly distinctInventors = computed(
+    () => this.inventorNames().size
+  );
+
+  protected readonly avgInventors = computed(() => {
+    const ps = this.patents();
+    if (ps.length === 0) return '0';
+    const total = ps.reduce((sum, p) => sum + (p.inventor_count ?? 0), 0);
+    return (total / ps.length).toFixed(1);
   });
 
   protected readonly recent = computed(() =>
-    [...this.tasks()]
+    [...this.patents()]
       .sort(
         (a, b) =>
-          (b.updated_at ? new Date(b.updated_at).getTime() : 0) -
-          (a.updated_at ? new Date(a.updated_at).getTime() : 0)
+          (b.publication_date ? new Date(b.publication_date).getTime() : 0) -
+          (a.publication_date ? new Date(a.publication_date).getTime() : 0)
       )
       .slice(0, 6)
   );
+
+  protected readonly sectionBars = computed(() => {
+    const counts = this.sectionCounts();
+    return IPC_SECTIONS.map((section, i) => ({
+      section,
+      count: counts[i],
+      color: sectionColor(section),
+    })).filter((s) => s.count > 0);
+  });
+
+  protected readonly topApplicants = computed(() => {
+    const byName = new Map<string, { name: string; country?: string; patents: number }>();
+    for (const a of this.applicants()) {
+      const existing = byName.get(a.name);
+      if (existing) {
+        existing.patents += 1;
+        existing.country ??= a.country;
+      } else {
+        byName.set(a.name, { name: a.name, country: a.country, patents: 1 });
+      }
+    }
+    return [...byName.values()]
+      .sort((x, y) => y.patents - x.patents || x.name.localeCompare(y.name))
+      .slice(0, 4);
+  });
 
   protected chartOptions: ChartConfiguration<'bar'>['options'] = {
     responsive: true,
@@ -611,6 +626,12 @@ export class Dashboard implements OnInit {
         bodyFont: { family: 'JetBrains Mono', size: 11 },
         padding: 10,
         displayColors: false,
+        callbacks: {
+          title: (items) => {
+            const s = items[0]?.label ?? '';
+            return `${s} — ${IPC_SECTION_LABELS[s] ?? ''}`;
+          },
+        },
       },
     },
     scales: {
@@ -636,85 +657,67 @@ export class Dashboard implements OnInit {
   };
 
   protected chartData: ChartConfiguration<'bar'>['data'] = {
-    labels: ['Open', 'In progress', 'Closed'],
+    labels: [...IPC_SECTIONS],
     datasets: [
       {
-        data: [0, 0, 0],
-        backgroundColor: ['#34d399', '#fbbf24', '#6b6677'],
+        data: IPC_SECTIONS.map(() => 0),
+        backgroundColor: IPC_SECTIONS.map((s) => sectionColor(s)),
         borderRadius: 4,
         borderSkipped: false,
-        barThickness: 32,
+        barThickness: 22,
       },
     ],
   };
 
   async ngOnInit(): Promise<void> {
-    void this.sync.maybeAutoSync().then(async (res) => {
-      if (res) await this.refresh();
-    });
     await this.refresh();
   }
 
-  protected pct(n: number): number {
-    const total = this.tasks().length;
-    if (!total) return 0;
-    return Math.round((n / total) * 100);
-  }
-
-  protected statusPill(status: string): string {
-    if (status === 'open') return 'emerald';
-    if (status === 'in_progress') return 'amber';
-    return '';
-  }
-
   protected totalLabel(): string {
-    const t = this.tasks().length;
-    if (t === 0) return 'Nothing on the board yet.';
-    if (t === 1) return 'One item in flight.';
-    return `${t} items in flight.`;
+    const t = this.patents().length;
+    if (t === 0) return 'Nothing on the register yet.';
+    if (t === 1) return 'One publication on file.';
+    return `${t} publications on file.`;
   }
 
-  protected syncMeta(): string {
-    const last = this.appConfig.lastSyncedAt();
-    if (!last) return 'never synced';
-    return `last synced ${this.relative(last)}`;
+  protected formatDate(d: Date | string | undefined): string {
+    if (!d) return '';
+    return new Date(d).toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
   }
 
-  protected relative(date: Date | string): string {
-    const d = typeof date === 'string' ? new Date(date) : date;
-    const diff = Date.now() - d.getTime();
-    const min = Math.round(diff / 60000);
-    if (min < 1) return 'just now';
-    if (min < 60) return `${min}m ago`;
-    const h = Math.round(min / 60);
-    if (h < 24) return `${h}h ago`;
-    const days = Math.round(h / 24);
-    if (days < 30) return `${days}d ago`;
-    return d.toLocaleDateString();
-  }
-
-  protected taskCount(projectId: string): number {
-    let n = 0;
-    for (const t of this.tasks()) if (t.project?.id === projectId) n++;
-    return n;
+  private sectionCounts(): number[] {
+    const counts = IPC_SECTIONS.map(() => 0);
+    for (const p of this.patents()) {
+      const s = p.ipc_section?.trim().charAt(0).toUpperCase();
+      const idx = s ? IPC_SECTIONS.indexOf(s as (typeof IPC_SECTIONS)[number]) : -1;
+      if (idx >= 0) counts[idx]++;
+    }
+    return counts;
   }
 
   private async refresh(): Promise<void> {
     this.loading.set(true);
     try {
-      const [tasks, projects] = await Promise.all([
-        this.data.listTasks(),
-        this.data.listProjects(),
+      const [patents, applicants, inventors] = await Promise.all([
+        this.data.listPatents(),
+        this.data.listApplicants(),
+        this.data.listInventors(),
       ]);
-      this.tasks.set(tasks);
-      this.projects.set(projects);
-      const c = this.kpis();
+      this.patents.set(patents);
+      this.applicants.set(applicants);
+      this.inventorNames.set(
+        new Set(inventors.map((i) => `${i.name}\u0000${i.country ?? ''}`))
+      );
       this.chartData = {
         ...this.chartData,
         datasets: [
           {
             ...this.chartData.datasets[0],
-            data: [c.open, c.in_progress, c.closed],
+            data: this.sectionCounts(),
           },
         ],
       };
@@ -722,6 +725,20 @@ export class Dashboard implements OnInit {
       this.loading.set(false);
     }
   }
+}
+
+function sectionColor(section: string): string {
+  const palette: Record<string, string> = {
+    A: '#34d399',
+    B: '#fbbf24',
+    C: '#d4ff3a',
+    D: '#f472b6',
+    E: '#60a5fa',
+    F: '#fb923c',
+    G: '#a78bfa',
+    H: '#22d3ee',
+  };
+  return palette[section] ?? '#6b6677';
 }
 
 function greet(): string {

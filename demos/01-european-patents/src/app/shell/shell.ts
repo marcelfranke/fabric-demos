@@ -1,8 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
   NavigationEnd,
@@ -13,19 +11,17 @@ import {
 } from '@angular/router';
 import { filter } from 'rxjs/operators';
 
-import { AppConfigService } from '../services/app-config.service';
 import { AuthState } from '../services/auth-state';
-import { GithubSyncService } from '../services/github-sync.service';
 import { ThemeService } from '../services/theme.service';
 
 const STORAGE_KEY = 'dashboard.sidenav.collapsed';
 
 // Static route → label map for the topbar page title. Subroutes fall back
-// to their first segment's label (e.g. /projects/abc → "Projects").
+// to their first segment's label (e.g. /patents/abc → "Patents").
 const ROUTE_LABELS: Record<string, string> = {
   '/': 'Dashboard',
-  '/projects': 'Projects',
-  '/tasks': 'Tasks',
+  '/patents': 'Patents',
+  '/applicants': 'Applicants',
   '/settings': 'Settings',
 };
 
@@ -34,7 +30,6 @@ const ROUTE_LABELS: Record<string, string> = {
   imports: [
     MatIconModule,
     MatMenuModule,
-    MatProgressBarModule,
     MatTooltipModule,
     RouterLink,
     RouterLinkActive,
@@ -45,9 +40,9 @@ const ROUTE_LABELS: Record<string, string> = {
       <aside class="rail" [class.rail--collapsed]="collapsed()">
         <a routerLink="/" class="brand" aria-label="Dashboard home">
           <span class="brand__mark" aria-hidden="true">
-            <mat-icon>work</mat-icon>
+            <mat-icon>article</mat-icon>
           </span>
-          <span class="brand__name">Atelier</span>
+          <span class="brand__name">EP&nbsp;Patents</span>
         </a>
 
         <nav class="nav">
@@ -63,24 +58,24 @@ const ROUTE_LABELS: Record<string, string> = {
             <span class="nav__label">Dashboard</span>
           </a>
           <a
-            routerLink="/projects"
+            routerLink="/patents"
             routerLinkActive="active"
             class="nav__item"
-            [matTooltip]="collapsed() ? 'Projects' : ''"
+            [matTooltip]="collapsed() ? 'Patents' : ''"
             matTooltipPosition="right"
           >
-            <mat-icon class="nav__icon">folder_open</mat-icon>
-            <span class="nav__label">Projects</span>
+            <mat-icon class="nav__icon">description</mat-icon>
+            <span class="nav__label">Patents</span>
           </a>
           <a
-            routerLink="/tasks"
+            routerLink="/applicants"
             routerLinkActive="active"
             class="nav__item"
-            [matTooltip]="collapsed() ? 'Tasks' : ''"
+            [matTooltip]="collapsed() ? 'Applicants' : ''"
             matTooltipPosition="right"
           >
-            <mat-icon class="nav__icon">checklist</mat-icon>
-            <span class="nav__label">Tasks</span>
+            <mat-icon class="nav__icon">domain</mat-icon>
+            <span class="nav__label">Applicants</span>
           </a>
         </nav>
 
@@ -117,23 +112,6 @@ const ROUTE_LABELS: Record<string, string> = {
           </div>
 
           <div class="topbar__actions">
-            @if (appConfig.isSynced()) {
-              <span class="sync-badge" [matTooltip]="syncTooltip()">
-                <span class="sync-badge__pulse"></span>
-                <span class="sync-badge__label">Synced</span>
-                <span class="sync-badge__repo">{{ appConfig.repo() }}</span>
-              </span>
-              <button
-                type="button"
-                class="ghost-btn"
-                (click)="syncNow()"
-                [disabled]="syncing()"
-                matTooltip="Resync from GitHub"
-                aria-label="Sync now"
-              >
-                <mat-icon>{{ syncing() ? 'autorenew' : 'refresh' }}</mat-icon>
-              </button>
-            }
             <button
               type="button"
               class="ghost-btn"
@@ -164,10 +142,6 @@ const ROUTE_LABELS: Record<string, string> = {
           </div>
         </header>
 
-        @if (syncing()) {
-          <mat-progress-bar mode="indeterminate" class="frame__progress" />
-        }
-
         <main class="content">
           <router-outlet />
         </main>
@@ -191,11 +165,7 @@ const ROUTE_LABELS: Record<string, string> = {
       grid-template-columns: 64px 1fr;
     }
 
-    /* ── Rail / sidebar (fixed) ────────────────────────────────────
-     * The rail is positioned outside the document flow so it never
-     * inherits the grid row's stretched height. The 1st grid column
-     * (240px / 64px) reserves the layout space so .frame still sits
-     * to the right of it. */
+    /* ── Rail / sidebar (fixed) ──────────────────────────────────── */
     .rail {
       position: fixed;
       top: 0;
@@ -225,9 +195,6 @@ const ROUTE_LABELS: Record<string, string> = {
       width: 64px;
     }
 
-    /* Collapsed: just hide the labels' width. Icons are already at the
-     * same x-position in both states (1.375rem padding-left), so no
-     * justify-content swap is needed → no jump on toggle. */
     .rail--collapsed .nav__label {
       width: 0;
       overflow: hidden;
@@ -237,10 +204,6 @@ const ROUTE_LABELS: Record<string, string> = {
       display: flex;
       align-items: center;
       gap: 0.625rem;
-      /* The rail itself adds 0.75rem horizontal padding. 0.5rem here
-       * gives 1.25rem from the rail edge, which centres the ~24px
-       * Fraunces ◐ mark in the collapsed 64px rail. Same padding in
-       * expanded mode keeps the mark at the exact same x-position. */
       padding: 0 0.5rem 0.25rem;
       color: var(--cream);
       transition: color var(--d-1) var(--ease-out);
@@ -306,11 +269,6 @@ const ROUTE_LABELS: Record<string, string> = {
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      /* The rail itself adds 0.75rem horizontal padding. Adding 0.625rem
-       * here gives 1.375rem from the rail edge — which centres a 20px
-       * icon in the 64px collapsed rail. Same padding in expanded mode
-       * keeps the icon at the exact same x-position so toggling doesn't
-       * jump. */
       padding: 0.625rem 0.625rem;
       height: 2.5rem;
       border-radius: var(--radius-sm);
@@ -447,7 +405,6 @@ const ROUTE_LABELS: Record<string, string> = {
       gap: 0.5rem;
     }
 
-    /* Ghost button (used in toolbar). */
     .ghost-btn {
       display: inline-flex;
       align-items: center;
@@ -479,65 +436,6 @@ const ROUTE_LABELS: Record<string, string> = {
       height: 18px;
     }
 
-    /* Sync badge — small, glowing dot + label. */
-    .sync-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      height: 2.25rem;
-      padding: 0 0.875rem;
-      border-radius: var(--radius-pill);
-      background: var(--accent-soft);
-      border: 1px solid var(--accent-border);
-      font-family: var(--font-mono);
-      font-size: var(--text-caption);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--accent);
-      max-width: 22rem;
-    }
-
-    .sync-badge__pulse {
-      position: relative;
-      width: 0.45rem;
-      height: 0.45rem;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 0 0 var(--accent-glow);
-      animation: pulse 2.2s var(--ease-out) infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% {
-        box-shadow: 0 0 0 0 var(--accent-glow);
-      }
-      50% {
-        box-shadow: 0 0 0 6px transparent;
-      }
-    }
-
-    .sync-badge__label {
-      font-weight: 600;
-    }
-
-    .sync-badge__repo {
-      color: var(--cream-muted);
-      text-transform: none;
-      letter-spacing: 0;
-      font-family: var(--font-mono);
-      font-size: var(--text-caption);
-      max-width: 14rem;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .frame__progress {
-      position: sticky;
-      top: 56px;
-      z-index: 4;
-    }
-
     .content {
       flex: 1;
       padding: 2.5rem 2rem 4rem;
@@ -561,8 +459,6 @@ const ROUTE_LABELS: Record<string, string> = {
         opacity: 0;
       }
 
-      /* Mobile rail is forced collapsed: the toggle does nothing useful,
-       * so hide it. */
       .rail__collapse {
         display: none;
       }
@@ -588,18 +484,14 @@ const ROUTE_LABELS: Record<string, string> = {
   `,
 })
 export class Shell implements OnInit {
-  protected readonly appConfig = inject(AppConfigService);
   protected readonly theme = inject(ThemeService);
-  private readonly sync = inject(GithubSyncService);
   private readonly authState = inject(AuthState);
   private readonly router = inject(Router);
-  private readonly snack = inject(MatSnackBar);
 
   protected readonly collapsed = signal(
     typeof localStorage !== 'undefined' &&
       localStorage.getItem(STORAGE_KEY) === '1'
   );
-  protected readonly syncing = signal(false);
   protected readonly currentUrl = signal(this.router.url);
 
   /** Topbar label — first segment lookup, falls back to dash. */
@@ -611,20 +503,12 @@ export class Shell implements OnInit {
   });
 
   /** Static eyebrow label — what's to the left of the slash. */
-  protected readonly section = computed(() => {
-    return this.pageTitle() === 'Dashboard' ? 'Workspace' : 'Workspace';
-  });
+  protected readonly section = computed(() => 'Workspace');
 
   ngOnInit(): void {
     this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
       .subscribe((e) => this.currentUrl.set(e.urlAfterRedirects));
-  }
-
-  protected syncTooltip(): string {
-    const last = this.appConfig.lastSyncedAt();
-    if (!last) return 'Never synced';
-    return `Last synced: ${new Date(last).toLocaleString()}`;
   }
 
   protected toggleCollapsed(): void {
@@ -634,24 +518,6 @@ export class Shell implements OnInit {
       localStorage.setItem(STORAGE_KEY, next ? '1' : '0');
     } catch {
       // Ignore — private mode, full storage, etc.
-    }
-  }
-
-  protected async syncNow(): Promise<void> {
-    if (this.syncing()) return;
-    this.syncing.set(true);
-    try {
-      const result = await this.sync.syncNow();
-      this.snack.open(
-        `Synced ${result.total} items (${result.created} new, ${result.updated} updated)`,
-        'Dismiss',
-        { duration: 4000 }
-      );
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Sync failed';
-      this.snack.open(msg, 'Dismiss', { duration: 6000 });
-    } finally {
-      this.syncing.set(false);
     }
   }
 

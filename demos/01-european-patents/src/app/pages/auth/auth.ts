@@ -18,9 +18,9 @@ import { ThemeService } from '../../services/theme.service';
       <header class="brand-row">
         <div class="brand">
           <span class="brand__mark" aria-hidden="true">
-            <mat-icon>work</mat-icon>
+            <mat-icon>article</mat-icon>
           </span>
-          <span class="brand__name">Atelier</span>
+          <span class="brand__name">EP&nbsp;Patents</span>
         </div>
 
         <button
@@ -39,14 +39,14 @@ import { ThemeService } from '../../services/theme.service';
       </header>
 
       <main class="hero">
-        <p class="eyebrow">Project &amp; task workspace</p>
+        <p class="eyebrow">European patents workspace</p>
         <h1 class="hero__title">
-          Where <em>work</em> takes<br />
-          its proper shape.
+          European patents,<br />
+          <em>clearly</em> catalogued.
         </h1>
         <p class="hero__lead">
-          A quiet, considered place for projects and the work they hold.
-          Sign in to continue.
+          Browse EP publications with their applicants, inventors and
+          classifications. Sign in to continue.
         </p>
 
         <div class="hero__action">
@@ -77,7 +77,7 @@ import { ThemeService } from '../../services/theme.service';
       </main>
 
       <footer class="meta">
-        <span>© Atelier {{ year }}</span>
+        <span>© EP Patents {{ year }}</span>
         <span class="meta__dot">·</span>
         <span>Built on Rayfin</span>
       </footer>
