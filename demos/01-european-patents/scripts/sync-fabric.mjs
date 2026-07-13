@@ -26,7 +26,8 @@
  * Usage:
  *   node scripts/sync-fabric.mjs
  * Env overrides:
- *   FABRIC_DATASET_ID, FABRIC_WORKSPACE_ID, FABRIC_PATENT_SLICE (default 400),
+ *   LIVE_ROW_LIMIT (bounded patent slice, default 1500; alias
+ *   FABRIC_PATENT_SLICE), FABRIC_DATASET_ID, FABRIC_WORKSPACE_ID,
  *   FABRIC_APPLICANT_TOP (default 100), FABRIC_PBI_TOKEN, FABRIC_OUT_DIR
  */
 
@@ -42,7 +43,9 @@ const DATASET_ID =
   process.env.FABRIC_DATASET_ID ?? '4ff3efcc-8540-4349-9d2e-0dcf149e3332';
 const WORKSPACE_ID =
   process.env.FABRIC_WORKSPACE_ID ?? '5e0747bf-be6c-449b-b0cc-1911bd54577f';
-const PATENT_SLICE = Number(process.env.FABRIC_PATENT_SLICE ?? 400);
+const PATENT_SLICE = Number(
+  process.env.LIVE_ROW_LIMIT ?? process.env.FABRIC_PATENT_SLICE ?? 1500
+);
 const APPLICANT_TOP = Number(process.env.FABRIC_APPLICANT_TOP ?? 100);
 const OUT_DIR =
   process.env.FABRIC_OUT_DIR ?? join(projectRoot, 'src', 'assets', 'live');
