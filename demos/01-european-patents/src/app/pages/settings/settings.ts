@@ -109,7 +109,8 @@ import { getRayfinClient } from '../../../services/rayfinClient';
             Material
           </a>
           . Data model mirrors the Fabric semantic model. Typeset in
-          <span class="serif">Fraunces</span> and DM Sans.
+          <span class="serif">Segoe UI</span>, following the Microsoft
+          Fluent brand.
         </p>
       </footer>
     </div>

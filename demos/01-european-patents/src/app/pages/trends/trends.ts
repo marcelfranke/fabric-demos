@@ -21,6 +21,7 @@ import {
   TrendsService,
   bucketOf,
 } from '../../services/trends.service';
+import { PALETTE, chartInk, sectionColor } from '../../brand';
 
 type Basis = 'publication' | 'filing';
 type Dimension = 'section' | 'appCountry' | 'pubCountry' | 'scheme';
@@ -37,11 +38,6 @@ const IPC_SECTION_LABELS: Record<string, string> = {
   G: 'Physics',
   H: 'Electricity',
 };
-
-const PALETTE = [
-  '#d4ff3a', '#34d399', '#fbbf24', '#60a5fa', '#f472b6', '#a78bfa',
-  '#22d3ee', '#fb923c', '#4ade80', '#f87171', '#38bdf8', '#facc15',
-];
 
 const GRANULARITIES: { key: Granularity; label: string }[] = [
   { key: 'month', label: 'Month' },
@@ -775,46 +771,7 @@ export class Trends implements OnInit, OnDestroy {
     datasets: [{ data: [], backgroundColor: [], borderRadius: 4, borderSkipped: false }],
   };
 
-  protected chartOptions: ChartConfiguration<'bar'>['options'] = {
-    indexAxis: 'y',
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: { duration: 500, easing: 'easeOutCubic' },
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: '#1d1a26',
-        borderColor: '#2a2532',
-        borderWidth: 1,
-        titleColor: '#f4ecdf',
-        bodyColor: '#a39db1',
-        titleFont: { family: 'JetBrains Mono', size: 11 },
-        bodyFont: { family: 'JetBrains Mono', size: 11 },
-        padding: 10,
-        displayColors: false,
-        callbacks: {
-          title: (items) => {
-            const s = items[0]?.label ?? '';
-            return IPC_SECTION_LABELS[s] ? `${s} — ${IPC_SECTION_LABELS[s]}` : s;
-          },
-          label: (item) => `${Number(item.raw).toLocaleString()} patents`,
-        },
-      },
-    },
-    scales: {
-      x: {
-        beginAtZero: true,
-        grid: { color: 'rgba(255,255,255,0.03)' },
-        ticks: { precision: 0, color: '#a39db1', font: { family: 'JetBrains Mono', size: 10 } },
-        border: { color: '#2a2532' },
-      },
-      y: {
-        grid: { display: false },
-        ticks: { color: '#f4ecdf', font: { family: 'JetBrains Mono', size: 12 } },
-        border: { color: '#2a2532' },
-      },
-    },
-  };
+  protected chartOptions: ChartConfiguration<'bar'>['options'] = buildRaceOptions();
 
   constructor() {
     // Keep the frame in range whenever the series changes, and repaint.
@@ -964,11 +921,46 @@ export class Trends implements OnInit, OnDestroy {
   }
 }
 
-function sectionColor(section: string): string {
-  const palette: Record<string, string> = {
-    A: '#34d399', B: '#fbbf24', C: '#d4ff3a', D: '#f472b6',
-    E: '#60a5fa', F: '#fb923c', G: '#a78bfa', H: '#22d3ee',
-    Y: '#94a3b8',
+function buildRaceOptions(): ChartConfiguration<'bar'>['options'] {
+  const ink = chartInk();
+  return {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 500, easing: 'easeOutCubic' },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: ink.surface,
+        borderColor: ink.border,
+        borderWidth: 1,
+        titleColor: ink.title,
+        bodyColor: ink.body,
+        titleFont: { family: ink.mono, size: 11 },
+        bodyFont: { family: ink.mono, size: 11 },
+        padding: 10,
+        displayColors: false,
+        callbacks: {
+          title: (items) => {
+            const s = items[0]?.label ?? '';
+            return IPC_SECTION_LABELS[s] ? `${s} — ${IPC_SECTION_LABELS[s]}` : s;
+          },
+          label: (item) => `${Number(item.raw).toLocaleString()} patents`,
+        },
+      },
+    },
+    scales: {
+      x: {
+        beginAtZero: true,
+        grid: { color: ink.grid },
+        ticks: { precision: 0, color: ink.body, font: { family: ink.mono, size: 10 } },
+        border: { color: ink.border },
+      },
+      y: {
+        grid: { display: false },
+        ticks: { color: ink.title, font: { family: ink.mono, size: 12 } },
+        border: { color: ink.border },
+      },
+    },
   };
-  return palette[section?.charAt(0)?.toUpperCase()] ?? '#6b6677';
 }

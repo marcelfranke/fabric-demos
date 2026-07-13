@@ -10,6 +10,7 @@ import {
   type DataStats,
   DataService,
 } from '../../services/data.service';
+import { chartInk, sectionColor } from '../../brand';
 
 const IPC_SECTIONS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] as const;
 const IPC_SECTION_LABELS: Record<string, string> = {
@@ -601,50 +602,7 @@ export class Dashboard implements OnInit {
     this.leaders().slice(0, 4)
   );
 
-  protected chartOptions: ChartConfiguration<'bar'>['options'] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: '#1d1a26',
-        borderColor: '#2a2532',
-        borderWidth: 1,
-        titleColor: '#f4ecdf',
-        bodyColor: '#a39db1',
-        titleFont: { family: 'JetBrains Mono', size: 11 },
-        bodyFont: { family: 'JetBrains Mono', size: 11 },
-        padding: 10,
-        displayColors: false,
-        callbacks: {
-          title: (items) => {
-            const s = items[0]?.label ?? '';
-            return `${s} — ${IPC_SECTION_LABELS[s] ?? ''}`;
-          },
-        },
-      },
-    },
-    scales: {
-      x: {
-        grid: { color: 'rgba(255,255,255,0.03)' },
-        ticks: {
-          color: '#a39db1',
-          font: { family: 'JetBrains Mono', size: 10 },
-        },
-        border: { color: '#2a2532' },
-      },
-      y: {
-        beginAtZero: true,
-        ticks: {
-          precision: 0,
-          color: '#a39db1',
-          font: { family: 'JetBrains Mono', size: 10 },
-        },
-        grid: { color: 'rgba(255,255,255,0.03)' },
-        border: { color: '#2a2532' },
-      },
-    },
-  };
+  protected chartOptions: ChartConfiguration<'bar'>['options'] = buildBarOptions();
 
   protected chartData: ChartConfiguration<'bar'>['data'] = {
     labels: [...IPC_SECTIONS],
@@ -710,18 +668,49 @@ export class Dashboard implements OnInit {
   }
 }
 
-function sectionColor(section: string): string {
-  const palette: Record<string, string> = {
-    A: '#34d399',
-    B: '#fbbf24',
-    C: '#d4ff3a',
-    D: '#f472b6',
-    E: '#60a5fa',
-    F: '#fb923c',
-    G: '#a78bfa',
-    H: '#22d3ee',
+function buildBarOptions(): ChartConfiguration<'bar'>['options'] {
+  const ink = chartInk();
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: ink.surface,
+        borderColor: ink.border,
+        borderWidth: 1,
+        titleColor: ink.title,
+        bodyColor: ink.body,
+        titleFont: { family: ink.mono, size: 11 },
+        bodyFont: { family: ink.mono, size: 11 },
+        padding: 10,
+        displayColors: false,
+        callbacks: {
+          title: (items) => {
+            const s = items[0]?.label ?? '';
+            return `${s} — ${IPC_SECTION_LABELS[s] ?? ''}`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        grid: { color: ink.grid },
+        ticks: { color: ink.body, font: { family: ink.mono, size: 10 } },
+        border: { color: ink.border },
+      },
+      y: {
+        beginAtZero: true,
+        ticks: {
+          precision: 0,
+          color: ink.body,
+          font: { family: ink.mono, size: 10 },
+        },
+        grid: { color: ink.grid },
+        border: { color: ink.border },
+      },
+    },
   };
-  return palette[section] ?? '#6b6677';
 }
 
 function greet(): string {
