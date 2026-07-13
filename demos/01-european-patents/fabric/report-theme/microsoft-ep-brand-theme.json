@@ -1,0 +1,48 @@
+{
+  "name": "Microsoft EP Brand",
+  "dataColors": [
+    "#F25022",
+    "#7FBA00",
+    "#00A4EF",
+    "#FFB900",
+    "#0078D4",
+    "#605E5C"
+  ],
+  "foreground": "#201F1E",
+  "foregroundNeutralSecondary": "#605E5C",
+  "foregroundNeutralTertiary": "#8A8886",
+  "background": "#FAF9F8",
+  "backgroundLight": "#F3F2F1",
+  "backgroundNeutral": "#EDEBE9",
+  "tableAccent": "#0078D4",
+  "good": "#107C10",
+  "neutral": "#FFB900",
+  "bad": "#D13438",
+  "maximum": "#0078D4",
+  "center": "#FFB900",
+  "minimum": "#EDEBE9",
+  "null": "#8A8886",
+  "hyperlink": "#0078D4",
+  "visitedHyperlink": "#005A9E",
+  "textClasses": {
+    "callout": {
+      "fontFace": "Segoe UI Semibold",
+      "color": "#201F1E"
+    },
+    "title": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 12,
+      "color": "#201F1E"
+    },
+    "header": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 12,
+      "color": "#201F1E"
+    },
+    "label": {
+      "fontFace": "Segoe UI",
+      "fontSize": 10,
+      "color": "#201F1E"
+    }
+  }
+}
