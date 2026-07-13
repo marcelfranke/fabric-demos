@@ -14,7 +14,9 @@ app stay visually identical.
 | Series 3 (Microsoft Blue) | `#00A4EF` |
 | Series 4 (Microsoft Yellow) | `#FFB900` |
 | Series 5 (Fluent primary blue) | `#0078D4` |
-| Series 6 (neutral) | `#605E5C` |
+| Series 6 (Fluent purple) | `#8661C5` |
+| Series 7 (Fluent teal) | `#00B7C3` |
+| Series 8 (Fluent magenta) | `#E3008C` |
 | Foreground / primary text | `#201F1E` |
 | Secondary text | `#605E5C` |
 | Background | `#FAF9F8` |
@@ -23,6 +25,17 @@ app stay visually identical.
 | Neutral | `#FFB900` |
 | Bad | `#D13438` |
 | Font family (all text classes) | Segoe UI |
+
+The `dataColors` order (Series 1–8 above) is identical to `SERIES` in the
+app's shared color constant (`src/app/brand.ts`), so the workspace report and
+the Rayfin app render the same category in the same color.
+
+## Using the theme in Power BI Desktop (.pbip authors)
+
+When editing the report in **Power BI Desktop**:
+**View → Themes → Browse for themes** → select
+`microsoft-ep-brand-theme.json`. Save the `.pbip`; the theme is written into
+the report's PBIR definition and travels with the report in Git.
 
 ## How to apply it to the live workspace report (manual — REQUIRED here)
 

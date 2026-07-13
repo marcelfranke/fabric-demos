@@ -50,14 +50,13 @@ export const SERIES: readonly string[] = [
   BRAND.logoBlue, // #00A4EF
   BRAND.yellow, // #FFB900
   BRAND.blue, // #0078D4
-  BRAND.textSecondary, // #605E5C — matches the Power BI theme dataColors[5]
-  // Extensions beyond the shared 6 (for the 8 IPC sections / top-12 race).
   '#8661C5', // Fluent purple
   '#00B7C3', // Fluent teal
   '#E3008C', // Fluent magenta
   '#498205', // Fluent dark green
   '#005A9E', // Fluent dark blue
   '#CA5010', // Fluent burnt orange
+  '#5C2E91', // Fluent deep purple
 ];
 
 /** Alias kept for readability where a generic categorical palette is used. */
