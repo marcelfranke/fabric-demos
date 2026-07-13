@@ -1,0 +1,45 @@
+/// Named inventors; many per patent.
+table Inventor
+	lineageTag: b65fe8ad-73b4-401e-b350-b085edc51686
+
+	/// Distinct named inventors in context.
+	measure 'Distinct Inventors' = DISTINCTCOUNT(Inventor[Inventor Name])
+		formatString: #,##0
+		displayFolder: Counts
+		lineageTag: a6c4b9f3-a181-4b9f-a1b6-07f11c253a39
+
+	/// Distinct patents linked to the inventors in context.
+	measure 'Patents per Inventor' = DISTINCTCOUNT(Inventor[Patent Number])
+		formatString: #,##0
+		displayFolder: Counts
+		lineageTag: 7a1072c5-a49e-4945-930a-549e8b6d742d
+
+	column 'Patent Number'
+		dataType: string
+		isHidden
+		lineageTag: 5622d382-119b-4512-9c5d-46931d5dee42
+		sourceColumn: patent_number
+
+	column 'Inventor Name'
+		dataType: string
+		lineageTag: 16e11174-c76a-4501-af97-61fb3fde92fb
+		sourceColumn: name
+
+	column 'Inventor Country'
+		dataType: string
+		lineageTag: 25c0fd8a-55df-4d98-8052-829f1f33142d
+		dataCategory: Country
+		sourceColumn: country
+
+	column 'Inventor Sequence'
+		dataType: string
+		isHidden
+		lineageTag: 607d0ca2-2832-4068-a76f-36f35fbd3b01
+		sourceColumn: seq
+
+	partition Inventor = entity
+		mode: directLake
+		source
+			entityName: silver_patent_inventors
+			expressionSource: 'DirectLake - European Patents'
+

@@ -1,0 +1,7 @@
+expression 'DirectLake - European Patents' =
+		let
+		    Source = AzureStorage.DataLake("https://onelake.dfs.fabric.microsoft.com/5e0747bf-be6c-449b-b0cc-1911bd54577f/adcba2df-ba38-48dd-a5b4-07dbde1a01ee", [HierarchicalNavigation=true])
+		in
+		    Source
+	lineageTag: c151c158-713e-443b-b302-e143ac7ecbb9
+

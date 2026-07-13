@@ -1,0 +1,24 @@
+relationship 'Classification_Patent Number_Patent_Patent Number'
+	fromColumn: Classification.'Patent Number'
+	toColumn: Patent.'Patent Number'
+
+relationship 'Applicant_Patent Number_Patent_Patent Number'
+	fromColumn: Applicant.'Patent Number'
+	toColumn: Patent.'Patent Number'
+
+relationship 'Inventor_Patent Number_Patent_Patent Number'
+	fromColumn: Inventor.'Patent Number'
+	toColumn: Patent.'Patent Number'
+
+relationship 'Priority_Patent Number_Patent_Patent Number'
+	fromColumn: Priority.'Patent Number'
+	toColumn: Patent.'Patent Number'
+
+relationship 'Title_Patent Number_Patent_Patent Number'
+	fromColumn: Title.'Patent Number'
+	toColumn: Patent.'Patent Number'
+
+relationship 'Date_Date_Patent_Publication Date'
+	fromColumn: Patent.'Publication Date'
+	toColumn: Date.Date
+

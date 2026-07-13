@@ -1,0 +1,46 @@
+/// IPC/CPC classifications; many per patent.
+table Classification
+	lineageTag: e3c3b0a6-ff71-4258-a1eb-8a417ec6db08
+
+	/// Total IPC/CPC classification entries in context.
+	measure 'Total Classifications' = COUNTROWS(Classification)
+		formatString: #,##0
+		displayFolder: Counts
+		lineageTag: 60ad9f46-93a0-4526-8802-a98559457f81
+
+	/// Distinct patents in a classification. Put Section or Symbol on an axis to rank classifications by patent count.
+	measure 'Patents per Classification' = DISTINCTCOUNT(Classification[Patent Number])
+		formatString: #,##0
+		displayFolder: Counts
+		lineageTag: 1b35355c-6e12-4676-ae2d-1c0ea15fc476
+
+	column 'Patent Number'
+		dataType: string
+		isHidden
+		lineageTag: 94aaf17d-7844-43ca-acd0-388b772ceab0
+		sourceColumn: patent_number
+
+	/// Classification symbol (e.g. A61F 2/24).
+	column Symbol
+		dataType: string
+		lineageTag: 6045bee7-2d1e-469b-8123-14a47cc12860
+		sourceColumn: symbol
+
+	/// Scheme: IPC or CPC.
+	column Scheme
+		dataType: string
+		lineageTag: 2f64e26b-e4d5-4758-b06e-3d4eb5539166
+		sourceColumn: scheme
+
+	/// First-letter section (A-H).
+	column Section
+		dataType: string
+		lineageTag: 6fd4b6c6-7489-4a22-9e06-25a3ad00ca36
+		sourceColumn: section
+
+	partition Classification = entity
+		mode: directLake
+		source
+			entityName: silver_patent_classifications
+			expressionSource: 'DirectLake - European Patents'
+
