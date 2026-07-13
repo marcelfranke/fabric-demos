@@ -43,6 +43,11 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'trends',
+        loadComponent: () =>
+          import('./pages/trends/trends').then((m) => m.Trends),
+      },
+      {
         path: 'settings',
         loadComponent: () =>
           import('./pages/settings/settings').then((m) => m.Settings),

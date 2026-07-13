@@ -310,9 +310,123 @@ async function main() {
     .filter((r) => r.name)
     .sort((a, b) => b.patents - a.patents || a.name.localeCompare(b.name));
 
+  // ── Trends: applications / publications over time ───────────────────────
+  const generatedAt = new Date().toISOString();
+  // The Date dimension joins Patent on Publication Date, so publication-basis
+  // buckets come straight from Date[Year Month]. Filing Date has no
+  // relationship, so we group by the raw day and roll up to month in-script.
+  const monthOf = (v) => {
+    const s = toStr(v);
+    if (!s) return null;
+    // "YYYY-MM" already, or an ISO dateTime we truncate to month.
+    return /^\d{4}-\d{2}$/.test(s) ? s : s.slice(0, 7);
+  };
+
+  const factsPublication = (
+    await dax(
+      token,
+      'EVALUATE SELECTCOLUMNS(SUMMARIZECOLUMNS(' +
+        '\'Date\'[Year Month], Patent[IPC Section], ' +
+        'Patent[Publication Country], Patent[Applicant Country], ' +
+        '"c", [Total Patents]), ' +
+        '"period", \'Date\'[Year Month], ' +
+        '"section", Patent[IPC Section], ' +
+        '"pub_country", Patent[Publication Country], ' +
+        '"app_country", Patent[Applicant Country], ' +
+        '"count", [c])'
+    )
+  )
+    .map((r) => ({
+      period: monthOf(r.period),
+      section: toStr(r.section),
+      pubCountry: toStr(r.pub_country),
+      appCountry: toStr(r.app_country),
+      count: toNum(r.count) ?? 0,
+    }))
+    .filter((r) => r.period && r.count > 0);
+
+  const factsFiling = rollupByMonth(
+    (
+      await dax(
+        token,
+        'EVALUATE SELECTCOLUMNS(SUMMARIZECOLUMNS(' +
+          'Patent[Filing Date], Patent[IPC Section], ' +
+          'Patent[Publication Country], Patent[Applicant Country], ' +
+          '"c", [Total Patents]), ' +
+          '"period", Patent[Filing Date], ' +
+          '"section", Patent[IPC Section], ' +
+          '"pub_country", Patent[Publication Country], ' +
+          '"app_country", Patent[Applicant Country], ' +
+          '"count", [c])'
+      )
+    )
+      .map((r) => ({
+        period: monthOf(r.period),
+        section: toStr(r.section),
+        pubCountry: toStr(r.pub_country),
+        appCountry: toStr(r.app_country),
+        count: toNum(r.count) ?? 0,
+      }))
+      .filter((r) => r.period && r.count > 0)
+  );
+
+  const schemePublication = (
+    await dax(
+      token,
+      'EVALUATE SELECTCOLUMNS(SUMMARIZECOLUMNS(' +
+        '\'Date\'[Year Month], Classification[Scheme], ' +
+        'Classification[Section], "c", [Total Patents]), ' +
+        '"period", \'Date\'[Year Month], ' +
+        '"scheme", Classification[Scheme], ' +
+        '"section", Classification[Section], ' +
+        '"count", [c])'
+    )
+  )
+    .map((r) => ({
+      period: monthOf(r.period),
+      scheme: toStr(r.scheme),
+      section: toStr(r.section),
+      count: toNum(r.count) ?? 0,
+    }))
+    .filter((r) => r.period && r.scheme && r.count > 0);
+
+  const schemeFiling = rollupScheme(
+    (
+      await dax(
+        token,
+        'EVALUATE SELECTCOLUMNS(SUMMARIZECOLUMNS(' +
+          'Patent[Filing Date], Classification[Scheme], ' +
+          'Classification[Section], "c", [Total Patents]), ' +
+          '"period", Patent[Filing Date], ' +
+          '"scheme", Classification[Scheme], ' +
+          '"section", Classification[Section], ' +
+          '"count", [c])'
+      )
+    )
+      .map((r) => ({
+        period: monthOf(r.period),
+        scheme: toStr(r.scheme),
+        section: toStr(r.section),
+        count: toNum(r.count) ?? 0,
+      }))
+      .filter((r) => r.period && r.scheme && r.count > 0)
+  );
+
+  const periods = [
+    ...new Set(
+      [...factsPublication, ...factsFiling].map((r) => r.period)
+    ),
+  ].sort();
+
+  const trends = {
+    generatedAt,
+    periods,
+    publication: { facts: factsPublication, scheme: schemePublication },
+    filing: { facts: factsFiling, scheme: schemeFiling },
+  };
+
   // ── Write assets ────────────────────────────────────────────────────────
   mkdirSync(OUT_DIR, { recursive: true });
-  const generatedAt = new Date().toISOString();
   const meta = {
     generatedAt,
     datasetId: DATASET_ID,
@@ -321,6 +435,7 @@ async function main() {
     readOnly: true,
     patentSlice: patents.length,
     applicantTop: leaderboard.length,
+    trendPeriods: periods.length,
   };
   const write = (name, data) =>
     writeFileSync(join(OUT_DIR, name), JSON.stringify(data, null, 2) + '\n', 'utf8');
@@ -329,6 +444,7 @@ async function main() {
   write('stats.json', stats);
   write('patents.json', { generatedAt, patents });
   write('applicants.json', { generatedAt, leaderboard });
+  write('trends.json', trends);
 
   console.log('✓ Live data written to', OUT_DIR);
   console.log(
@@ -338,6 +454,34 @@ async function main() {
   console.log(
     `  slice: ${patents.length} patents · leaderboard: ${leaderboard.length} applicants`
   );
+  console.log(
+    `  trends: ${periods.length} periods · ${factsPublication.length}+${factsFiling.length} facts · ` +
+      `${schemePublication.length}+${schemeFiling.length} scheme rows`
+  );
+}
+
+/** Roll day-grain patent facts up to month, summing counts per dim combo. */
+function rollupByMonth(rows) {
+  const map = new Map();
+  for (const r of rows) {
+    const key = `${r.period}|${r.section ?? ''}|${r.pubCountry ?? ''}|${r.appCountry ?? ''}`;
+    const existing = map.get(key);
+    if (existing) existing.count += r.count;
+    else map.set(key, { ...r });
+  }
+  return [...map.values()];
+}
+
+/** Roll day-grain scheme facts up to month. */
+function rollupScheme(rows) {
+  const map = new Map();
+  for (const r of rows) {
+    const key = `${r.period}|${r.scheme ?? ''}|${r.section ?? ''}`;
+    const existing = map.get(key);
+    if (existing) existing.count += r.count;
+    else map.set(key, { ...r });
+  }
+  return [...map.values()];
 }
 
 main().catch((err) => {

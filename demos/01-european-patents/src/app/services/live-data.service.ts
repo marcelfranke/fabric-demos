@@ -24,6 +24,40 @@ export interface ApplicantLeader {
   patents: number;
 }
 
+/** Date basis for the trends time-series. */
+export type TrendBasis = 'publication' | 'filing';
+
+/** One (period, section, country) count of patents. */
+export interface TrendFact {
+  /** Month bucket, "YYYY-MM". */
+  period: string;
+  section: string | null;
+  pubCountry: string | null;
+  appCountry: string | null;
+  count: number;
+}
+
+/** One (period, scheme, section) count from the classification bridge. */
+export interface SchemeFact {
+  period: string;
+  scheme: string | null;
+  section: string | null;
+  count: number;
+}
+
+/** The whole trends payload for one date basis. */
+export interface TrendSeries {
+  facts: TrendFact[];
+  scheme: SchemeFact[];
+}
+
+/** Full trends dataset (both bases + the sorted list of month periods). */
+export interface TrendsData {
+  periods: string[];
+  publication: TrendSeries;
+  filing: TrendSeries;
+}
+
 interface LiveChildApplicant {
   name: string | null;
   country: string | null;
@@ -74,10 +108,29 @@ export class LiveDataService {
   private statsCache?: Promise<DataStats>;
   private patentsCache?: Promise<LivePatent[]>;
   private leaderboardCache?: Promise<ApplicantLeader[]>;
+  private trendsCache?: Promise<TrendsData>;
 
   async stats(): Promise<DataStats> {
     this.statsCache ??= this.fetchJson<DataStats>('stats.json');
     return this.statsCache;
+  }
+
+  /** Time-series facts for the "applications over time" page. */
+  async trends(): Promise<TrendsData> {
+    this.trendsCache ??= this.fetchJson<TrendsData>('trends.json').then(
+      (d) => ({
+        periods: d.periods ?? [],
+        publication: {
+          facts: d.publication?.facts ?? [],
+          scheme: d.publication?.scheme ?? [],
+        },
+        filing: {
+          facts: d.filing?.facts ?? [],
+          scheme: d.filing?.scheme ?? [],
+        },
+      })
+    );
+    return this.trendsCache;
   }
 
   async listPatents(): Promise<Patent[]> {
