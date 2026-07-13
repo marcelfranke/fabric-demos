@@ -6,7 +6,7 @@ import { getRayfinClient } from '../../services/rayfinClient';
 
 import { APP_CONFIG_ID } from './constants';
 
-export type SetupMode = 'pending' | 'empty' | 'sample';
+export type SetupMode = 'pending' | 'empty' | 'sample' | 'live';
 
 // The SDK's `findById` / default field selection only returns the primary
 // key, so we have to be explicit about which columns to load.
@@ -29,12 +29,26 @@ export class AppConfigService {
     const envOverride = envVar(
       () => import.meta.env.VITE_SETUP_MODE
     )?.toLowerCase();
-    if (envOverride === 'empty' || envOverride === 'sample') return envOverride;
+    if (
+      envOverride === 'empty' ||
+      envOverride === 'sample' ||
+      envOverride === 'live'
+    )
+      return envOverride;
     return this._config()?.setup_mode ?? 'pending';
   });
 
-  /** True when the UI may show create/edit/delete affordances. */
-  readonly canWrite = computed(() => this.mode() !== 'pending');
+  /**
+   * True when the UI may show create/edit/delete affordances. Live mode is
+   * read-only (data comes straight from Fabric via the sync), so writes are
+   * disabled there as well as in the pre-setup `pending` state.
+   */
+  readonly canWrite = computed(
+    () => this.mode() === 'empty' || this.mode() === 'sample'
+  );
+
+  /** True when the app reads live data synced from Fabric. */
+  readonly isLive = computed(() => this.mode() === 'live');
 
   /** Timestamp of the last sample-data seed, if any. */
   readonly seededAt = computed(() => this._config()?.seeded_at ?? null);
@@ -51,7 +65,7 @@ export class AppConfigService {
    * updates the local cache so the next route resolution doesn't bounce back
    * to /setup even if the refetch is slow or fails.
    */
-  async setMode(mode: 'empty' | 'sample'): Promise<void> {
+  async setMode(mode: 'empty' | 'sample' | 'live'): Promise<void> {
     const client = getRayfinClient();
     const existing = this._config();
     if (existing) {

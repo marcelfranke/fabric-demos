@@ -190,25 +190,7 @@ export class ApplicantsList implements OnInit {
   async ngOnInit(): Promise<void> {
     this.loading.set(true);
     try {
-      const applicants = await this.data.listApplicants();
-      const byName = new Map<string, ApplicantRank>();
-      for (const a of applicants) {
-        const key = a.name;
-        const existing = byName.get(key);
-        if (existing) {
-          existing.patents += 1;
-          existing.country ??= a.country;
-        } else {
-          byName.set(key, {
-            name: a.name,
-            country: a.country,
-            patents: 1,
-          });
-        }
-      }
-      const ranked = [...byName.values()].sort(
-        (x, y) => y.patents - x.patents || x.name.localeCompare(y.name)
-      );
+      const ranked = await this.data.applicantLeaderboard();
       this.maxPatents.set(Math.max(1, ...ranked.map((r) => r.patents)));
       this.ranked.set(ranked);
     } finally {

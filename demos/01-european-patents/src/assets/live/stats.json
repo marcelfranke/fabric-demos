@@ -1,0 +1,16 @@
+{
+  "totalPatents": 23343,
+  "distinctApplicants": 4571,
+  "distinctInventors": 61240,
+  "avgInventors": 3.2,
+  "sectionCounts": {
+    "H": 5596,
+    "G": 4951,
+    "F": 1609,
+    "E": 577,
+    "D": 213,
+    "C": 2457,
+    "B": 3583,
+    "A": 4357
+  }
+}

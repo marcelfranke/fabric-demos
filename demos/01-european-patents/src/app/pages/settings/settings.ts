@@ -45,43 +45,53 @@ import { getRayfinClient } from '../../../services/rayfinClient';
           }
         </dl>
 
-        <button
-          type="button"
-          class="primary-btn"
-          (click)="reseed()"
-          [disabled]="busy() !== null"
-        >
-          @if (busy() === 'seed') {
-            <mat-spinner diameter="16" strokeWidth="2" />
-          } @else {
-            <mat-icon>auto_awesome</mat-icon>
-          }
-          <span>Load sample patents</span>
-        </button>
+        @if (appConfig.isLive()) {
+          <p class="section__lead">
+            Data is synced from the Fabric semantic model and is read-only
+            here. To refresh it, re-run <code>npm run sync:fabric</code> and
+            redeploy.
+          </p>
+        } @else {
+          <button
+            type="button"
+            class="primary-btn"
+            (click)="reseed()"
+            [disabled]="busy() !== null"
+          >
+            @if (busy() === 'seed') {
+              <mat-spinner diameter="16" strokeWidth="2" />
+            } @else {
+              <mat-icon>auto_awesome</mat-icon>
+            }
+            <span>Load sample patents</span>
+          </button>
+        }
       </section>
 
-      <section class="section section--danger">
-        <header class="section__head">
-          <h2 class="section__title">Reset workspace</h2>
-        </header>
-        <p class="section__lead">
-          Delete every patent, applicant, inventor and classification, then
-          return to the setup wizard. This cannot be undone.
-        </p>
-        <button
-          type="button"
-          class="danger-btn"
-          (click)="reset()"
-          [disabled]="busy() !== null"
-        >
-          @if (busy() === 'reset') {
-            <mat-spinner diameter="16" strokeWidth="2" />
-          } @else {
-            <mat-icon>delete_forever</mat-icon>
-          }
-          <span>Reset everything</span>
-        </button>
-      </section>
+      @if (!appConfig.isLive()) {
+        <section class="section section--danger">
+          <header class="section__head">
+            <h2 class="section__title">Reset workspace</h2>
+          </header>
+          <p class="section__lead">
+            Delete every patent, applicant, inventor and classification, then
+            return to the setup wizard. This cannot be undone.
+          </p>
+          <button
+            type="button"
+            class="danger-btn"
+            (click)="reset()"
+            [disabled]="busy() !== null"
+          >
+            @if (busy() === 'reset') {
+              <mat-spinner diameter="16" strokeWidth="2" />
+            } @else {
+              <mat-icon>delete_forever</mat-icon>
+            }
+            <span>Reset everything</span>
+          </button>
+        </section>
+      }
 
       <footer class="about">
         <p class="eyebrow">Colophon</p>
@@ -321,6 +331,7 @@ export class Settings {
 
   protected modePill(): string {
     const m = this.appConfig.mode();
+    if (m === 'live') return 'lime';
     if (m === 'sample') return 'lime';
     if (m === 'empty') return 'emerald';
     return '';
@@ -328,6 +339,7 @@ export class Settings {
 
   protected modeLabel(): string {
     const m = this.appConfig.mode();
+    if (m === 'live') return 'Live Fabric data (read-only)';
     if (m === 'sample') return 'Sample data (full CRUD)';
     if (m === 'empty') return 'Empty register (full CRUD)';
     return 'Not set up';

@@ -4,8 +4,12 @@ import { RouterLink } from '@angular/router';
 import { BaseChartDirective } from 'ng2-charts';
 import type { ChartConfiguration } from 'chart.js';
 
-import type { Applicant, Patent } from '../../../../rayfin/data/schema';
-import { DataService } from '../../services/data.service';
+import type { Patent } from '../../../../rayfin/data/schema';
+import {
+  type ApplicantLeader,
+  type DataStats,
+  DataService,
+} from '../../services/data.service';
 
 const IPC_SECTIONS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] as const;
 const IPC_SECTION_LABELS: Record<string, string> = {
@@ -52,7 +56,7 @@ const IPC_SECTION_LABELS: Record<string, string> = {
           <article class="kpi kpi--feature">
             <span class="kpi__label">Patents</span>
             <div class="kpi__value">
-              <span class="kpi__num">{{ patents().length }}</span>
+              <span class="kpi__num">{{ totalPatents().toLocaleString() }}</span>
               <span class="kpi__suffix">publications</span>
             </div>
             <div class="kpi__bar">
@@ -98,7 +102,7 @@ const IPC_SECTION_LABELS: Record<string, string> = {
           <article class="panel panel--chart">
             <header class="panel__head">
               <h3 class="panel__title">Patents by IPC section</h3>
-              <span class="eyebrow">{{ patents().length }} publications</span>
+              <span class="eyebrow">{{ totalPatents().toLocaleString() }} publications</span>
             </header>
             <div class="chart-wrap">
               <canvas
@@ -553,28 +557,26 @@ export class Dashboard implements OnInit {
   private readonly data = inject(DataService);
 
   protected readonly patents = signal<Patent[]>([]);
-  protected readonly applicants = signal<Applicant[]>([]);
+  protected readonly stats = signal<DataStats | null>(null);
+  protected readonly leaders = signal<ApplicantLeader[]>([]);
   protected readonly loading = signal(true);
   protected readonly greeting = greet();
 
-  private readonly inventorNames = signal<Set<string>>(new Set());
-
-  protected readonly distinctApplicants = computed(() => {
-    const names = new Set<string>();
-    for (const a of this.applicants()) names.add(a.name);
-    return names.size;
-  });
-
-  protected readonly distinctInventors = computed(
-    () => this.inventorNames().size
+  protected readonly totalPatents = computed(
+    () => this.stats()?.totalPatents ?? 0
   );
 
-  protected readonly avgInventors = computed(() => {
-    const ps = this.patents();
-    if (ps.length === 0) return '0';
-    const total = ps.reduce((sum, p) => sum + (p.inventor_count ?? 0), 0);
-    return (total / ps.length).toFixed(1);
-  });
+  protected readonly distinctApplicants = computed(
+    () => this.stats()?.distinctApplicants ?? 0
+  );
+
+  protected readonly distinctInventors = computed(
+    () => this.stats()?.distinctInventors ?? 0
+  );
+
+  protected readonly avgInventors = computed(() =>
+    (this.stats()?.avgInventors ?? 0).toFixed(1)
+  );
 
   protected readonly recent = computed(() =>
     [...this.patents()]
@@ -595,21 +597,9 @@ export class Dashboard implements OnInit {
     })).filter((s) => s.count > 0);
   });
 
-  protected readonly topApplicants = computed(() => {
-    const byName = new Map<string, { name: string; country?: string; patents: number }>();
-    for (const a of this.applicants()) {
-      const existing = byName.get(a.name);
-      if (existing) {
-        existing.patents += 1;
-        existing.country ??= a.country;
-      } else {
-        byName.set(a.name, { name: a.name, country: a.country, patents: 1 });
-      }
-    }
-    return [...byName.values()]
-      .sort((x, y) => y.patents - x.patents || x.name.localeCompare(y.name))
-      .slice(0, 4);
-  });
+  protected readonly topApplicants = computed(() =>
+    this.leaders().slice(0, 4)
+  );
 
   protected chartOptions: ChartConfiguration<'bar'>['options'] = {
     responsive: true,
@@ -674,10 +664,10 @@ export class Dashboard implements OnInit {
   }
 
   protected totalLabel(): string {
-    const t = this.patents().length;
+    const t = this.totalPatents();
     if (t === 0) return 'Nothing on the register yet.';
     if (t === 1) return 'One publication on file.';
-    return `${t} publications on file.`;
+    return `${t.toLocaleString()} publications on file.`;
   }
 
   protected formatDate(d: Date | string | undefined): string {
@@ -690,28 +680,21 @@ export class Dashboard implements OnInit {
   }
 
   private sectionCounts(): number[] {
-    const counts = IPC_SECTIONS.map(() => 0);
-    for (const p of this.patents()) {
-      const s = p.ipc_section?.trim().charAt(0).toUpperCase();
-      const idx = s ? IPC_SECTIONS.indexOf(s as (typeof IPC_SECTIONS)[number]) : -1;
-      if (idx >= 0) counts[idx]++;
-    }
-    return counts;
+    const counts = this.stats()?.sectionCounts ?? {};
+    return IPC_SECTIONS.map((s) => counts[s] ?? 0);
   }
 
   private async refresh(): Promise<void> {
     this.loading.set(true);
     try {
-      const [patents, applicants, inventors] = await Promise.all([
+      const [patents, stats, leaders] = await Promise.all([
         this.data.listPatents(),
-        this.data.listApplicants(),
-        this.data.listInventors(),
+        this.data.getStats(),
+        this.data.applicantLeaderboard(50),
       ]);
       this.patents.set(patents);
-      this.applicants.set(applicants);
-      this.inventorNames.set(
-        new Set(inventors.map((i) => `${i.name}\u0000${i.country ?? ''}`))
-      );
+      this.stats.set(stats);
+      this.leaders.set(leaders);
       this.chartData = {
         ...this.chartData,
         datasets: [

@@ -89,7 +89,11 @@ export class Classification {
 @authenticated('*')
 export class AppConfig {
   @uuid() id!: string;
-  @set('pending', 'empty', 'sample') setup_mode!: 'pending' | 'empty' | 'sample';
+  @set('pending', 'empty', 'sample', 'live') setup_mode!:
+    | 'pending'
+    | 'empty'
+    | 'sample'
+    | 'live';
   @date({ optional: true }) seeded_at?: Date;
 }
 

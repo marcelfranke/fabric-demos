@@ -1,0 +1,9 @@
+{
+  "generatedAt": "2026-07-13T13:56:56.080Z",
+  "datasetId": "4ff3efcc-8540-4349-9d2e-0dcf149e3332",
+  "workspaceId": "5e0747bf-be6c-449b-b0cc-1911bd54577f",
+  "source": "semantic-model:executeQueries",
+  "readOnly": true,
+  "patentSlice": 400,
+  "applicantTop": 100
+}

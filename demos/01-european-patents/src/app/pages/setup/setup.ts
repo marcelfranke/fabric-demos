@@ -14,20 +14,58 @@ import { SeedService } from '../../services/seed.service';
       <header class="header page-enter">
         <p class="eyebrow">Step 01 — set up your workspace</p>
         <h1 class="title">
-          Two ways<br />
+          Three ways<br />
           to <em>begin.</em>
         </h1>
         <p class="lead">
-          Explore the European Patents demo with a curated sample of recent
-          EP publications, or start with a clean register and add patents
-          yourself. You can reset later from Settings.
+          Explore the European Patents demo with live data straight from
+          Fabric, a curated sample of recent EP publications, or start with a
+          clean register and add patents yourself. You can switch later from
+          Settings.
         </p>
       </header>
 
       <div class="cards page-enter">
-        <article class="card card--accent" [class.card--busy]="busy() === 'sample'">
+        <article class="card card--accent" [class.card--busy]="busy() === 'live'">
           <header class="card__top">
             <span class="card__num">A</span>
+            <span class="card__tag">Live Fabric data</span>
+          </header>
+          <h2 class="card__title">Use <em>live patents.</em></h2>
+          <p class="card__lead">
+            Reads real European patent publications synced from the Fabric
+            semantic model — the full register with its applicants, inventors
+            and classifications. Read-only.
+          </p>
+          <ul class="card__notes">
+            <li>Thousands of real EP publications</li>
+            <li>KPIs from the Fabric model's own measures</li>
+            <li>Read-only (no editing)</li>
+          </ul>
+          @if (error(); as err) {
+            <p class="card__error">
+              <mat-icon>error_outline</mat-icon>
+              <span>{{ err }}</span>
+            </p>
+          }
+          <button
+            type="button"
+            class="card__cta card__cta--accent"
+            [disabled]="busy() !== null"
+            (click)="startLive()"
+          >
+            @if (busy() === 'live') {
+              <mat-spinner diameter="16" strokeWidth="2" />
+            } @else {
+              <mat-icon>cloud_sync</mat-icon>
+            }
+            <span>Use this</span>
+          </button>
+        </article>
+
+        <article class="card" [class.card--busy]="busy() === 'sample'">
+          <header class="card__top">
+            <span class="card__num">B</span>
             <span class="card__tag">Sample data</span>
           </header>
           <h2 class="card__title">Load <em>sample patents.</em></h2>
@@ -58,7 +96,7 @@ import { SeedService } from '../../services/seed.service';
 
         <article class="card" [class.card--busy]="busy() === 'empty'">
           <header class="card__top">
-            <span class="card__num">B</span>
+            <span class="card__num">C</span>
             <span class="card__tag">Empty register</span>
           </header>
           <h2 class="card__title">Start <em>from scratch.</em></h2>
@@ -407,8 +445,21 @@ export class Setup {
   private readonly seed = inject(SeedService);
   private readonly router = inject(Router);
 
-  protected readonly busy = signal<'sample' | 'empty' | null>(null);
+  protected readonly busy = signal<'sample' | 'empty' | 'live' | null>(null);
   protected readonly error = signal<string | null>(null);
+
+  protected async startLive(): Promise<void> {
+    this.busy.set('live');
+    this.error.set(null);
+    try {
+      await this.appConfig.setMode('live');
+      await this.router.navigate(['/']);
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : String(err));
+    } finally {
+      this.busy.set(null);
+    }
+  }
 
   protected async startSample(): Promise<void> {
     this.busy.set('sample');
