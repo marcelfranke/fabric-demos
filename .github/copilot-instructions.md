@@ -21,6 +21,9 @@
 - **MUST**: child/detail tables carry (a) their own deterministic row id from their natural columns and (b) a foreign key to the parent's surrogate key.
 - **MUST**: verify `count == distinct(id)` and `0 null ids` on every keyed table, and FK integrity (every child FK exists in the parent) before declaring done.
 - **MUST**: dedup detail rows on their true natural grain (e.g. classifications on `(entity_id, scheme, symbol)`) before assigning ids.
+- **MUST**: choose an explicit grain per fact table, and roll child/detail rows up to that grain with dedup-on-grain before aggregating (e.g. patent-grain rows rolled to application grain).
+- **MUST**: reconcile every additive fact measure to its source as part of the validation gate — Σ(measure) must equal the source child-table row count or distinct-entity count (e.g. Σ `publication_count` == total publications; Σ `inventor_count` == bridge row count).
+- **MUST**: model true many-to-many via a bridge table with a FK to each dimension's surrogate key; NEVER put a many-valued FK directly on the fact row.
 - **PREFER**: add id columns without changing existing column names/types — additive schema evolution over rewrites.
 
 **Column data types — right-type every column (never default to varchar(8000)):**
@@ -60,27 +63,34 @@
 - **MUST**: place a validation gate (row counts, null checks, key/FK checks) between Bronze→Silver and Silver→Gold.
 - **PREFER**: Delta Lake for all Lakehouse tables.
 
-## 5. External source etiquette (APIs / public servers)
+## 5. Semantic model (DirectLake)
+
+- **MUST**: DirectLake stores an explicit per-column `dataType` in the model that must match the physical Delta column type. It does NOT self-heal on reframe — a stale string-vs-typed declaration (e.g. a `seq` column left as string after the table became smallint) requires an explicit TMDL edit + refresh. Verify model column dtypes after any lakehouse schema change.
+- **MUST**: keep the model's column set in sync with its source table. A column dropped from the Delta table but still referenced in the model breaks framing (refresh fails with "column not found"). Prune removed columns from the model before refreshing.
+- **MUST**: after any lakehouse schema or data change, refresh (reframe) the model and confirm its counts against a fresh lakehouse read. A DirectLake model can silently serve a stale snapshot indefinitely if it is never reframed — never trust a model number without a post-change refresh.
+- **MUST-KNOW / workaround**: the XMLA and Power BI modeling connectors fail on workspace names containing spaces (the space is URL-encoded → workspace-not-found). Use Fabric REST `getDefinition`/`updateDefinition` (TMDL) plus Power BI `executeQueries` (DAX), keyed off the workspace GUID — never the name — as the reliable edit + prove path.
+
+## 6. External source etiquette (APIs / public servers)
 
 - **MUST**: send a descriptive `User-Agent` identifying the project (repo URL); NEVER spoof or omit it.
 - **MUST**: implement retry with exponential backoff (`MAX_RETRIES`) and a polite request pace (`REQUEST_SLEEP`, bounded `FETCH_PARTITIONS`).
 - **MUST**: find the sustainable rate via a probe run; back off at the first sign of throttling (429 / timeout / reset) rather than pushing through.
 - **NEVER** saturate a shared compute pool — leave executor headroom; size parallelism to what the pool actually grants, not its theoretical max.
 
-## 6. Compute & performance (Fabric Spark)
+## 7. Compute & performance (Fabric Spark)
 
 - **PREFER** the Native Execution Engine where available.
 - **MUST**: choose the right tool per stage — Spark for heavy transform, SQL for set-based serving logic, pipelines for orchestration. Don't force one tool.
 - **MUST**: check pool capacity (max executors/cores) before raising parallelism.
 
-## 7. Deployment & Git
+## 8. Deployment & Git
 
 - **MUST**: deploy items UPSERT-style keyed on a **stable item name** — list, then update-if-exists else create. NEVER rename a Git-synced item (it churns the sync).
 - **MUST**: acquire tokens via the platform auth flow (e.g. `az account get-access-token --resource https://api.fabric.microsoft.com`); NEVER embed tokens.
 - **Git integration**: this workspace ring is **Commit-only** (workspace→Git). **NEVER** run Update/Sync (Git→workspace) — the old service ring may reject the Report item. Apply report/theme changes in the service, then Commit.
 - **MUST**: keep the generator/source-of-truth in the repo in sync with the deployed item; reconcile any drift before committing.
 
-## 8. Working style for the agent
+## 9. Working style for the agent
 
 - **MUST**: decompose broad cross-workload requests into endpoint-specific sub-tasks and delegate to the right skill.
 - **MUST**: report ground truth from the live platform, not assumptions — read counts/state fresh; label stale numbers as stale.

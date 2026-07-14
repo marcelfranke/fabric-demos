@@ -30,6 +30,12 @@ Scoped rules for notebooks and Spark code. These extend the repo-wide `.github/c
 - **MUST**: `id = xxhash64(concat_ws('|', <natural cols>))` cast to bigint. Normalize inputs first (trim, consistent case) so the hash is stable.
 - **NEVER** `monotonically_increasing_id()` for any persisted key.
 
+## Star schema & facts
+
+- **MUST**: pick an explicit grain per fact table; roll child/detail rows up to that grain with dedup-on-grain before aggregating (e.g. patent-grain → application grain).
+- **MUST**: reconcile every additive measure to source in the validation gate — Σ(measure) == source child-row count or distinct-entity count (e.g. Σ `publication_count` == total publications; Σ `inventor_count` == bridge row count).
+- **MUST**: model many-to-many via a bridge table with a FK to each dimension's surrogate key; NEVER put a many-valued FK directly on the fact row.
+
 ## Column typing
 
 - **MUST**: profile every column, then assign the tightest LOSSLESS type — never default to `varchar(8000)`.
@@ -39,6 +45,13 @@ Scoped rules for notebooks and Spark code. These extend the repo-wide `.github/c
 - **MUST**: verify the assigned types at the SQL analytics endpoint (`INFORMATION_SCHEMA.COLUMNS`), not the `varchar(8000)` default.
 - **NEVER** rely on DataFrame `.cast("varchar(n)")` / `VarcharType` to persist length — it doesn't reach Delta; the endpoint shows `varchar(8000)`. The ONLY method that propagates length is DDL: `CREATE TABLE t (col VARCHAR(n), key BIGINT, dt DATE) USING DELTA`, then append. Verified on Fabric Lakehouse Delta.
 - **CHARS vs BYTES**: the endpoint reports `CHARACTER_MAXIMUM_LENGTH` in BYTES = 4× declared char length (UTF-8). `VARCHAR(512)` → `varchar(2048)`. Declare in CHARS = measured-max + headroom; keep under ~2000 chars so ×4 stays below the 8000-byte default. After every schema change, verify empirically and divide `CHARACTER_MAXIMUM_LENGTH` by 4 to read back the declared char length.
+
+## Semantic model (DirectLake)
+
+- **MUST**: DirectLake stores an explicit per-column `dataType` that must match the physical Delta type — it does NOT self-heal on reframe. A stale string-vs-typed declaration (e.g. a `seq` left as string after the column became smallint) needs an explicit TMDL edit + refresh. Verify model column dtypes after any lakehouse schema change.
+- **MUST**: keep the model's column set in sync with its source — a column dropped from Delta but still referenced breaks framing (refresh fails "column not found"). Prune removed columns before refreshing.
+- **MUST**: after any lakehouse schema/data change, reframe the model and confirm its counts against a fresh lakehouse read — a DirectLake model can silently serve a stale snapshot until reframed. Never trust a model number without a post-change refresh.
+- **MUST-KNOW / workaround**: XMLA and the Power BI modeling connectors fail on workspace names with spaces (URL-encoded → workspace-not-found). Use Fabric REST `getDefinition`/`updateDefinition` (TMDL) + Power BI `executeQueries` (DAX), keyed off the workspace GUID (never the name), as the reliable edit + prove path.
 
 ## Access & resources
 
