@@ -30,6 +30,14 @@ Scoped rules for notebooks and Spark code. These extend the repo-wide `.github/c
 - **MUST**: `id = xxhash64(concat_ws('|', <natural cols>))` cast to bigint. Normalize inputs first (trim, consistent case) so the hash is stable.
 - **NEVER** `monotonically_increasing_id()` for any persisted key.
 
+## Column typing
+
+- **MUST**: profile every column, then assign the tightest LOSSLESS type — never default to `varchar(8000)`.
+- **MUST**: dates → real `date`/`timestamp` (prove 0 unparseable); true numerics (counts/sequences) → `int`/`bigint` only if all-numeric, in-range, no meaningful leading zeros.
+- **MUST**: identifier/code columns (patent/application/publication numbers, classification symbols, country/kind codes) stay `varchar` even if they look numeric — casting risks stripping leading zeros / overflow / format loss.
+- **MUST**: all other text → right-sized `VARCHAR(n)` where `n = measured MAX(length)` + headroom (prove 0 rows with `length > n`). Fabric has NO `nvarchar` — Unicode lives in UTF-8 `varchar`.
+- **MUST**: verify the assigned types at the SQL analytics endpoint (`INFORMATION_SCHEMA.COLUMNS`), not the `varchar(8000)` default.
+
 ## Access & resources
 
 - **MUST**: use the default lakehouse mount (`/lakehouse/default/Files/...`) inside `mapPartitions`/UDF workers; use `notebookutils.fs` for directory ops.

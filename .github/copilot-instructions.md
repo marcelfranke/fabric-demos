@@ -23,6 +23,15 @@
 - **MUST**: dedup detail rows on their true natural grain (e.g. classifications on `(entity_id, scheme, symbol)`) before assigning ids.
 - **PREFER**: add id columns without changing existing column names/types — additive schema evolution over rewrites.
 
+**Column data types — right-type every column (never default to varchar(8000)):**
+
+- **MUST** profile every column over the full data and assign the tightest LOSSLESS type; NEVER leave string columns at the default `varchar(8000)`.
+- **MUST**: dates stored as strings (e.g. `YYYYMMDD`) become a real `date`/`timestamp` type (prove 0 unparseable rows).
+- **MUST**: columns that are genuinely numeric (counts, sequences) become `int`/`smallint`/`bigint` (or `decimal`), ONLY IF every value is numeric, fits range, and has no meaningful leading zeros.
+- **MUST**: identifier/code columns (patent/application/publication numbers, classification symbols, country/kind codes) stay `varchar` even if they look numeric — casting them risks stripping leading zeros, overflow, or format loss.
+- **MUST**: all other text → right-sized `VARCHAR(n)` where `n = MAX(length)` rounded up with headroom, never below observed max (prove 0 rows with `length > n`). Fabric has NO `nvarchar` — Unicode lives in UTF-8 `varchar`; do not use `nvarchar`.
+- **MUST** verify the SQL analytics endpoint actually reflects the assigned types (`INFORMATION_SCHEMA.COLUMNS`), not the `varchar(8000)` default. If length-annotated `VARCHAR(n)` doesn't propagate from a Lakehouse Delta table, consider a Warehouse-served serving layer.
+
 ## 2. Ingestion & idempotency
 
 - **MUST**: checkpoint per unit of work (per week / per file / per partition) — fetch unit → write its data (delete-then-append) → write a control-table row immediately → next. NEVER checkpoint only at the end of a batch.
