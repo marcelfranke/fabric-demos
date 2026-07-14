@@ -27,7 +27,7 @@ Scoped rules for notebooks and Spark code. These extend the repo-wide `.github/c
 
 ## Keys in Spark
 
-- **MUST**: `id = sha2(concat_ws('|', <natural cols>), 256)`. Cast/normalize inputs first (trim, consistent case) so the hash is stable.
+- **MUST**: `id = xxhash64(concat_ws('|', <natural cols>))` cast to bigint. Normalize inputs first (trim, consistent case) so the hash is stable.
 - **NEVER** `monotonically_increasing_id()` for any persisted key.
 
 ## Access & resources

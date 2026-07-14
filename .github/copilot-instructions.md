@@ -15,8 +15,9 @@
 
 ## 1. Data modeling & keys
 
-- **MUST**: every Silver and Gold table has a **deterministic surrogate key** column computed as `sha2(concat_ws('|', <natural business columns>), 256)`.
+- **MUST**: every Silver and Gold table has a **deterministic BIGINT surrogate key** computed as `xxhash64(concat_ws('|', <natural business columns>))` (cast to bigint). Rationale: compact integer keys perform far better than 64-char hex strings for joins, semantic-model relationships, and storage.
 - **NEVER** use `monotonically_increasing_id()`, `row_number()` without a stable order, GUIDs, or any non-deterministic id — keys MUST be stable across reprocessing so the semantic model and ontology relationships never break.
+- **NOTE**: the deterministic-hash key stays stable across reprocessing; verify `count == distinct(id)` to catch the astronomically-rare hash collision (salt/widen if one ever occurs). xxhash64 values may be negative — that's fine for keys.
 - **MUST**: child/detail tables carry (a) their own deterministic row id from their natural columns and (b) a foreign key to the parent's surrogate key.
 - **MUST**: verify `count == distinct(id)` and `0 null ids` on every keyed table, and FK integrity (every child FK exists in the parent) before declaring done.
 - **MUST**: dedup detail rows on their true natural grain (e.g. classifications on `(entity_id, scheme, symbol)`) before assigning ids.
