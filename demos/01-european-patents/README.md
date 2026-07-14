@@ -1,181 +1,125 @@
-# Atelier — Angular Dashboard
+# European Patents on Microsoft Fabric
 
-A customer-facing dashboard built on Rayfin, with an "Editorial Ink"
-design system: dark ink palette, acid-lime accent, Fraunces display
-serif + DM Sans + JetBrains Mono. Collapsible left rail, sticky frosted
-topbar, KPI grid, chart, and editorial-style list + detail views for
-projects and tasks.
+An end-to-end demo that ingests **European Patent Office (EPO)** publication data
+into Microsoft Fabric, models it as a Kimball star, and serves it through a Direct
+Lake Power BI report — with an Angular + Rayfin dashboard app as the frontend shell.
+It shows a complete Fabric data-engineering story (medallion ingestion, deterministic
+keys, explicit typing, validation gates, resumable loads) plus the reporting and app
+layers that sit on top.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    EPO["EPO Publication Server<br/>REST · SDOBI XML · open data"]
+    subgraph Fabric["Microsoft Fabric — eps_lakehouse (workspace: European Patents)"]
+        RAW["OneLake Files/raw<br/>cache-first landing (~4.6 GB gzip)"]
+        BRONZE["Bronze<br/>raw XML + weekly lists"]
+        SILVER["Silver<br/>normalized · typed · keyed"]
+        GOLD["Gold<br/>application-grain Kimball star"]
+        MODEL["Direct Lake semantic model<br/>'European Patents'"]
+    end
+    REPORT["Power BI report (PBIR)"]
+    APP["Angular + Rayfin<br/>dashboard app"]
+
+    EPO --> RAW --> BRONZE --> SILVER --> GOLD --> MODEL --> REPORT
+    Fabric -. hosts / auth .-> APP
+```
+
+The data pipeline flows EPO → Bronze → Silver → Gold (star) → Direct Lake model →
+Power BI report. The Angular app is a separate frontend shell hosted on Fabric via
+Rayfin (it uses Fabric for auth/hosting, not for embedding the patents model).
+
+## Repository layout
+
+| Path | What it is |
+|---|---|
+| [`fabric/`](./fabric) | Fabric data backend + Direct Lake semantic model — ingestion notebook builder, medallion tables, and the TMDL model. See [`fabric/README.md`](./fabric/README.md). |
+| [`powerbi/`](./powerbi) | Power BI report in PBIR format (`.pbip` + `.Report/`) over the Direct Lake model. See [`powerbi/README.md`](./powerbi/README.md). |
+| [`src/`](./src) | Angular 21 dashboard app (standalone components, signals, lazy routes). |
+| [`rayfin/`](./rayfin) | Rayfin service config + data schema for the app's backend. |
+| [`workspace-sync/`](./workspace-sync) | Git-synced export of the live Fabric items (notebook, lakehouse, report, semantic model). Treat as generated output. |
+| `manifest.json`, `angular.json`, `package.json` | App + Rayfin template configuration. |
+
+## Data platform
+
+A Fabric OneLake Lakehouse (`eps_lakehouse`) holds a Bronze/Silver/Gold medallion
+build of EPO publications for **2010–2011** (104 weekly bulletins). Gold is an
+**application-grain Kimball star** with deterministic `bigint` surrogate keys, explicit
+column typing, and validation gates between layers. A **Direct Lake** semantic model
+queries the Delta tables in place — no import copy.
+
+Full detail — table row counts, grain, keys, typing rules, ingestion knobs, and known
+limitations — is in [`fabric/README.md`](./fabric/README.md).
 
 ## Power BI report
 
-A validated 3-page / 21-visual Power BI report (PBIR) bound to the deployed
-Direct Lake semantic model lives in [`powerbi/`](./powerbi). The report passes
-validation (0 errors), but this tenant's Power BI ring currently rejects PBIR
-**API** import (its `version.json` schema is too new — "edited in a newer
-version of Power BI…"). To publish it, open
-[`powerbi/European Patents.pbip`](./powerbi/European%20Patents.pbip) in Power BI
-Desktop and publish from there. See [`powerbi/README.md`](./powerbi/README.md)
-for full details. The Fabric data backend it sits on is documented in
-[`fabric/`](./fabric).
+A multi-page Power BI report (PBIR) bound to the Direct Lake **European Patents**
+semantic model lives in [`powerbi/`](./powerbi). It is validated (0 errors); because
+this tenant's Power BI ring rejects PBIR **API** import, publish it by opening
+[`European Patents.pbip`](./powerbi/European%20Patents.pbip) in Power BI Desktop. See
+[`powerbi/README.md`](./powerbi/README.md).
 
-Two operating modes, picked on first launch:
+## App (Angular + Rayfin dashboard)
 
-| Mode | Data source | UI writes | Best for |
-|---|---|---|---|
-| **Scratch** | You create everything by hand. Seeded with a couple of demo projects. | All CRUD enabled. | Building your own app on top of the dashboard layout. |
-| **GitHub-sync** | Issues + pull requests pulled from a public GitHub repo. | Read-only (UI affordances hidden). | Quickly trying the app against real-looking data. |
+The frontend is a customer-facing dashboard built on **Rayfin** with an "Editorial Ink"
+design system (dark ink palette, acid-lime accent, Fraunces display serif). It ships as
+a reusable Project/Task dashboard shell — the layout you'd extend to surface patents
+data — and is hosted on Fabric via Rayfin's Fabric auth provider.
 
-## Design system at a glance
+- **Stack** — Angular 21 (standalone components, signals, lazy routes), Angular Material
+  21 + CDK, chart.js + ng2-charts, and the `@microsoft/rayfin-*` SDK (auth, data, client)
+  with the Fabric auth provider.
+- **Two operating modes**, picked in the first-launch setup wizard:
 
-- **Palette** — deep ink (`#0a0911`), cream text (`#f4ecdf`), one acid
-  accent (`#d4ff3a`). All Material 3 tokens are remapped via CSS custom
-  properties in `src/styles.scss`.
-- **Type** — Fraunces (variable serif) for headings + numbers, DM Sans
-  for UI, JetBrains Mono for captions / data / mono pills.
-- **Components** — rounded pills, hairline borders, status dots with
-  soft glow, page-enter staggered animation, glowing sync badge.
+  | Mode | Data source | UI writes |
+  |---|---|---|
+  | **Scratch** | Hand-created, seeded with demo projects/tasks | All CRUD enabled |
+  | **GitHub-sync** | Issues + PRs from a public GitHub repo | Read-only (UI-only) |
+
+- **Fabric linkage** — the app reads `VITE_FABRIC_WORKSPACE_ID`, `VITE_FABRIC_ITEM_ID`,
+  and `VITE_FABRIC_PORTAL_URL` (mapped from the `__FABRIC_*__` tokens in `manifest.json`)
+  to authenticate against its Fabric-hosted Rayfin backend. On a `localhost` API URL it
+  falls back to a mock auth service for offline dev.
+- **Scripts**
+
+  ```bash
+  npm run dev      # rayfin up + ng serve --port 5173
+  npm run build    # production bundle in ./dist/
+  npm run lint     # eslint
+  npm test         # karma + jasmine (set CHROME_BIN if needed)
+  ```
+
+### Modes in depth
+
+- **Scratch** — hand-managed CRUD via the UI; the wizard seeds two demo projects and a
+  few tasks so the dashboard isn't empty on first paint.
+- **GitHub-sync** — give the wizard a public `owner/repo`; the app validates it, pulls
+  issues **and** PRs (`GET /repos/:owner/:name/issues?state=all`), and upserts each as a
+  `Task` keyed by `uuidv5("${repo}#${number}")` so sync is idempotent and race-safe.
+  "Sync now" is always available; the dashboard auto-syncs when the last sync is ≥ 24h old.
+- **Switching modes** — Settings → **Reset to setup** wipes every project + task and
+  returns to the wizard.
+
+App caveats (UI-only read-only, public-repos-only sync, GitHub rate limits, on-load
+"daily" sync) are inline in the source; see `src/app/services/` and `rayfin/data/schema.ts`.
 
 ## Getting started
 
-```bash
-# Deploy to Fabric (or start the local backend) and start the Angular dev server
-npm run dev
-```
+Build the Fabric backend first, then run the app.
 
-Open [http://localhost:5173](http://localhost:5173), sign in, and you'll land
-on the **setup wizard** where you can pick the mode.
+1. **Fabric backend** — follow [`fabric/README.md`](./fabric/README.md) to create
+   `eps_lakehouse`, deploy and run the ingestion notebook, and deploy + refresh the
+   Direct Lake semantic model.
+2. **Power BI report** — open [`powerbi/European Patents.pbip`](./powerbi/European%20Patents.pbip)
+   in Power BI Desktop and publish (see [`powerbi/README.md`](./powerbi/README.md)).
+3. **App** — install and run the Angular dev server:
 
-## Stack
+   ```bash
+   npm install
+   npm run dev
+   ```
 
-- **Angular 21** standalone components, signals, lazy routes.
-- **Angular Material 21** + **CDK** as the component foundation (with
-  CSS custom-property overrides to keep Material out of the way visually).
-- **chart.js** + **ng2-charts** for the dashboard chart.
-- **Rayfin** for auth, the data backend, and the `RayfinClient` SDK.
-- **uuid** (v5) for deterministic ids during GitHub sync.
-
-## Project structure
-
-```text
-├── rayfin/
-│   ├── rayfin.yml                 # Rayfin service config (auth + data)
-│   └── data/
-│       └── schema.ts              # Project, Task, AppConfig entities
-├── src/
-│   ├── main.ts                    # Bootstrap + Rayfin client init
-│   ├── services/                  # Framework-agnostic Rayfin client + auth
-│   ├── app/
-│   │   ├── app.routes.ts          # Lazy routes (/auth, /setup, /, /projects, /tasks, /settings)
-│   │   ├── auth.guard.ts          # Auth + no-auth route guards
-│   │   ├── setup.guard.ts         # Routes user to /setup on first run
-│   │   ├── shell/                 # Top toolbar + collapsible side nav
-│   │   ├── services/
-│   │   │   ├── data.service.ts    # Project + Task wrapper around the data client
-│   │   │   ├── app-config.service.ts  # Singleton-row config + canWrite() signal
-│   │   │   ├── github-sync.service.ts # GitHub REST fetch + idempotent upsert
-│   │   │   ├── auth-state.ts      # Signal-based auth state
-│   │   │   └── constants.ts       # APP_CONFIG_ID, TASK_NAMESPACE_UUID, etc.
-│   │   └── pages/
-│   │       ├── auth/              # Sign-in page
-│   │       ├── setup/             # First-launch wizard
-│   │       ├── dashboard/         # KPI cards + chart + recent tasks
-│   │       ├── projects/          # Projects list + detail
-│   │       ├── tasks/             # Tasks list + detail
-│   │       └── settings/          # Current mode, manual sync, reset
-└── package.json
-```
-
-## Modes in depth
-
-### Scratch mode
-
-Hand-managed CRUD via the UI. The setup wizard seeds two demo projects and a
-few tasks so the dashboard isn't empty on first paint. Everything is editable.
-
-### GitHub-sync mode
-
-You give the wizard a public `owner/repo`. The app:
-
-1. Validates the repo via an unauthenticated `GET /repos/:owner/:name`.
-2. Pulls issues **and** pull requests via `GET /repos/:owner/:name/issues?state=all`
-   (the issues endpoint includes PRs; we tag each row with `type: 'issue' | 'pr'`).
-3. Upserts each item as a `Task`, using `uuidv5("${repo}#${number}")` as the
-   row id. This makes sync idempotent and race-safe across tabs.
-4. Updates `AppConfig.last_synced_at`.
-
-A "Sync now" button is always available in the toolbar. The dashboard also
-triggers an auto-sync when last sync is ≥ 24h old.
-
-### Switching modes
-
-Settings → **Reset to setup** wipes every project + task and returns you to
-the wizard.
-
-## Caveats — read this
-
-- **Read-only in sync mode is UI-only.** The schema entities are annotated
-  `@authenticated('*')`, so the backend still accepts mutations from anyone
-  signed in. The dashboard simply hides create/edit/delete affordances and
-  refuses to call them. This is template-level UX, not a security boundary.
-  If you need true server-enforced read-only, you'll need a custom
-  `@authenticated` policy.
-
-- **Public repos only.** Browser-side personal access tokens leak into the SPA
-  bundle and ship to every visitor. The cleaner alternative — moving sync into
-  a Rayfin server function — depends on `rayfin functions`, which the Rayfin
-  CLI currently marks as **preview / feature-gated**. We'll add PAT/private
-  repo support server-side once that GA's.
-
-- **GitHub API rate limit.** Unauthenticated GitHub REST allows 60 requests
-  per hour per IP. Sync caps at 10 pages × 100 issues = 1000 items, so one
-  full sync of a medium repo uses ~10 requests. Comfortably enough room for a
-  daily sync of small/medium repos; not enough for hourly polling.
-
-- **"Daily sync" is on-load, not scheduled.** Rayfin has no built-in
-  scheduler. We re-sync when the dashboard loads if `last_synced_at` is older
-  than 24h, plus a manual "Sync now" button. For true scheduled sync, a
-  GitHub Actions workflow calling `npx rayfin ...` is the easiest path today.
-
-- **`Task.labels_json` is a JSON string** (no array primitive in
-  `@microsoft/rayfin-core` decorators). It's rendered as chips but **cannot
-  be filtered server-side**. If you need that, add `Label` + `TaskLabel`
-  entities and a join.
-
-## Environment overrides
-
-The setup wizard writes its choice to the `AppConfig` table. You can override
-that at boot via `.env`:
-
-```bash
-# .env.local
-VITE_SYNC_MODE=github            # 'scratch' | 'github'
-VITE_GITHUB_REPO=microsoft/vscode
-```
-
-When `VITE_SYNC_MODE` is set, the wizard is skipped entirely.
-
-## Scripts
-
-```bash
-npm run dev      # rayfin up + ng serve --port 5173
-npm run build    # production bundle in ./dist/
-npm run lint     # eslint
-npm test         # karma + jasmine (set CHROME_BIN if needed)
-```
-
-## Notes
-
-- Side-menu collapsed state persists in `localStorage` under
-  `dashboard.sidenav.collapsed`.
-- The singleton `AppConfig` row uses a hardcoded UUID
-  (`00000000-0000-0000-0000-000000000001`); concurrent first-creates handle
-  the conflict by refetching.
-- Schema decorators are TC39 stage-3, so `tsconfig.json` enables
-  `ESNext.Decorators` and leaves `experimentalDecorators` off.
-
-## Useful links
-
-- Rayfin docs: <https://aka.ms/rayfin/docs>
-- Angular Material: <https://material.angular.dev>
-- ng2-charts: <https://valor-software.com/ng2-charts/>
-- GitHub REST issues endpoint: <https://docs.github.com/en/rest/issues/issues>
+   Open [http://localhost:5173](http://localhost:5173) and complete the setup wizard.
+   To target a Fabric-hosted backend, set the `VITE_FABRIC_*` environment variables
+   described above.
