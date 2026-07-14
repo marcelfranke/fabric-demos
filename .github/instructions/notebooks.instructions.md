@@ -37,6 +37,8 @@ Scoped rules for notebooks and Spark code. These extend the repo-wide `.github/c
 - **MUST**: identifier/code columns (patent/application/publication numbers, classification symbols, country/kind codes) stay `varchar` even if they look numeric — casting risks stripping leading zeros / overflow / format loss.
 - **MUST**: all other text → right-sized `VARCHAR(n)` where `n = measured MAX(length)` + headroom (prove 0 rows with `length > n`). Fabric has NO `nvarchar` — Unicode lives in UTF-8 `varchar`.
 - **MUST**: verify the assigned types at the SQL analytics endpoint (`INFORMATION_SCHEMA.COLUMNS`), not the `varchar(8000)` default.
+- **NEVER** rely on DataFrame `.cast("varchar(n)")` / `VarcharType` to persist length — it doesn't reach Delta; the endpoint shows `varchar(8000)`. The ONLY method that propagates length is DDL: `CREATE TABLE t (col VARCHAR(n), key BIGINT, dt DATE) USING DELTA`, then append. Verified on Fabric Lakehouse Delta.
+- **CHARS vs BYTES**: the endpoint reports `CHARACTER_MAXIMUM_LENGTH` in BYTES = 4× declared char length (UTF-8). `VARCHAR(512)` → `varchar(2048)`. Declare in CHARS = measured-max + headroom; keep under ~2000 chars so ×4 stays below the 8000-byte default. After every schema change, verify empirically and divide `CHARACTER_MAXIMUM_LENGTH` by 4 to read back the declared char length.
 
 ## Access & resources
 

@@ -32,6 +32,13 @@
 - **MUST**: all other text → right-sized `VARCHAR(n)` where `n = MAX(length)` rounded up with headroom, never below observed max (prove 0 rows with `length > n`). Fabric has NO `nvarchar` — Unicode lives in UTF-8 `varchar`; do not use `nvarchar`.
 - **MUST** verify the SQL analytics endpoint actually reflects the assigned types (`INFORMATION_SCHEMA.COLUMNS`), not the `varchar(8000)` default. If length-annotated `VARCHAR(n)` doesn't propagate from a Lakehouse Delta table, consider a Warehouse-served serving layer.
 
+**Persisting VARCHAR(n) so it reaches the SQL analytics endpoint (verified on Fabric Lakehouse Delta):**
+
+- **NEVER** rely on a DataFrame `.cast("varchar(n)")` (or `VarcharType` in a DataFrame schema) to right-size storage — it does NOT persist the length to Delta; it reads back as a plain string and the SQL endpoint shows `varchar(8000)`.
+- **MUST**: the ONLY method that propagates length is declaring the table with DDL — `CREATE TABLE t (col VARCHAR(n), key BIGINT, dt DATE) USING DELTA` — then appending rows into it. DDL-declared `VARCHAR(n)`/`BIGINT`/`DATE` all propagate: the endpoint reports right-sized `varchar`, `bigint`, and `date` (never the flat `varchar(8000)` default).
+- **BYTES vs CHARS gotcha**: the endpoint reports `CHARACTER_MAXIMUM_LENGTH` in BYTES = 4× the declared char length (Fabric UTF-8 varchar). So `VARCHAR(32 chars)` shows as `varchar(128)`, `VARCHAR(512)` → `varchar(2048)`. Size in CHARS = measured-max-chars + headroom; to guarantee a column reads as clearly right-sized (below the 8000-byte default), keep the declared char length under ~2000 (2000 chars → 8000 bytes). Free-text columns: pick a char length whose ×4 stays under 8000 (e.g. 1500 chars → `varchar(6000)`).
+- **MUST** verify empirically after every schema change: query the endpoint's `INFORMATION_SCHEMA.COLUMNS` (`COLUMN_NAME`, `DATA_TYPE`, `CHARACTER_MAXIMUM_LENGTH`) and confirm nothing reports `varchar(8000)`. Divide `CHARACTER_MAXIMUM_LENGTH` by 4 to read back the declared char length.
+
 ## 2. Ingestion & idempotency
 
 - **MUST**: checkpoint per unit of work (per week / per file / per partition) — fetch unit → write its data (delete-then-append) → write a control-table row immediately → next. NEVER checkpoint only at the end of a batch.
