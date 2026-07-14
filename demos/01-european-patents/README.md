@@ -1,10 +1,15 @@
-# Atelier — Angular Dashboard
+# EP Patents — Angular Dashboard
 
-A customer-facing dashboard built on Rayfin, with an "Editorial Ink"
-design system: dark ink palette, acid-lime accent, Fraunces display
-serif + DM Sans + JetBrains Mono. Collapsible left rail, sticky frosted
-topbar, KPI grid, chart, and editorial-style list + detail views for
-projects and tasks.
+A customer-facing dashboard built on Rayfin for exploring **European patent
+publications** and their applicants, inventors and classifications. It uses an
+"Editorial Ink" design system: dark ink palette, acid-lime accent, Fraunces
+display serif + DM Sans + JetBrains Mono. Collapsible left rail, sticky frosted
+topbar, KPI grid, an IPC-section chart, and editorial-style list + detail views
+for patents and applicants.
+
+The data model mirrors the field names of the curated European Patents semantic
+model (see [`fabric/`](./fabric)), so the app doubles as a lightweight,
+write-enabled front end over the same domain.
 
 ## Power BI report
 
@@ -18,12 +23,25 @@ Desktop and publish from there. See [`powerbi/README.md`](./powerbi/README.md)
 for full details. The Fabric data backend it sits on is documented in
 [`fabric/`](./fabric).
 
-Two operating modes, picked on first launch:
+## Two starting points, picked on first launch
 
-| Mode | Data source | UI writes | Best for |
+| Mode | Data | UI writes | Best for |
 |---|---|---|---|
-| **Scratch** | You create everything by hand. Seeded with a couple of demo projects. | All CRUD enabled. | Building your own app on top of the dashboard layout. |
-| **GitHub-sync** | Issues + pull requests pulled from a public GitHub repo. | Read-only (UI affordances hidden). | Quickly trying the app against real-looking data. |
+| **Sample** | Seeded with ~10 realistic EP publications, each with applicants, inventors and classifications. | All CRUD enabled. | Demoing the dashboard against representative data. |
+| **Empty** | You create everything by hand. | All CRUD enabled. | Building your own catalogue on top of the layout. |
+
+## Domain model
+
+| Entity | Grain | Key fields |
+|---|---|---|
+| **Patent** | One publication | `patent_number`, `kind_code`, `publication_country`, `publication_date`, `application_number`, `filing_date`, `language`, `title_en`, `main_ipc`, `ipc_section`, `first_applicant`, `applicant_country`, `inventor_count` |
+| **Applicant** | Many per patent | `name`, `country`, `sequence` |
+| **Inventor** | Many per patent | `name`, `country`, `sequence` |
+| **Classification** | Many per patent | `symbol`, `scheme` (IPC/CPC), `section` |
+
+`Patent` holds `@many(() => …)` relationships to its three children; each child
+holds `@one(() => Patent)`. A singleton `AppConfig` row tracks the chosen
+`setup_mode` (`pending | empty | sample`) and `seeded_at`.
 
 ## Design system at a glance
 
@@ -33,7 +51,7 @@ Two operating modes, picked on first launch:
 - **Type** — Fraunces (variable serif) for headings + numbers, DM Sans
   for UI, JetBrains Mono for captions / data / mono pills.
 - **Components** — rounded pills, hairline borders, status dots with
-  soft glow, page-enter staggered animation, glowing sync badge.
+  soft glow, page-enter staggered animation.
 
 ## Getting started
 
@@ -43,7 +61,8 @@ npm run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173), sign in, and you'll land
-on the **setup wizard** where you can pick the mode.
+on the **setup wizard** where you can load the sample patents or start empty.
+Local dev uses the mock auth path; deployed, it uses Fabric Entra SSO.
 
 ## Stack
 
@@ -52,7 +71,7 @@ on the **setup wizard** where you can pick the mode.
   CSS custom-property overrides to keep Material out of the way visually).
 - **chart.js** + **ng2-charts** for the dashboard chart.
 - **Rayfin** for auth, the data backend, and the `RayfinClient` SDK.
-- **uuid** (v5) for deterministic ids during GitHub sync.
+- **uuid** for row ids when seeding sample data.
 
 ## Project structure
 
@@ -60,86 +79,64 @@ on the **setup wizard** where you can pick the mode.
 ├── rayfin/
 │   ├── rayfin.yml                 # Rayfin service config (auth + data)
 │   └── data/
-│       └── schema.ts              # Project, Task, AppConfig entities
+│       └── schema.ts              # Patent, Applicant, Inventor, Classification, AppConfig
 ├── src/
 │   ├── main.ts                    # Bootstrap + Rayfin client init
 │   ├── services/                  # Framework-agnostic Rayfin client + auth
 │   ├── app/
-│   │   ├── app.routes.ts          # Lazy routes (/auth, /setup, /, /projects, /tasks, /settings)
+│   │   ├── app.routes.ts          # Lazy routes (/auth, /setup, /, /patents, /applicants, /settings)
 │   │   ├── auth.guard.ts          # Auth + no-auth route guards
 │   │   ├── setup.guard.ts         # Routes user to /setup on first run
 │   │   ├── shell/                 # Top toolbar + collapsible side nav
 │   │   ├── services/
-│   │   │   ├── data.service.ts    # Project + Task wrapper around the data client
+│   │   │   ├── data.service.ts    # Patent + child-entity wrapper around the data client
 │   │   │   ├── app-config.service.ts  # Singleton-row config + canWrite() signal
-│   │   │   ├── github-sync.service.ts # GitHub REST fetch + idempotent upsert
+│   │   │   ├── seed.service.ts    # Inserts ~10 sample EP patents
 │   │   │   ├── auth-state.ts      # Signal-based auth state
-│   │   │   └── constants.ts       # APP_CONFIG_ID, TASK_NAMESPACE_UUID, etc.
+│   │   │   └── constants.ts       # APP_CONFIG_ID
 │   │   └── pages/
 │   │       ├── auth/              # Sign-in page
-│   │       ├── setup/             # First-launch wizard
-│   │       ├── dashboard/         # KPI cards + chart + recent tasks
-│   │       ├── projects/          # Projects list + detail
-│   │       ├── tasks/             # Tasks list + detail
-│   │       └── settings/          # Current mode, manual sync, reset
+│   │       ├── setup/             # First-launch wizard (sample vs empty)
+│   │       ├── dashboard/         # KPI cards + IPC chart + recent publications
+│   │       ├── patents/          # Patents list + detail (with child entities)
+│   │       ├── applicants/       # Applicant leaderboard
+│   │       └── settings/          # Current mode, re-seed, reset
 └── package.json
 ```
 
-## Modes in depth
+## Views in depth
 
-### Scratch mode
+### Dashboard
 
-Hand-managed CRUD via the UI. The setup wizard seeds two demo projects and a
-few tasks so the dashboard isn't empty on first paint. Everything is editable.
+KPI cards (Total Patents, Distinct Applicants, Distinct Inventors, Avg
+Inventors/Patent), a patents-by-IPC-section bar chart, a recent-publications
+list, and a top-applicants strip.
 
-### GitHub-sync mode
+### Patents
 
-You give the wizard a public `owner/repo`. The app:
+Card grid with a **New Patent** dialog and delete (deletes cascade to the
+patent's applicants, inventors and classifications). The detail view shows the
+publication metadata hero plus the three child lists.
 
-1. Validates the repo via an unauthenticated `GET /repos/:owner/:name`.
-2. Pulls issues **and** pull requests via `GET /repos/:owner/:name/issues?state=all`
-   (the issues endpoint includes PRs; we tag each row with `type: 'issue' | 'pr'`).
-3. Upserts each item as a `Task`, using `uuidv5("${repo}#${number}")` as the
-   row id. This makes sync idempotent and race-safe across tabs.
-4. Updates `AppConfig.last_synced_at`.
+### Applicants
 
-A "Sync now" button is always available in the toolbar. The dashboard also
-triggers an auto-sync when last sync is ≥ 24h old.
+A leaderboard aggregating patents by applicant name.
 
 ### Switching modes
 
-Settings → **Reset to setup** wipes every project + task and returns you to
-the wizard.
+Settings → **Reset workspace** wipes every patent (and its children) and
+returns you to the setup wizard. **Re-seed** reloads the sample patents.
 
 ## Caveats — read this
 
-- **Read-only in sync mode is UI-only.** The schema entities are annotated
-  `@authenticated('*')`, so the backend still accepts mutations from anyone
-  signed in. The dashboard simply hides create/edit/delete affordances and
-  refuses to call them. This is template-level UX, not a security boundary.
-  If you need true server-enforced read-only, you'll need a custom
+- **CRUD is UI-level, not a security boundary.** The schema entities are
+  annotated `@authenticated('*')`, so the backend accepts mutations from anyone
+  signed in. If you need server-enforced restrictions, add a custom
   `@authenticated` policy.
 
-- **Public repos only.** Browser-side personal access tokens leak into the SPA
-  bundle and ship to every visitor. The cleaner alternative — moving sync into
-  a Rayfin server function — depends on `rayfin functions`, which the Rayfin
-  CLI currently marks as **preview / feature-gated**. We'll add PAT/private
-  repo support server-side once that GA's.
-
-- **GitHub API rate limit.** Unauthenticated GitHub REST allows 60 requests
-  per hour per IP. Sync caps at 10 pages × 100 issues = 1000 items, so one
-  full sync of a medium repo uses ~10 requests. Comfortably enough room for a
-  daily sync of small/medium repos; not enough for hourly polling.
-
-- **"Daily sync" is on-load, not scheduled.** Rayfin has no built-in
-  scheduler. We re-sync when the dashboard loads if `last_synced_at` is older
-  than 24h, plus a manual "Sync now" button. For true scheduled sync, a
-  GitHub Actions workflow calling `npx rayfin ...` is the easiest path today.
-
-- **`Task.labels_json` is a JSON string** (no array primitive in
-  `@microsoft/rayfin-core` decorators). It's rendered as chips but **cannot
-  be filtered server-side**. If you need that, add `Label` + `TaskLabel`
-  entities and a join.
+- **Sample data is illustrative.** The seeded patents mirror the semantic-model
+  field names but are not a live Direct Lake binding — they're rows created via
+  the Rayfin data backend so the dashboard has representative content offline.
 
 ## Environment overrides
 
@@ -148,11 +145,10 @@ that at boot via `.env`:
 
 ```bash
 # .env.local
-VITE_SYNC_MODE=github            # 'scratch' | 'github'
-VITE_GITHUB_REPO=microsoft/vscode
+VITE_SETUP_MODE=sample           # 'sample' | 'empty'
 ```
 
-When `VITE_SYNC_MODE` is set, the wizard is skipped entirely.
+When `VITE_SETUP_MODE` is set, the wizard is skipped entirely.
 
 ## Scripts
 
@@ -178,4 +174,3 @@ npm test         # karma + jasmine (set CHROME_BIN if needed)
 - Rayfin docs: <https://aka.ms/rayfin/docs>
 - Angular Material: <https://material.angular.dev>
 - ng2-charts: <https://valor-software.com/ng2-charts/>
-- GitHub REST issues endpoint: <https://docs.github.com/en/rest/issues/issues>

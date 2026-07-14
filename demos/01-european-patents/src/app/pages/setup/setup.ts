@@ -1,86 +1,47 @@
 import { Component, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router } from '@angular/router';
 
 import { AppConfigService } from '../../services/app-config.service';
-import { DataService } from '../../services/data.service';
-import { GithubSyncService } from '../../services/github-sync.service';
+import { SeedService } from '../../services/seed.service';
 
 @Component({
   selector: 'app-setup',
-  imports: [FormsModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [MatIconModule, MatProgressSpinnerModule],
   template: `
     <div class="page">
       <header class="header page-enter">
         <p class="eyebrow">Step 01 — set up your workspace</p>
         <h1 class="title">
-          Two ways<br />
+          Three ways<br />
           to <em>begin.</em>
         </h1>
         <p class="lead">
-          Either bring your own projects and tasks, or fill the workspace
-          with a real public GitHub repository. You can switch later
-          from Settings.
+          Explore the European Patents demo with live data straight from
+          Fabric, a curated sample of recent EP publications, or start with a
+          clean register and add patents yourself. You can switch later from
+          Settings.
         </p>
       </header>
 
       <div class="cards page-enter">
-        <article class="card" [class.card--busy]="busy() === 'scratch'">
+        <article class="card card--accent" [class.card--busy]="busy() === 'live'">
           <header class="card__top">
             <span class="card__num">A</span>
-            <span class="card__tag">Empty canvas</span>
+            <span class="card__tag">Live Fabric data</span>
           </header>
-          <h2 class="card__title">Start <em>from scratch.</em></h2>
+          <h2 class="card__title">Use <em>live patents.</em></h2>
           <p class="card__lead">
-            We'll seed a couple of projects and tasks so the dashboard
-            isn't empty on first paint. Create, edit and delete with full
-            CRUD in the UI.
+            Reads real European patent publications synced from the Fabric
+            semantic model — the full register with its applicants, inventors
+            and classifications. Read-only.
           </p>
           <ul class="card__notes">
-            <li>Full read &amp; write access</li>
-            <li>Two starter projects</li>
-            <li>Switch to sync later if you like</li>
+            <li>Thousands of real EP publications</li>
+            <li>KPIs from the Fabric model's own measures</li>
+            <li>Read-only (no editing)</li>
           </ul>
-          <button
-            type="button"
-            class="card__cta"
-            [disabled]="busy() !== null"
-            (click)="startScratch()"
-          >
-            @if (busy() === 'scratch') {
-              <mat-spinner diameter="16" strokeWidth="2" />
-            } @else {
-              <mat-icon>arrow_forward</mat-icon>
-            }
-            <span>Use this</span>
-          </button>
-        </article>
-
-        <article class="card card--accent" [class.card--busy]="busy() === 'github'">
-          <header class="card__top">
-            <span class="card__num">B</span>
-            <span class="card__tag">From GitHub</span>
-          </header>
-          <h2 class="card__title">Pull a <em>public repo.</em></h2>
-          <p class="card__lead">
-            Issues and pull requests sync as tasks. The UI becomes
-            read-only; sync runs on dashboard load when stale, and you
-            can refresh on demand from the toolbar.
-          </p>
-          <label class="card__field">
-            <span class="card__field-label">Owner / repository</span>
-            <input
-              class="card__input"
-              type="text"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="microsoft/vscode"
-              [(ngModel)]="repoInput"
-              [disabled]="busy() !== null"
-            />
-          </label>
           @if (error(); as err) {
             <p class="card__error">
               <mat-icon>error_outline</mat-icon>
@@ -90,15 +51,82 @@ import { GithubSyncService } from '../../services/github-sync.service';
           <button
             type="button"
             class="card__cta card__cta--accent"
-            [disabled]="busy() !== null || !repoInput.trim()"
-            (click)="startSync()"
+            [disabled]="busy() !== null"
+            (click)="startLive()"
           >
-            @if (busy() === 'github') {
+            @if (busy() === 'live') {
               <mat-spinner diameter="16" strokeWidth="2" />
             } @else {
               <mat-icon>cloud_sync</mat-icon>
             }
-            <span>Validate &amp; sync</span>
+            <span>Use this</span>
+          </button>
+        </article>
+
+        <article class="card" [class.card--busy]="busy() === 'sample'">
+          <header class="card__top">
+            <span class="card__num">B</span>
+            <span class="card__tag">Sample data</span>
+          </header>
+          <h2 class="card__title">Load <em>sample patents.</em></h2>
+          <p class="card__lead">
+            Seeds ten realistic European patent publications — each with its
+            applicants, inventors and IPC/CPC classifications — so the
+            dashboard is populated on first paint.
+          </p>
+          <ul class="card__notes">
+            <li>Ten EP publications</li>
+            <li>Applicants, inventors &amp; classifications</li>
+            <li>Full create / edit / delete in the UI</li>
+          </ul>
+          <button
+            type="button"
+            class="card__cta card__cta--accent"
+            [disabled]="busy() !== null"
+            (click)="startSample()"
+          >
+            @if (busy() === 'sample') {
+              <mat-spinner diameter="16" strokeWidth="2" />
+            } @else {
+              <mat-icon>auto_awesome</mat-icon>
+            }
+            <span>Use this</span>
+          </button>
+        </article>
+
+        <article class="card" [class.card--busy]="busy() === 'empty'">
+          <header class="card__top">
+            <span class="card__num">C</span>
+            <span class="card__tag">Empty register</span>
+          </header>
+          <h2 class="card__title">Start <em>from scratch.</em></h2>
+          <p class="card__lead">
+            Begin with an empty register and add patent publications one at a
+            time. Everything is fully editable in the UI.
+          </p>
+          <ul class="card__notes">
+            <li>No sample rows</li>
+            <li>Full read &amp; write access</li>
+            <li>Load sample data later from Settings</li>
+          </ul>
+          @if (error(); as err) {
+            <p class="card__error">
+              <mat-icon>error_outline</mat-icon>
+              <span>{{ err }}</span>
+            </p>
+          }
+          <button
+            type="button"
+            class="card__cta"
+            [disabled]="busy() !== null"
+            (click)="startEmpty()"
+          >
+            @if (busy() === 'empty') {
+              <mat-spinner diameter="16" strokeWidth="2" />
+            } @else {
+              <mat-icon>arrow_forward</mat-icon>
+            }
+            <span>Use this</span>
           </button>
         </article>
       </div>
@@ -106,8 +134,8 @@ import { GithubSyncService } from '../../services/github-sync.service';
       <footer class="hint page-enter">
         <span class="eyebrow">Tip</span>
         <p>
-          Public repos only. Switching modes from Settings will reset
-          the workspace.
+          Field names mirror the European Patents Fabric semantic model.
+          Resetting the workspace from Settings returns you here.
         </p>
       </footer>
     </div>
@@ -129,7 +157,6 @@ import { GithubSyncService } from '../../services/github-sync.service';
       isolation: isolate;
     }
 
-    /* Subtle backdrop glow */
     .page::before {
       content: '';
       position: fixed;
@@ -146,7 +173,6 @@ import { GithubSyncService } from '../../services/github-sync.service';
       pointer-events: none;
     }
 
-    /* Header */
     .header {
       display: flex;
       flex-direction: column;
@@ -178,7 +204,6 @@ import { GithubSyncService } from '../../services/github-sync.service';
       max-width: 36rem;
     }
 
-    /* Cards */
     .cards {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
@@ -316,47 +341,6 @@ import { GithubSyncService } from '../../services/github-sync.service';
       background: var(--cream-dim);
     }
 
-    /* Field */
-    .card__field {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .card__field-label {
-      font-family: var(--font-mono);
-      font-size: var(--text-caption);
-      font-weight: 500;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--cream-dim);
-    }
-
-    .card__input {
-      height: 2.75rem;
-      padding: 0 0.875rem;
-      background: var(--ink-bg);
-      color: var(--cream);
-      border: 1px solid var(--ink-border);
-      border-radius: var(--radius-sm);
-      font-family: var(--font-mono);
-      font-size: 0.9375rem;
-      letter-spacing: -0.005em;
-      transition: border-color var(--d-1) var(--ease-out),
-        background var(--d-1) var(--ease-out);
-    }
-
-    .card__input::placeholder {
-      color: var(--cream-dim);
-    }
-
-    .card__input:focus {
-      outline: none;
-      border-color: var(--accent);
-      background: var(--ink-elevated);
-    }
-
-    /* Error */
     .card__error {
       display: flex;
       align-items: flex-start;
@@ -379,7 +363,6 @@ import { GithubSyncService } from '../../services/github-sync.service';
       margin-top: 1px;
     }
 
-    /* CTA — text + icon, edge-aligned */
     .card__cta {
       display: inline-flex;
       align-items: center;
@@ -437,7 +420,6 @@ import { GithubSyncService } from '../../services/github-sync.service';
       --mat-progress-spinner-active-indicator-color: currentColor;
     }
 
-    /* Hint footer */
     .hint {
       display: flex;
       align-items: baseline;
@@ -460,20 +442,17 @@ import { GithubSyncService } from '../../services/github-sync.service';
 })
 export class Setup {
   private readonly appConfig = inject(AppConfigService);
-  private readonly data = inject(DataService);
-  private readonly sync = inject(GithubSyncService);
+  private readonly seed = inject(SeedService);
   private readonly router = inject(Router);
 
-  protected repoInput = '';
-  protected readonly busy = signal<'scratch' | 'github' | null>(null);
+  protected readonly busy = signal<'sample' | 'empty' | 'live' | null>(null);
   protected readonly error = signal<string | null>(null);
 
-  protected async startScratch(): Promise<void> {
-    this.busy.set('scratch');
+  protected async startLive(): Promise<void> {
+    this.busy.set('live');
     this.error.set(null);
     try {
-      await this.appConfig.setMode('scratch');
-      await this.seedDemoData();
+      await this.appConfig.setMode('live');
       await this.router.navigate(['/']);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : String(err));
@@ -482,21 +461,12 @@ export class Setup {
     }
   }
 
-  protected async startSync(): Promise<void> {
-    const repo = this.repoInput.trim();
-    if (!repo) return;
-    this.busy.set('github');
+  protected async startSample(): Promise<void> {
+    this.busy.set('sample');
     this.error.set(null);
     try {
-      const canonical = await this.sync.validateRepo(repo);
-      if (!canonical) {
-        this.error.set(
-          'Could not find that public repository. Use the "owner/name" format.'
-        );
-        return;
-      }
-      await this.appConfig.setMode('github', canonical);
-      await this.sync.syncNow();
+      await this.appConfig.setMode('sample');
+      await this.seed.seedSampleData();
       await this.router.navigate(['/']);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : String(err));
@@ -505,44 +475,16 @@ export class Setup {
     }
   }
 
-  private async seedDemoData(): Promise<void> {
-    const website = await this.data.createProject({
-      name: 'Website redesign',
-      description: 'Refresh the marketing site and CMS.',
-      created_at: new Date(),
-    });
-    const mobile = await this.data.createProject({
-      name: 'Mobile launch',
-      description: 'Ship v1 of the mobile companion.',
-      created_at: new Date(),
-    });
-    const now = new Date();
-    await this.data.createTask({
-      title: 'Audit current pages',
-      type: 'issue',
-      status: 'in_progress',
-      priority: 'high',
-      created_at: now,
-      updated_at: now,
-      project: { id: website.id },
-    });
-    await this.data.createTask({
-      title: 'Pick a design system',
-      type: 'issue',
-      status: 'open',
-      priority: 'medium',
-      created_at: now,
-      updated_at: now,
-      project: { id: website.id },
-    });
-    await this.data.createTask({
-      title: 'Beta TestFlight build',
-      type: 'issue',
-      status: 'open',
-      priority: 'high',
-      created_at: now,
-      updated_at: now,
-      project: { id: mobile.id },
-    });
+  protected async startEmpty(): Promise<void> {
+    this.busy.set('empty');
+    this.error.set(null);
+    try {
+      await this.appConfig.setMode('empty');
+      await this.router.navigate(['/']);
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : String(err));
+    } finally {
+      this.busy.set(null);
+    }
   }
 }

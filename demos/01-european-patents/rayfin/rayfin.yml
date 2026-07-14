@@ -11,6 +11,7 @@ services:
     allowedRedirectUris:
       - http://localhost:5173
       - https://grand-fog-4052b9371f-swedencentral.webapp.fabricapps.net
+      - https://ivory-heron-0e50f56d19-westus.webapp.fabricapps.net
   data:
     enabled: true
     dialect: mssql

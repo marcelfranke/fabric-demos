@@ -12,7 +12,7 @@
  * throw silently inside the try/catch and we return undefined.
  *
  * @example
- *   const repo = envVar(() => import.meta.env.VITE_GITHUB_REPO);
+ *   const repo = envVar(() => import.meta.env.VITE_SETUP_MODE);
  *   const api  = envVar(() => import.meta.env.VITE_RAYFIN_API_URL) ?? 'http://localhost:5168';
  */
 export function envVar(read: () => string | undefined): string | undefined {

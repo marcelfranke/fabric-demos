@@ -13,21 +13,26 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
 
-import type { Project } from '../../../../rayfin/data/schema';
+import type { Patent } from '../../../../rayfin/data/schema';
 import { AppConfigService } from '../../services/app-config.service';
 import { DataService } from '../../services/data.service';
 
-export interface ProjectDialogData {
-  project?: Project;
+export interface PatentDialogData {
+  patent?: Patent;
 }
 
-export interface ProjectFormResult {
-  name: string;
-  description?: string;
+export interface PatentFormResult {
+  patent_number: string;
+  title_en?: string;
+  main_ipc?: string;
+  first_applicant?: string;
+  applicant_country?: string;
+  kind_code?: string;
+  publication_date?: Date;
 }
 
 @Component({
-  selector: 'app-project-form-dialog',
+  selector: 'app-patent-form-dialog',
   imports: [
     FormsModule,
     MatButtonModule,
@@ -37,23 +42,53 @@ export interface ProjectFormResult {
   ],
   template: `
     <div class="dlg">
-      <p class="eyebrow">{{ isEdit ? 'Edit project' : 'New project' }}</p>
+      <p class="eyebrow">{{ isEdit ? 'Edit patent' : 'New patent' }}</p>
       <h2 class="dlg__title">
-        {{ isEdit ? 'Update the details.' : 'Name your project.' }}
+        {{ isEdit ? 'Update the details.' : 'Record a publication.' }}
       </h2>
       <mat-dialog-content class="dlg__body">
         <mat-form-field appearance="outline" class="full">
-          <mat-label>Name</mat-label>
-          <input matInput [(ngModel)]="name" required maxlength="200" />
+          <mat-label>Publication number</mat-label>
+          <input
+            matInput
+            [(ngModel)]="patentNumber"
+            required
+            maxlength="40"
+            placeholder="EP1234567"
+          />
         </mat-form-field>
         <mat-form-field appearance="outline" class="full">
-          <mat-label>Description</mat-label>
+          <mat-label>Title (EN)</mat-label>
           <textarea
             matInput
-            [(ngModel)]="description"
-            rows="3"
+            [(ngModel)]="titleEn"
+            rows="2"
             maxlength="1000"
           ></textarea>
+        </mat-form-field>
+        <div class="row">
+          <mat-form-field appearance="outline">
+            <mat-label>Main IPC</mat-label>
+            <input matInput [(ngModel)]="mainIpc" maxlength="40" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Kind code</mat-label>
+            <input matInput [(ngModel)]="kindCode" maxlength="8" />
+          </mat-form-field>
+        </div>
+        <div class="row">
+          <mat-form-field appearance="outline">
+            <mat-label>First applicant</mat-label>
+            <input matInput [(ngModel)]="firstApplicant" maxlength="300" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Applicant country</mat-label>
+            <input matInput [(ngModel)]="applicantCountry" maxlength="4" />
+          </mat-form-field>
+        </div>
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Publication date</mat-label>
+          <input matInput type="date" [(ngModel)]="publicationDate" />
         </mat-form-field>
       </mat-dialog-content>
       <mat-dialog-actions align="end" class="dlg__actions">
@@ -61,10 +96,10 @@ export interface ProjectFormResult {
         <button
           type="button"
           class="dlg__cta"
-          [disabled]="!name.trim()"
+          [disabled]="!patentNumber.trim()"
           (click)="save()"
         >
-          {{ isEdit ? 'Save changes' : 'Create project' }}
+          {{ isEdit ? 'Save changes' : 'Create patent' }}
         </button>
       </mat-dialog-actions>
     </div>
@@ -89,6 +124,11 @@ export interface ProjectFormResult {
       flex-direction: column;
       gap: 0.5rem;
       padding: 0.5rem 0 0 !important;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
     }
     .dlg__actions { padding: 0 !important; gap: 0.5rem; }
     .dlg__cta {
@@ -120,45 +160,57 @@ export interface ProjectFormResult {
     .full { width: 100%; }
   `,
 })
-export class ProjectFormDialog {
-  private readonly dialogRef = inject(MatDialogRef<ProjectFormDialog, ProjectFormResult>);
-  private readonly data = inject<ProjectDialogData>(MAT_DIALOG_DATA, { optional: true }) ?? {};
+export class PatentFormDialog {
+  private readonly dialogRef =
+    inject(MatDialogRef<PatentFormDialog, PatentFormResult>);
+  private readonly data =
+    inject<PatentDialogData>(MAT_DIALOG_DATA, { optional: true }) ?? {};
 
-  protected readonly isEdit = !!this.data.project;
-  protected name = this.data.project?.name ?? '';
-  protected description = this.data.project?.description ?? '';
+  protected readonly isEdit = !!this.data.patent;
+  protected patentNumber = this.data.patent?.patent_number ?? '';
+  protected titleEn = this.data.patent?.title_en ?? '';
+  protected mainIpc = this.data.patent?.main_ipc ?? '';
+  protected kindCode = this.data.patent?.kind_code ?? '';
+  protected firstApplicant = this.data.patent?.first_applicant ?? '';
+  protected applicantCountry = this.data.patent?.applicant_country ?? '';
+  protected publicationDate = this.data.patent?.publication_date
+    ? new Date(this.data.patent.publication_date).toISOString().slice(0, 10)
+    : '';
 
   protected save(): void {
+    const ipc = this.mainIpc.trim();
     this.dialogRef.close({
-      name: this.name.trim(),
-      description: this.description.trim() || undefined,
+      patent_number: this.patentNumber.trim(),
+      title_en: this.titleEn.trim() || undefined,
+      main_ipc: ipc || undefined,
+      first_applicant: this.firstApplicant.trim() || undefined,
+      applicant_country: this.applicantCountry.trim().toUpperCase() || undefined,
+      kind_code: this.kindCode.trim() || undefined,
+      publication_date: this.publicationDate
+        ? new Date(this.publicationDate)
+        : undefined,
     });
   }
 }
 
 @Component({
-  selector: 'app-projects-list',
+  selector: 'app-patents-list',
   imports: [MatButtonModule, MatIconModule, RouterLink],
   template: `
     <div class="page page-enter">
       <header class="head">
         <div class="head__text">
           <p class="eyebrow">Workspace</p>
-          <h1 class="head__title">Projects.</h1>
+          <h1 class="head__title">Patents.</h1>
           <p class="head__lead">
-            {{ projects().length }}
-            {{ projects().length === 1 ? 'project' : 'projects' }}
-            @if (!appConfig.canWrite()) { · read-only }
+            {{ patents().length }}
+            {{ patents().length === 1 ? 'publication' : 'publications' }}
           </p>
         </div>
         @if (appConfig.canWrite()) {
-          <button
-            type="button"
-            class="primary-btn"
-            (click)="newProject()"
-          >
+          <button type="button" class="primary-btn" (click)="newPatent()">
             <mat-icon>add</mat-icon>
-            <span>New project</span>
+            <span>New patent</span>
           </button>
         }
       </header>
@@ -169,51 +221,50 @@ export class ProjectFormDialog {
             <div class="skeleton skeleton--card"></div>
           }
         </div>
-      } @else if (projects().length === 0) {
+      } @else if (patents().length === 0) {
         <div class="empty">
-          <p class="eyebrow">No projects</p>
-          <h2 class="empty__title">A blank page.</h2>
+          <p class="eyebrow">No patents</p>
+          <h2 class="empty__title">A blank register.</h2>
           <p class="empty__lead">
-            Projects collect related tasks. Create your first one to
-            get going.
+            Record European patent publications with their applicants,
+            inventors and classifications.
           </p>
           @if (appConfig.canWrite()) {
-            <button
-              type="button"
-              class="primary-btn"
-              (click)="newProject()"
-            >
+            <button type="button" class="primary-btn" (click)="newPatent()">
               <mat-icon>add</mat-icon>
-              <span>Create a project</span>
+              <span>Add a patent</span>
             </button>
           }
         </div>
       } @else {
         <div class="cards">
-          @for (p of projects(); track p.id) {
-            <a class="card" [routerLink]="['/projects', p.id]">
+          @for (p of patents(); track p.id) {
+            <a class="card" [routerLink]="['/patents', p.id]">
               <div class="card__head">
-                <span class="card__num">
-                  {{ ('0' + (cards().indexOf(p.id) + 1)).slice(-2) }}
-                </span>
-                @if (p.github_repo) {
-                  <span class="pill pill--lime">GitHub</span>
+                <span class="card__num mono">{{ p.patent_number }}</span>
+                @if (p.ipc_section) {
+                  <span class="pill pill--lime">{{ p.ipc_section }}</span>
                 }
               </div>
-              <h3 class="card__title">{{ p.name }}</h3>
-              @if (p.description) {
-                <p class="card__desc">{{ p.description }}</p>
-              }
-              <footer class="card__foot">
-                @if (p.github_repo) {
-                  <span class="mono dim">{{ p.github_repo }}</span>
-                } @else if (p.created_at) {
-                  <span class="mono dim">
-                    Created {{ formatDate(p.created_at) }}
-                  </span>
-                } @else {
-                  <span></span>
+              <h3 class="card__title">
+                {{ p.title_en || '(untitled publication)' }}
+              </h3>
+              <div class="card__meta">
+                @if (p.first_applicant) {
+                  <span class="mono dim">{{ p.first_applicant }}</span>
                 }
+                @if (p.main_ipc) {
+                  <span class="pill pill--amber">{{ p.main_ipc }}</span>
+                }
+              </div>
+              <footer class="card__foot">
+                <span class="mono dim">
+                  @if (p.publication_date) {
+                    Published {{ formatDate(p.publication_date) }}
+                  } @else {
+                    {{ p.kind_code || 'EP' }}
+                  }
+                </span>
                 <span class="card__arrow">
                   <mat-icon>north_east</mat-icon>
                 </span>
@@ -223,7 +274,7 @@ export class ProjectFormDialog {
                   type="button"
                   class="card__delete"
                   (click)="remove($event, p)"
-                  aria-label="Delete project"
+                  aria-label="Delete patent"
                 >
                   <mat-icon>delete</mat-icon>
                 </button>
@@ -265,7 +316,6 @@ export class ProjectFormDialog {
       color: var(--cream-muted);
     }
 
-    /* Primary button — lime fill */
     .primary-btn {
       display: inline-flex;
       align-items: center;
@@ -296,7 +346,6 @@ export class ProjectFormDialog {
       height: 18px;
     }
 
-    /* Empty state */
     .empty {
       display: flex;
       flex-direction: column;
@@ -322,7 +371,6 @@ export class ProjectFormDialog {
       color: var(--cream-muted);
     }
 
-    /* Cards grid */
     .cards {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(min(18rem, 100%), 1fr));
@@ -367,28 +415,37 @@ export class ProjectFormDialog {
       font-family: var(--font-mono);
       font-size: var(--text-caption);
       font-weight: 500;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.06em;
       color: var(--cream-dim);
     }
 
     .card__title {
       font-family: var(--font-display);
       font-variation-settings: 'opsz' 72, 'SOFT' 30, 'wght' 500;
-      font-size: 1.5rem;
+      font-size: 1.35rem;
       letter-spacing: -0.02em;
       color: var(--cream);
       margin: 0;
-      line-height: 1.15;
-    }
-
-    .card__desc {
-      color: var(--cream-muted);
-      font-size: var(--text-small);
-      line-height: 1.55;
+      line-height: 1.2;
       display: -webkit-box;
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
       overflow: hidden;
+    }
+
+    .card__meta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .card__meta .mono {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .card__foot {
@@ -459,19 +516,14 @@ export class ProjectFormDialog {
     }
   `,
 })
-export class ProjectsList implements OnInit {
+export class PatentsList implements OnInit {
   private readonly data = inject(DataService);
   private readonly dialog = inject(MatDialog);
   private readonly snack = inject(MatSnackBar);
   protected readonly appConfig = inject(AppConfigService);
 
-  protected readonly projects = signal<Project[]>([]);
+  protected readonly patents = signal<Patent[]>([]);
   protected readonly loading = signal(true);
-
-  // Stable card numbering — captures id order for the (i+1)/02 indicator.
-  protected readonly cards = signal<string[]>([]);
-
-  // Used by @for(track) for skeleton placeholders.
   protected readonly skeletonItems = [0, 1, 2, 3, 4, 5];
 
   async ngOnInit(): Promise<void> {
@@ -481,9 +533,7 @@ export class ProjectsList implements OnInit {
   private async refresh(): Promise<void> {
     this.loading.set(true);
     try {
-      const ps = await this.data.listProjects();
-      this.projects.set(ps);
-      this.cards.set(ps.map((p) => p.id));
+      this.patents.set(await this.data.listPatents());
     } finally {
       this.loading.set(false);
     }
@@ -498,17 +548,22 @@ export class ProjectsList implements OnInit {
     });
   }
 
-  protected newProject(): void {
-    const ref = this.dialog.open(ProjectFormDialog, {
-      width: '32rem',
+  protected ipcSection(ipc: string | undefined): string | undefined {
+    return ipc?.trim().charAt(0).toUpperCase() || undefined;
+  }
+
+  protected newPatent(): void {
+    const ref = this.dialog.open(PatentFormDialog, {
+      width: '34rem',
       panelClass: 'atelier-dialog',
     });
-    ref.afterClosed().subscribe(async (result) => {
+    ref.afterClosed().subscribe(async (result: PatentFormResult | undefined) => {
       if (!result) return;
       try {
-        await this.data.createProject({
+        await this.data.createPatent({
           ...result,
-          created_at: new Date(),
+          publication_country: 'EP',
+          ipc_section: this.ipcSection(result.main_ipc),
         });
         await this.refresh();
       } catch (err) {
@@ -521,14 +576,22 @@ export class ProjectsList implements OnInit {
     });
   }
 
-  protected async remove(ev: Event, p: Project): Promise<void> {
+  protected async remove(ev: Event, p: Patent): Promise<void> {
     ev.preventDefault();
     ev.stopPropagation();
-    if (!confirm(`Delete project "${p.name}" and all its tasks?`)) return;
+    if (!confirm(`Delete patent "${p.patent_number}" and all its parties?`))
+      return;
     try {
-      const tasks = await this.data.listTasksForProject(p.id);
-      for (const t of tasks) await this.data.deleteTask(t.id);
-      await this.data.deleteProject(p.id);
+      const [applicants, inventors, classifications] = await Promise.all([
+        this.data.applicantsForPatent(p.id),
+        this.data.inventorsForPatent(p.id),
+        this.data.classificationsForPatent(p.id),
+      ]);
+      for (const a of applicants) await this.data.deleteApplicant(a.id);
+      for (const i of inventors) await this.data.deleteInventor(i.id);
+      for (const c of classifications)
+        await this.data.deleteClassification(c.id);
+      await this.data.deletePatent(p.id);
       await this.refresh();
     } catch (err) {
       this.snack.open(

@@ -1,24 +1,30 @@
 @use '@angular/material' as mat;
 
 /* ─────────────────────────────────────────────────────────────────────
- * Material 3 base theme. We keep the engine but override every visible
- * token in the :root block below so the result looks nothing like
- * "default Material". The base palette is yellow only because it's the
- * closest hue to our acid-lime accent — it never actually shows.
+ * Material 3 base theme — Microsoft / Fluent brand.
+ *
+ * We keep the Material engine but override every visible token in the
+ * :root blocks below with the Fluent palette (primary = Microsoft blue
+ * #0078D4, Fluent neutral surfaces, Segoe UI type). The base Material
+ * palette is azure only because it's the closest hue to Fluent blue — the
+ * overridden --mat-sys-* tokens are what actually paint.
  * ─────────────────────────────────────────────────────────────────── */
 html {
   /* Browser-native colour-scheme syncs scrollbars / form controls.
    * Default to dark; the light-theme variant flips it via the
-   * [data-theme='light'] selector above. */
+   * [data-theme='light'] selector below. */
   color-scheme: dark;
   @include mat.theme(
     (
       color: (
-        primary: mat.$yellow-palette,
-        tertiary: mat.$green-palette,
+        primary: mat.$azure-palette,
+        tertiary: mat.$blue-palette,
         theme-type: dark,
       ),
-      typography: 'DM Sans',
+      typography: (
+        plain-family: 'Segoe UI',
+        brand-family: 'Segoe UI',
+      ),
       density: -1,
     )
   );
@@ -33,43 +39,49 @@ html {
  * both themes).
  * ─────────────────────────────────────────────────────────────────── */
 :root {
-  /* Surfaces (dark default) */
-  --ink-bg: #0a0911;
-  --ink-surface: #15131c;
-  --ink-elevated: #1d1a26;
-  --ink-elevated-2: #25212f;
-  --ink-border: #2a2532;
-  --ink-border-soft: #1f1b27;
+  /* Surfaces — Fluent dark neutral ramp. */
+  --ink-bg: #1b1a19;
+  --ink-surface: #242322;
+  --ink-elevated: #2b2a29;
+  --ink-elevated-2: #323130;
+  --ink-border: #3b3a39;
+  --ink-border-soft: #302f2e;
 
-  /* Text */
-  --cream: #f4ecdf;
-  --cream-muted: #a39db1;
-  --cream-dim: #6b6677;
+  /* Text — Fluent neutrals on dark. */
+  --cream: #f3f2f1;
+  --cream-muted: #c8c6c4;
+  --cream-dim: #979593;
 
-  /* Lime — solid fill only. Same in both themes (always dark text on top). */
-  --lime: #d4ff3a;
-  --lime-bright: #e8ff66;
-  --lime-on: #0a0911; /* Foreground for text/icons over solid lime fills. */
+  /* Brand fill — Microsoft blue. Solid fills carry white text on top.
+   * (Legacy name kept so existing component CSS keeps working.) */
+  --lime: #0078d4;
+  --lime-bright: #2b9ce6;
+  --lime-on: #ffffff; /* Foreground for text/icons over solid blue fills. */
 
-  /* Accent — for text, hover-text, borders. Flips per theme. */
-  --accent: var(--lime);
-  --accent-soft: rgba(212, 255, 58, 0.12);
-  --accent-border: rgba(212, 255, 58, 0.25);
-  --accent-glow: rgba(212, 255, 58, 0.35);
-  --accent-shadow: 0 14px 36px -10px rgba(212, 255, 58, 0.45);
+  /* Accent — text, hover-text, borders, active nav. Lightened for AA on
+   * the dark surface; the light theme uses the pure #0078D4. */
+  --accent: #4faaf0;
+  --accent-hover: #2b9ce6;
+  --accent-soft: rgba(0, 120, 212, 0.16);
+  --accent-border: rgba(79, 170, 240, 0.4);
+  --accent-glow: rgba(0, 120, 212, 0.4);
+  --accent-shadow: 0 14px 36px -10px rgba(0, 120, 212, 0.45);
 
-  /* Semantic */
-  --rose: #fb7185;
-  --rose-soft: rgba(251, 113, 133, 0.14);
-  --amber: #fbbf24;
-  --amber-soft: rgba(251, 191, 36, 0.14);
-  --emerald: #34d399;
-  --emerald-soft: rgba(52, 211, 153, 0.14);
+  /* Semantic — Fluent (brightened for dark-surface legibility). */
+  --rose: #f1707b;
+  --rose-soft: rgba(209, 52, 56, 0.18);
+  --amber: #ffb900;
+  --amber-soft: rgba(255, 185, 0, 0.16);
+  --emerald: #4ac36a;
+  --emerald-soft: rgba(16, 124, 16, 0.2);
 
-  /* Type */
-  --font-display: 'Fraunces', ui-serif, Georgia, serif;
-  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+  /* Type — Segoe UI app-wide (Fabric / Power BI parity). */
+  --font-display: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica,
+    Arial, sans-serif;
+  --font-sans: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial,
+    sans-serif;
+  --font-mono: 'Cascadia Mono', 'Cascadia Code', Consolas, 'Courier New',
+    monospace;
 
   --text-display: clamp(2.5rem, 5vw, 4rem);
   --text-headline: clamp(1.5rem, 2.5vw, 2rem);
@@ -99,16 +111,15 @@ html {
   --d-2: 160ms;
   --d-3: 280ms;
 
-  /* Ambient glows for the body background — slightly different per theme. */
-  --bg-glow-1: radial-gradient(ellipse at top, rgba(212, 255, 58, 0.04), transparent 60%);
-  --bg-glow-2: radial-gradient(ellipse at bottom right, rgba(124, 90, 255, 0.05), transparent 50%);
+  /* Ambient glows for the body background — subtle Fluent blue haze. */
+  --bg-glow-1: radial-gradient(ellipse at top, rgba(0, 120, 212, 0.06), transparent 60%);
+  --bg-glow-2: radial-gradient(ellipse at bottom right, rgba(0, 164, 239, 0.05), transparent 50%);
 
   /* Material 3 token overrides (dark). */
   --mat-sys-primary: var(--accent);
-  /* --ink-bg flips with theme (dark ink in dark mode → cream paper in
-   * light mode), which gives the right contrast on top of --accent
+  /* Primary is always the Microsoft blue fill → white text on top,
    * regardless of theme. */
-  --mat-sys-on-primary: var(--ink-bg);
+  --mat-sys-on-primary: #ffffff;
   --mat-sys-primary-container: var(--accent-soft);
   --mat-sys-on-primary-container: var(--accent);
   --mat-sys-secondary: var(--cream);
@@ -138,47 +149,52 @@ html {
 }
 
 /* ─────────────────────────────────────────────────────────────────────
- * Light theme — "Editorial Paper".
- * Warm paper background, deep-ink text, olive accent (lime in solid
- * fills only). All component CSS keeps working as-is.
+ * Light theme — Microsoft Fluent (default corporate identity).
+ * Fluent neutral surfaces, Microsoft-blue accent, Segoe UI.
+ * All component CSS keeps working via the shared tokens.
  * ─────────────────────────────────────────────────────────────────── */
 :root[data-theme='light'] {
   color-scheme: light;
 
-  --ink-bg: #faf6ef;
+  --ink-bg: #faf9f8;
   --ink-surface: #ffffff;
-  --ink-elevated: #f4eee0;
-  --ink-elevated-2: #ebe4d2;
-  --ink-border: #e0d8c5;
-  --ink-border-soft: #ede8d8;
+  --ink-elevated: #f3f2f1;
+  --ink-elevated-2: #edebe9;
+  --ink-border: #edebe9;
+  --ink-border-soft: #f3f2f1;
 
-  --cream: #1a1726;
-  --cream-muted: #5a5562;
-  --cream-dim: #8a8593;
+  --cream: #201f1e;
+  --cream-muted: #605e5c;
+  --cream-dim: #8a8886;
 
-  /* Lime stays as the fill (still punchy over paper); accent is olive. */
-  --accent: #587a00;
-  --accent-soft: rgba(88, 122, 0, 0.1);
-  --accent-border: rgba(88, 122, 0, 0.3);
-  --accent-glow: rgba(212, 255, 58, 0.55);
-  --accent-shadow: 0 14px 36px -10px rgba(0, 0, 0, 0.12);
+  /* Blue fill + pure Microsoft blue accent on paper. */
+  --lime: #0078d4;
+  --lime-bright: #106ebe;
+  --lime-on: #ffffff;
 
-  /* Slightly different semantic shades for better legibility on light. */
-  --rose: #d63864;
-  --rose-soft: rgba(214, 56, 100, 0.12);
-  --amber: #b58200;
-  --amber-soft: rgba(181, 130, 0, 0.12);
-  --emerald: #0e8552;
-  --emerald-soft: rgba(14, 133, 82, 0.12);
+  --accent: #0078d4;
+  --accent-hover: #106ebe;
+  --accent-soft: rgba(0, 120, 212, 0.1);
+  --accent-border: rgba(0, 120, 212, 0.32);
+  --accent-glow: rgba(0, 120, 212, 0.28);
+  --accent-shadow: 0 14px 36px -10px rgba(0, 0, 0, 0.14);
+
+  /* Fluent semantic on light. */
+  --rose: #d13438;
+  --rose-soft: rgba(209, 52, 56, 0.1);
+  --amber: #ffb900;
+  --amber-soft: rgba(255, 185, 0, 0.16);
+  --emerald: #107c10;
+  --emerald-soft: rgba(16, 124, 16, 0.1);
 
   --bg-glow-1: radial-gradient(
     ellipse at top,
-    rgba(212, 255, 58, 0.25),
+    rgba(0, 120, 212, 0.08),
     transparent 60%
   );
   --bg-glow-2: radial-gradient(
     ellipse at bottom right,
-    rgba(124, 90, 255, 0.06),
+    rgba(0, 164, 239, 0.06),
     transparent 50%
   );
 
@@ -186,7 +202,7 @@ html {
    * --cream-* which already flipped). Only the inverse pair changes. */
   --mat-sys-inverse-surface: var(--ink-elevated-2);
   --mat-sys-inverse-on-surface: var(--cream);
-  --mat-sys-shadow: rgba(20, 18, 26, 0.18);
+  --mat-sys-shadow: rgba(32, 31, 30, 0.16);
 }
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -230,9 +246,8 @@ h2,
 h3,
 h4 {
   font-family: var(--font-display);
-  font-weight: 400;
-  font-variation-settings: 'opsz' 96, 'SOFT' 30;
-  letter-spacing: -0.025em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   margin: 0;
   color: var(--cream);
 }
@@ -245,7 +260,7 @@ h1 {
 h2 {
   font-size: var(--text-headline);
   line-height: 1.1;
-  font-variation-settings: 'opsz' 72, 'SOFT' 40;
+  font-weight: 600;
 }
 
 h3 {
@@ -291,8 +306,8 @@ select {
 
 .serif {
   font-family: var(--font-display);
-  font-variation-settings: 'opsz' 96, 'SOFT' 30;
-  letter-spacing: -0.025em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .mono {
@@ -334,19 +349,19 @@ select {
 .pill--rose {
   background: var(--rose-soft);
   color: var(--rose);
-  border-color: rgba(251, 113, 133, 0.25);
+  border-color: rgba(209, 52, 56, 0.28);
 }
 
 .pill--amber {
   background: var(--amber-soft);
   color: var(--amber);
-  border-color: rgba(251, 191, 36, 0.25);
+  border-color: rgba(255, 185, 0, 0.32);
 }
 
 .pill--emerald {
   background: var(--emerald-soft);
   color: var(--emerald);
-  border-color: rgba(52, 211, 153, 0.25);
+  border-color: rgba(16, 124, 16, 0.28);
 }
 
 /* Status dot — for table rows and lists. */

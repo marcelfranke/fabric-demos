@@ -6,11 +6,11 @@ import { getRayfinClient } from '../../services/rayfinClient';
 
 import { APP_CONFIG_ID } from './constants';
 
-type SyncMode = 'pending' | 'scratch' | 'github';
+export type SetupMode = 'pending' | 'empty' | 'sample' | 'live';
 
 // The SDK's `findById` / default field selection only returns the primary
 // key, so we have to be explicit about which columns to load.
-const APP_CONFIG_FIELDS = ['id', 'sync_mode', 'github_repo', 'last_synced_at'] as const;
+const APP_CONFIG_FIELDS = ['id', 'setup_mode', 'seeded_at'] as const;
 
 /** Singleton-row configuration store. */
 @Injectable({ providedIn: 'root' })
@@ -22,34 +22,36 @@ export class AppConfigService {
   readonly loaded = this._loaded.asReadonly();
 
   /**
-   * Effective sync mode, honouring the optional `.env` override
-   * (`VITE_SYNC_MODE`) over the DB row.
+   * Effective setup mode, honouring the optional `.env` override
+   * (`VITE_SETUP_MODE`) over the DB row.
    */
-  readonly mode = computed<SyncMode>(() => {
+  readonly mode = computed<SetupMode>(() => {
     const envOverride = envVar(
-      () => import.meta.env.VITE_SYNC_MODE
+      () => import.meta.env.VITE_SETUP_MODE
     )?.toLowerCase();
-    if (envOverride === 'scratch' || envOverride === 'github') return envOverride;
-    return this._config()?.sync_mode ?? 'pending';
+    if (
+      envOverride === 'empty' ||
+      envOverride === 'sample' ||
+      envOverride === 'live'
+    )
+      return envOverride;
+    return this._config()?.setup_mode ?? 'pending';
   });
 
-  /** Effective repo, honouring `VITE_GITHUB_REPO` over the DB row. */
-  readonly repo = computed<string | null>(() => {
-    const envOverride = envVar(
-      () => import.meta.env.VITE_GITHUB_REPO
-    )?.trim();
-    if (envOverride) return envOverride;
-    return this._config()?.github_repo ?? null;
-  });
+  /**
+   * True when the UI may show create/edit/delete affordances. Live mode is
+   * read-only (data comes straight from Fabric via the sync), so writes are
+   * disabled there as well as in the pre-setup `pending` state.
+   */
+  readonly canWrite = computed(
+    () => this.mode() === 'empty' || this.mode() === 'sample'
+  );
 
-  /** True when the UI may show create/edit/delete affordances. */
-  readonly canWrite = computed(() => this.mode() === 'scratch');
+  /** True when the app reads live data synced from Fabric. */
+  readonly isLive = computed(() => this.mode() === 'live');
 
-  /** True when synced from a repo. */
-  readonly isSynced = computed(() => this.mode() === 'github');
-
-  /** Last successful sync timestamp (DB-truth; never overridden by env). */
-  readonly lastSyncedAt = computed(() => this._config()?.last_synced_at ?? null);
+  /** Timestamp of the last sample-data seed, if any. */
+  readonly seededAt = computed(() => this._config()?.seeded_at ?? null);
 
   async load(force = false): Promise<void> {
     if (this._loaded() && !force) return;
@@ -58,45 +60,27 @@ export class AppConfigService {
   }
 
   /**
-   * Set sync mode + repo. Creates the singleton row on first call;
-   * tolerates a concurrent first-create race by falling through to update.
-   * Optimistically updates the local cache so the next route resolution
-   * doesn't bounce back to /setup even if the refetch is slow or fails.
+   * Set the setup mode. Creates the singleton row on first call; tolerates a
+   * concurrent first-create race by falling through to update. Optimistically
+   * updates the local cache so the next route resolution doesn't bounce back
+   * to /setup even if the refetch is slow or fails.
    */
-  async setMode(mode: 'scratch' | 'github', githubRepo?: string): Promise<void> {
+  async setMode(mode: 'empty' | 'sample' | 'live'): Promise<void> {
     const client = getRayfinClient();
     const existing = this._config();
     if (existing) {
-      await client.data.AppConfig.update(
-        { id: APP_CONFIG_ID },
-        { sync_mode: mode, github_repo: githubRepo }
-      );
+      await client.data.AppConfig.update({ id: APP_CONFIG_ID }, { setup_mode: mode });
     } else {
       try {
-        await client.data.AppConfig.create({
-          id: APP_CONFIG_ID,
-          sync_mode: mode,
-          github_repo: githubRepo,
-        });
+        await client.data.AppConfig.create({ id: APP_CONFIG_ID, setup_mode: mode });
       } catch {
-        await client.data.AppConfig.update(
-          { id: APP_CONFIG_ID },
-          { sync_mode: mode, github_repo: githubRepo }
-        );
+        await client.data.AppConfig.update({ id: APP_CONFIG_ID }, { setup_mode: mode });
       }
     }
-    // Optimistic write: ensure the in-memory cache reflects the new mode
-    // immediately so the very next setupGuard run doesn't redirect back to
-    // /setup just because the refetch was slow / empty.
-    this._config.set({
-      ...(existing ?? { id: APP_CONFIG_ID }),
-      sync_mode: mode,
-      github_repo: githubRepo,
-    });
+    // Optimistic write so the very next setupGuard run doesn't redirect back
+    // to /setup just because the refetch was slow / empty.
+    this._config.set({ ...(existing ?? { id: APP_CONFIG_ID }), setup_mode: mode });
     this._loaded.set(true);
-    // Then reconcile with the server so other fields (last_synced_at)
-    // come along too. A failed refetch is non-fatal — we already have
-    // a usable local copy.
     try {
       const fresh = await this.fetchSingleton();
       if (fresh) this._config.set(fresh);
@@ -107,7 +91,7 @@ export class AppConfigService {
   }
 
   /** Patch fields on the singleton row in-place. */
-  async patch(patch: Partial<Pick<AppConfig, 'github_repo' | 'last_synced_at'>>): Promise<void> {
+  async patch(patch: Partial<Pick<AppConfig, 'seeded_at'>>): Promise<void> {
     const client = getRayfinClient();
     await client.data.AppConfig.update({ id: APP_CONFIG_ID }, patch);
     this._config.set(await this.fetchSingleton());
