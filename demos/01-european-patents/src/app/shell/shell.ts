@@ -26,6 +26,7 @@ const ROUTE_LABELS: Record<string, string> = {
   '/': 'Dashboard',
   '/projects': 'Projects',
   '/tasks': 'Tasks',
+  '/patents': 'Patents',
   '/settings': 'Settings',
 };
 
@@ -81,6 +82,16 @@ const ROUTE_LABELS: Record<string, string> = {
           >
             <mat-icon class="nav__icon">checklist</mat-icon>
             <span class="nav__label">Tasks</span>
+          </a>
+          <a
+            routerLink="/patents"
+            routerLinkActive="active"
+            class="nav__item"
+            [matTooltip]="collapsed() ? 'Patents' : ''"
+            matTooltipPosition="right"
+          >
+            <mat-icon class="nav__icon">gavel</mat-icon>
+            <span class="nav__label">Patents</span>
           </a>
         </nav>
 

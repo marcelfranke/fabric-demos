@@ -1,0 +1,8 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "AzureWebJobsStorage": "",
+    "EPS_LAKEHOUSE_SQL_ALIAS": "eps_lakehouse_sql"
+  }
+}

@@ -46,6 +46,11 @@ export const routes: Routes = [
           import('./pages/tasks/task-detail').then((m) => m.TaskDetail),
       },
       {
+        path: 'patents',
+        loadComponent: () =>
+          import('./pages/patents/patents').then((m) => m.Patents),
+      },
+      {
         path: 'settings',
         loadComponent: () =>
           import('./pages/settings/settings').then((m) => m.Settings),
