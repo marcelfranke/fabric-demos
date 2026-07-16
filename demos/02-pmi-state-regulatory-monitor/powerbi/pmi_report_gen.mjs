@@ -34,6 +34,14 @@ const ACCENT = '#D4FF3A'; // signature chartreuse (KPI heroes, rules, emphasis)
 // its intended colour: adjust_for_tax, delist_banned, price_freely,
 // restricted_assortment, watch_pending
 const ACTION_COLORS = ['#FFB020', '#FF5C6A', '#5FD08B', '#5AA9FF', '#8A7CFF'];
+const ACTION_COLOR_MAP = {
+  adjust_for_tax: '#FFB020',
+  delist_banned: '#FF5C6A',
+  price_freely: '#5FD08B',
+  restricted_assortment: '#5AA9FF',
+  watch_pending: '#8A7CFF',
+};
+const PROGRAM_COLOR_MAP = { VEEV: '#5AA9FF', ZYN: '#8A7CFF', IQOS: '#D4FF3A' };
 
 // Lean, canonical visualStyles for the custom theme. Kept minimal because this
 // ring silently drops the ENTIRE custom theme (dataColors included) if the
@@ -235,7 +243,7 @@ function slicer(pos, e, p, header) {
 // cartesian chart. type: 'barChart' | 'columnChart' | 'lineChart' | 'areaChart'
 //                        | 'clusteredBarChart' | 'clusteredColumnChart'
 // sort: 'measureDesc' | 'catAsc' | null
-function cartesian(type, pos, catE, catP, yE, yP, sort, legend) {
+function cartesian(type, pos, catE, catP, yE, yP, sort, legend, opts = {}) {
   const qs = {
     Category: { projections: [projCol(catE, catP)] },
     Y: { projections: [projMeas(yE, yP)] },
@@ -244,12 +252,23 @@ function cartesian(type, pos, catE, catP, yE, yP, sort, legend) {
   const v = { visualType: type, query: { queryState: qs } };
   if (sort === 'measureDesc') v.query.sortDefinition = sortByMeasureDesc(yE, yP);
   else if (sort === 'catAsc') v.query.sortDefinition = sortByColumnAsc(catE, catP);
+  // per-visual data colours (theme dataColors don't survive ExportTo)
+  const objs = {};
+  if (opts.byCategory) objs.dataPoint = dpByCategory(opts.byCategory.e, opts.byCategory.p, opts.byCategory.map);
+  else if (opts.fill) objs.dataPoint = dpFill(opts.fill);
+  if ((type === 'lineChart' || type === 'areaChart') && (opts.fill || opts.lineWidth)) {
+    objs.lineStyles = [{ properties: {
+      strokeWidth: L(`${opts.lineWidth || 3}D`), showMarker: L('true'),
+      ...(opts.fill ? { lineColor: solid(opts.fill) } : {}),
+    } }];
+  }
+  if (Object.keys(objs).length) v.objects = objs;
   return baseVisual(vid(), pos, v, darkVCO());
 }
 
 // filled US map coloured by a legend category (pricing_action)
-function filledMap(pos, locE, locP, legendE, legendP) {
-  return baseVisual(vid(), pos, {
+function filledMap(pos, locE, locP, legendE, legendP, opts = {}) {
+  const v = {
     visualType: 'filledMap',
     query: {
       queryState: {
@@ -257,29 +276,64 @@ function filledMap(pos, locE, locP, legendE, legendP) {
         Series: { projections: [projCol(legendE, legendP)] },
       },
     },
-  }, darkVCO());
+  };
+  if (opts.byCategory) v.objects = { dataPoint: dpByCategory(opts.byCategory.e, opts.byCategory.p, opts.byCategory.map) };
+  return baseVisual(vid(), pos, v, darkVCO());
 }
 
-// per-visual dark styling for tableEx / pivotTable (theme table styles are not
-// honoured by the ExportTo render, so drive surfaces per-visual like the cards).
+// per-visual dark styling for tableEx / pivotTable. The ExportTo render does NOT
+// honour the theme's table styles NOR a `stylePreset:'None'` (that left primary
+// rows white last pass), so we drop stylePreset and set every surface explicitly:
+// primary + banded row fills, cream text on both bands, dark bold headers, and
+// a dark chartreuse total row.
 function tableDarkObjects({ pivot = false } = {}) {
-  const hdr = { fontColor: solid(CREAM), backColor: solid(PANEL), fontFamily: L("'Segoe UI Semibold'") };
-  const vals = { fontColor: solid(CREAM), backColor: solid(PANEL), backColorSecondary: solid('#1B1830'), fontFamily: L("'Segoe UI'") };
+  const hdr = { fontColor: solid(CREAM), backColor: solid('#1C1930'), fontFamily: L("'Segoe UI Semibold'"), bold: L('true') };
+  const vals = {
+    fontColor: solid(CREAM), backColor: solid(PANEL),
+    backColorSecondary: solid('#1A1730'), fontColorSecondary: solid(CREAM),
+    fontFamily: L("'Segoe UI'"),
+  };
+  const grid = {
+    gridVertical: L('true'), gridVerticalColor: solid(HAIR),
+    gridHorizontal: L('true'), gridHorizontalColor: solid(HAIR),
+    outlineColor: solid(HAIR), rowPadding: L('4D'),
+  };
   const o = {
-    stylePreset: [{ properties: { name: L("'None'") } }],
-    grid: [{ properties: {
-      gridVertical: L('true'), gridVerticalColor: solid(HAIR),
-      gridHorizontal: L('true'), gridHorizontalColor: solid(HAIR),
-      outlineColor: solid(HAIR),
-    } }],
     columnHeaders: [{ properties: hdr }],
     values: [{ properties: vals }],
+    grid: [{ properties: grid }],
+    total: [{ properties: { fontColor: solid(ACCENT), backColor: solid('#1C1930'), bold: L('true') } }],
   };
   if (pivot) {
     o.rowHeaders = [{ properties: hdr }];
-    o.subTotals = [{ properties: { fontColor: solid(CREAM), backColor: solid(PANEL) } }];
+    o.subTotals = [{ properties: { fontColor: solid(CREAM), backColor: solid('#1C1930') } }];
+    o.grandTotal = [{ properties: { fontColor: solid(ACCENT), backColor: solid('#1C1930') } }];
   }
   return o;
+}
+
+// ---- per-visual data-series colours (theme dataColors don't survive ExportTo) ----
+// single fill for every data point in the visual
+function dpFill(color) {
+  return [{ properties: { defaultColor: solid(color) } }];
+}
+// per-category fills: one dataPoint rule per category value, scoped by a literal
+// comparison so each bar/segment/legend member gets its status colour.
+function dpByCategory(e, p, mapping) {
+  return Object.entries(mapping).map(([val, color]) => ({
+    properties: { fill: solid(color) },
+    selector: {
+      data: [{
+        scopeId: {
+          Comparison: {
+            ComparisonKind: 0,
+            Left: { Column: { Expression: { SourceRef: { Entity: e } }, Property: p } },
+            Right: { Literal: { Value: `'${val}'` } },
+          },
+        },
+      }],
+    },
+  }));
 }
 
 function table(pos, cols) {
@@ -340,9 +394,11 @@ const pages = [];
   visuals.push(textbox({ x: 24, y: 360, width: 280, height: 344 }, noteRun(
     'Every US state is screened before the dynamic-pricing engine sets a shelf price.\n\nThe map & bar are coloured by pricing action:\n\n■ price_freely (green)\n■ adjust_for_tax (amber)\n■ delist_banned (rose)\n■ restricted_assortment (sky)\n■ watch_pending (purple)\n\nUse the product-line slicer to isolate ZYN or VEEV — the two heroes hit by tax + flavor bans. IQOS heated tobacco is federal-context only.')));
   visuals.push(textbox({ x: 320, y: 232, width: 620, height: 20 }, sectionRun('Regulatory stringency by state')));
-  visuals.push(filledMap({ x: 320, y: 256, width: 620, height: 448 }, 'State', 'State Name', 'PricingSignal', 'Pricing Action'));
+  visuals.push(filledMap({ x: 320, y: 256, width: 620, height: 448 }, 'State', 'State Name', 'PricingSignal', 'Pricing Action',
+    { byCategory: { e: 'PricingSignal', p: 'Pricing Action', map: ACTION_COLOR_MAP } }));
   visuals.push(textbox({ x: 956, y: 232, width: 300, height: 20 }, sectionRun('Signals by action')));
-  visuals.push(cartesian('barChart', { x: 956, y: 256, width: 300, height: 448 }, 'PricingSignal', 'Pricing Action', 'PricingSignal', 'Total Signals', 'catAsc'));
+  visuals.push(cartesian('barChart', { x: 956, y: 256, width: 300, height: 448 }, 'PricingSignal', 'Pricing Action', 'PricingSignal', 'Total Signals', 'catAsc', null,
+    { byCategory: { e: 'PricingSignal', p: 'Pricing Action', map: ACTION_COLOR_MAP } }));
   pages.push({ name, displayName: 'Command Center', visuals });
 }
 
@@ -355,12 +411,14 @@ const pages = [];
   visuals.push(textbox({ x: 24, y: 232, width: 280, height: 20 }, sectionRun('Product line')));
   visuals.push(slicer({ x: 24, y: 256, width: 280, height: 76 }, 'Program', 'Name', 'Product line'));
   visuals.push(textbox({ x: 24, y: 344, width: 280, height: 20 }, sectionRun('Avg tax burden by program')));
-  visuals.push(cartesian('columnChart', { x: 24, y: 368, width: 280, height: 160 }, 'Program', 'Name', 'PricingSignal', 'Avg Tax Burden', 'measureDesc'));
+  visuals.push(cartesian('columnChart', { x: 24, y: 368, width: 280, height: 160 }, 'Program', 'Name', 'PricingSignal', 'Avg Tax Burden', 'measureDesc', null,
+    { fill: '#FFB020' }));
   visuals.push(textbox({ x: 24, y: 540, width: 280, height: 164 }, noteRun(
     'State vapor excise tax burden (%). Above 20% → adjust price to protect margin. Colorado tops the list at 62%. VEEV vapor carries the excise load; ZYN pouches are not e-cigarettes.')));
 
   visuals.push(textbox({ x: 320, y: 96, width: 936, height: 20 }, sectionRun('States by excise tax burden (desc)')));
-  const taxBar = cartesian('barChart', { x: 320, y: 120, width: 936, height: 288 }, 'State', 'State Name', 'PricingSignal', 'Avg Tax Burden', 'measureDesc');
+  const taxBar = cartesian('barChart', { x: 320, y: 120, width: 936, height: 288 }, 'State', 'State Name', 'PricingSignal', 'Avg Tax Burden', 'measureDesc', null,
+    { fill: '#FFB020' });
   taxBar.filterConfig = { filters: [notBlankFilter('PricingSignal', 'Tax Burden')] };
   visuals.push(taxBar);
 
@@ -388,7 +446,8 @@ const pages = [];
     'Flavor bans → delist; PMTA registry laws → restricted assortment (price only FDA-listed SKUs); pending bills → watch.')));
 
   visuals.push(textbox({ x: 320, y: 96, width: 936, height: 20 }, sectionRun('Signals by action, per program')));
-  visuals.push(cartesian('clusteredBarChart', { x: 320, y: 120, width: 936, height: 216 }, 'PricingSignal', 'Pricing Action', 'PricingSignal', 'Total Signals', 'catAsc', ['Program', 'Name']));
+  visuals.push(cartesian('clusteredBarChart', { x: 320, y: 120, width: 936, height: 216 }, 'PricingSignal', 'Pricing Action', 'PricingSignal', 'Total Signals', 'catAsc', ['Program', 'Name'],
+    { byCategory: { e: 'Program', p: 'Name', map: PROGRAM_COLOR_MAP } }));
 
   visuals.push(textbox({ x: 24, y: 352, width: 760, height: 20 }, sectionRun('State × Program — pricing action')));
   visuals.push(matrix({ x: 24, y: 376, width: 760, height: 328 },
@@ -420,12 +479,14 @@ const pages = [];
     'CDC-dated regulatory activity over time. 34 of 60 signals carry a CDC effective date; the remaining 26 seed-driven flavor-ban / PMTA signals are undated by design — no fabricated dates.\n\nThe Date dimension connects to the fact only through PricingSignal[Effective Date], so only CDC-sourced signals are date-sliceable.')));
 
   visuals.push(textbox({ x: 320, y: 96, width: 936, height: 20 }, sectionRun('Signals by reporting year')));
-  const line = cartesian('lineChart', { x: 320, y: 120, width: 936, height: 288 }, 'Date', 'Year', 'PricingSignal', 'Total Signals', 'catAsc');
+  const line = cartesian('lineChart', { x: 320, y: 120, width: 936, height: 288 }, 'Date', 'Year', 'PricingSignal', 'Total Signals', 'catAsc', null,
+    { fill: ACCENT, lineWidth: 3 });
   line.filterConfig = { filters: [notBlankFilter('Date', 'Year')] };
   visuals.push(line);
 
   visuals.push(textbox({ x: 320, y: 420, width: 936, height: 20 }, sectionRun('Signals by reporting quarter')));
-  const colq = cartesian('columnChart', { x: 320, y: 444, width: 936, height: 260 }, 'Date', 'Quarter Label', 'PricingSignal', 'Total Signals', 'catAsc');
+  const colq = cartesian('columnChart', { x: 320, y: 444, width: 936, height: 260 }, 'Date', 'Quarter Label', 'PricingSignal', 'Total Signals', 'catAsc', null,
+    { fill: '#5AA9FF' });
   colq.filterConfig = { filters: [notBlankFilter('Date', 'Year')] };
   visuals.push(colq);
   pages.push({ name, displayName: 'Regulatory Timeline', visuals });
