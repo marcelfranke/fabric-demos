@@ -18,6 +18,9 @@ so the Lakehouse numbers match the app exactly.
 - **Lakehouse:** `pmi_lakehouse` (`e3c9f128-9200-4963-890d-26c5f76bf81a`).
 - **Notebook:** `02_pmi_pricing_medallion` (`904e669e-dd9c-4b36-9362-64d11051a175`) —
   Bronze → Silver → Gold in one parameterized PySpark notebook.
+- **Sales notebook:** `02_pmi_sales_forecast` (`4042f0e7-8678-4f4c-bf7c-22a4d7e648e1`)
+  — **synthetic** sales facts + demand forecast, coupled to the pricing signal (see
+  [Synthetic sales & demand forecast](#synthetic-sales--demand-forecast) below).
 - **Pipeline:** `pmi_pricing_pipeline` (`47a3f4ed-e65a-41fa-919e-5c365e5aa1f2`) —
   runs the notebook on a **daily** schedule (06:00 UTC).
 - **Semantic model:** `PMI Dynamic Pricing` (`6be9e165-fc81-4990-a479-a0cab935201c`)
@@ -206,7 +209,99 @@ Reframed (refreshed) after each load so Direct Lake picks up the latest Delta ta
 The committed TMDL under [`semantic-model/`](./semantic-model) is the source of truth;
 the Git-synced export lives under `../workspace-sync/PMI Dynamic Pricing.SemanticModel`.
 
-## Engineering canon
+## Synthetic sales & demand forecast
+
+> **⚠️ Synthetic data.** There is **no real PMI point-of-sale data** in this demo.
+> The sales facts below are **generated deterministically** (fixed hash seed, no RNG
+> draws) by the `02_pmi_sales_forecast` notebook. They are realistic-*shaped* — Poisson
+> demand, population-weighted volume, seasonality, a mild uptrend — but **fabricated**,
+> and exist purely to demonstrate how sales couple to the regulatory pricing signal.
+> Every run reproduces the identical numbers.
+
+A second, self-contained medallion notebook (`02_pmi_sales_forecast`) builds a daily
+transaction-style sales fact, rolls it up to a monthly modeling grain, and produces a
+demand forecast — all **coupled to `gold_pricing_signal`** so the regulatory story
+drives the revenue story. It reads the existing `gold_pricing_signal` (coupling),
+`gold_dim_date`, and `gold_dim_state`; it does **not** touch the pricing medallion or
+its tables.
+
+Grain: **daily** base fact (`date × state × city × shop × sku`, sparse — only rows with
+`units > 0`) → **monthly** shop×SKU aggregate (the modeling layer) → **forecast** on the
+monthly rollup. Only the two flavored heroes **ZYN + VEEV** are modeled (IQOS sales are
+not invented).
+
+| Table | Rows | Role |
+|---|---:|---|
+| `dim_city` | 110 | City dimension (city, state, population_weight) |
+| `dim_shop` | 152 | Shop dimension (shop_id, name, city, state, channel ∈ convenience/tobacco/grocery) |
+| `dim_sku` | 8 | SKU dimension (ZYN ×4 + VEEV ×4: program, flavor, pack) |
+| `fact_sales_daily` | 1,240,390 | Daily transaction fact — units, unit_price, revenue (units > 0 only) |
+| `gold_sales_monthly` | 88,128 | Monthly month×state×city×shop×sku — units, revenue, avg_price, baseline, revenue_at_risk |
+| `gold_demand_forecast` | 11,856 | Actuals + forecast + 80% band, per program and program×state (104 series) |
+| `gold_sales_by_program` | 2 | Rollup: units + revenue + revenue-at-risk per program |
+| `ctl_sales_years` | 9 | Control table — per-year load status (resumable) |
+
+Window **2018-01-01 → 2026-06-30** (contains all 9 VEEV flavor-ban cliffs); forecast
+horizon **12 months** (Jul 2026 → Jun 2027).
+
+### The coupling (sales are inseparable from the regulatory signal)
+
+1. **Ban cliff** — for VEEV state×SKU under a flavor ban that has a real CDC
+   `effective_date`, daily units run at baseline then **taper to zero** over
+   `TAPER_DAYS` (45) ending at the effective date — a visible revenue cliff. **9
+   cliffs**: CA (2022-07-01), DC (2021-10-01), MA (2020-06-01), MD (2024-06-01),
+   ME (2020-01-02), NJ (2018-09-30), NY (2019-12-01), RI (2025-01-01), UT (2020-07-01).
+   Real effective dates only — none fabricated.
+2. **Revenue at risk** — for ZYN flavor-ban states (banned, no CDC date), in-market
+   sales are forced to ~0 but the counterfactual baseline is retained as a
+   `revenue_at_risk` measure. **9 at-risk state×SKUs** (ZYN in the same 9 states);
+   total revenue-at-risk **$3,656,525**.
+3. **Price / tax** — `unit_price` scales up with the state's `tax_burden` for
+   `adjust_for_tax` states (50% pass-through); `price_freely` states stay at baseline;
+   price varies slightly by channel. Volume scales with city `population_weight` +
+   seasonality (summer/holiday lift) + a mild 6%/yr uptrend.
+
+### Demand forecast
+
+`gold_demand_forecast` fits each monthly series (per program, and per program×state
+including a `state = "ALL"` national series — **104 series**) with **Holt-Winters
+additive** (`statsmodels`, available in the Fabric runtime; a seasonal-naive +
+linear-trend fallback is used if it is not). It stores actuals + forecast + lower/upper
+**80% band** (±1.28σ) over a 12-month horizon. Fully seeded/deterministic.
+
+### Validation gate — reconciled counts (verified live)
+
+From `Files/_run/sales_summary.json` on the GREEN full-window run
+(instance `02ce51af-…`):
+
+| Metric | Value |
+|---|---:|
+| `fact_sales_daily` rows | 1,240,390 |
+| `gold_sales_monthly` rows | 88,128 |
+| Total units (daily == monthly) | 1,882,518 |
+| Total revenue (daily == monthly) | $18,646,356.10 |
+| Revenue at risk (banned, forgone) | $3,656,525.35 |
+| Ban-cliff state×SKUs (VEEV) | 9 |
+| At-risk state×SKUs (ZYN) | 9 |
+| Forecast series | 104 (Holt-Winters additive) |
+
+Key integrity: `count == distinct(id)` and 0 null ids on every keyed table. FK: 0 orphan
+`date_key` / `shop_id` / `sku_id`. Additive-measure reconciliation: Σ daily units ==
+Σ monthly units and Σ daily revenue == Σ monthly revenue (exact).
+
+### Sales-notebook run knobs (override per job)
+
+`YEARS` (e.g. `"2018"` for a single-year smoke; omit for the full window), `WRITE_MODE`,
+`FORCE_REPROCESS`, `START_DATE`, `END_DATE`, `FORECAST_HORIZON`, `LAMBDA_BASE` (demand
+scale — primary row-count knob), `TAPER_DAYS`, `TAX_PASSTHROUGH`, `TREND_ANNUAL`.
+Per-year loop + `ctl_sales_years` control table make loads resumable. Build/run:
+
+```bash
+node fabric/notebooks/build_sales_notebook.mjs   # UPSERT-deploy (SKIP_DEPLOY=1 = export only)
+node fabric/notebooks/run_sales_notebook.mjs      # run + poll (NB_PARAMS='{"YEARS":"2018"}' to scope)
+```
+
+
 
 - **Deterministic surrogate keys** — `bigint` via `xxhash64` of the natural business
   key (stable across reprocessing; verified `count == distinct(id)`).
