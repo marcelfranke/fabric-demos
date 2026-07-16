@@ -90,7 +90,11 @@ look (not flat-light, not dark):
 - Signature **PMI brand blue `#0074C2`** for key series, the nav underline, and
   accents; deep navy `#00335C` for secondary heads.
 - Headlines / KPI numbers are **Lato** (Black/Bold), body / labels / tables are
-  **Roboto**. Georgia and Segoe UI are fully removed.
+  **Roboto**. Georgia is fully removed. Display textbox runs (page titles, section
+  labels, framing-strip headings) carry an explicit `Lato, sans-serif` family so the
+  ExportTo-PDF renderer — which does not embed Lato — resolves to a clean sans face
+  instead of substituting a serif; a bare `Lato` with no fallback renders serif in
+  the export and is avoided everywhere.
 
 Supporting blue tints `#4BA3DB` / `#7FC4E8` / `#D6E8F5` carry program splits and
 secondary series — one dominant colour (blue) + tints, with the saturated status
@@ -255,9 +259,10 @@ banned in New Jersey").
 >   These render on-brand in the exported PDF — no monochrome base-blue.
 > - **Tables (per-visual light objects):** `tableEx`/`pivotTable` set explicit
 >   p16-style light `values` / `columnHeaders` / `total` / `grid` (+ matrix
->   `rowHeaders`): near-black bold header on a light `#EAF3FB` tint with a bottom
+>   `rowHeaders`): near-black bold header on a **white** surface with a bottom
 >   rule, white/`#F4F6FA` alternating rows, navy ink text, `#E6EBF2` gridlines, and
->   (on the matrix) a solid brand-blue left category column with white text. On a
+>   (on the matrix) a solid brand-blue left category column with white text — the
+>   *Value Report 2025* p16 "Business Transformation Metrics" table pattern. On a
 >   **light** theme the ExportTo table renderer's opaque light cell fill is a
 >   non-issue — tables render clean and consistent in both the service and the PDF
 >   export (the white-primary-row artifact that fought the previous dark design no
