@@ -1,6 +1,10 @@
 // Deterministic PBIR generator for the "PMI Dynamic Pricing" report.
 // Emits a .Report folder bound (byConnection) to the deployed Direct Lake
 // semantic model. Re-run with: node pmi_report_gen.mjs
+//
+// Design: a dark, premium "midnight ink + chartreuse" corporate identity that
+// matches the PMI deck. Four pages, each with a hero header band. Page 4
+// (Regulatory Timeline) showcases the Date dimension added in PR #18.
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import crypto from 'node:crypto';
@@ -17,11 +21,40 @@ const SCHEMA = {
   pbir: 'https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/2.0.0/schema.json',
 };
 
-// pricing_action palette (alphabetical order = how Power BI assigns the theme
-// dataColors palette to a category sorted ascending, so each action gets its
-// intended colour): adjust_for_tax, delist_banned, price_freely,
+// ---- corporate identity (extracted from the PMI deck) ----
+const INK = '#0A0911';    // canvas / wallpaper (midnight ink)
+const PANEL = '#141221';  // cards / panels
+const HAIR = '#2A2733';   // hairline borders / gridlines
+const CREAM = '#F4ECDF';  // primary text
+const MUTED = '#9A93A6';  // secondary text
+const ACCENT = '#D4FF3A'; // signature chartreuse (KPI heroes, rules, emphasis)
+
+// pricing_action palette in ALPHABETICAL category order, so Power BI assigns the
+// theme dataColors palette to a category sorted ascending and each action gets
+// its intended colour: adjust_for_tax, delist_banned, price_freely,
 // restricted_assortment, watch_pending
-const ACTION_COLORS = ['#E8A317', '#C6395F', '#2E8B57', '#E8703A', '#5B5FC7'];
+const ACTION_COLORS = ['#FFB020', '#FF5C6A', '#5FD08B', '#5AA9FF', '#8A7CFF'];
+
+// Lean, canonical visualStyles for the custom theme. Kept minimal because this
+// ring silently drops the ENTIRE custom theme (dataColors included) if the
+// visualStyles block contains any unsupported property. Toggled via env so the
+// theme can be deployed with top-level fields only when bisecting.
+const LEAN_VISUAL_STYLES = {
+  '*': {
+    '*': {
+      background: [{ color: { solid: { color: PANEL } }, show: true, transparency: 0 }],
+      border: [{ color: { solid: { color: HAIR } }, show: true, radius: 6 }],
+      dropShadow: [{ show: false }],
+    },
+  },
+  page: {
+    '*': {
+      background: [{ color: { solid: { color: INK } }, transparency: 0 }],
+      outspace: [{ color: { solid: { color: INK } }, transparency: 0 }],
+    },
+  },
+};
+const VISUAL_STYLES = process.env.PMI_NO_VISUAL_STYLES ? undefined : LEAN_VISUAL_STYLES;
 
 // clean slate
 try { rmSync(OUT, { recursive: true, force: true }); } catch {}
@@ -32,6 +65,8 @@ const pid = () => crypto.randomBytes(10).toString('hex');
 const fid = () => 'Filter' + crypto.randomBytes(12).toString('hex');
 
 // ---- expression helpers ----
+const L = (v) => ({ expr: { Literal: { Value: v } } });
+const solid = (c) => ({ solid: { color: L(`'${c}'`) } });
 const col = (e, p) => ({ Column: { Expression: { SourceRef: { Entity: e } }, Property: p } });
 const meas = (e, p) => ({ Measure: { Expression: { SourceRef: { Entity: e } }, Property: p } });
 const projCol = (e, p) => ({ field: col(e, p), queryRef: `${e}.${p}`, nativeQueryRef: p });
@@ -97,36 +132,91 @@ function inFilter(e, p, values) {
   };
 }
 
+// ---- dark surface styling applied to (almost) every visual ----
+function darkVCO({ bg = PANEL, border = true, title = false } = {}) {
+  const vco = {
+    background: [{ properties: { show: L('true'), color: solid(bg), transparency: L('0D') } }],
+    border: [{ properties: { show: L(border ? 'true' : 'false'), color: solid(HAIR) } }],
+    title: [{ properties: { show: L(title ? 'true' : 'false') } }],
+  };
+  return vco;
+}
+
 // ---- visual builders ----
-function baseVisual(name, pos, visual) {
+function baseVisual(name, pos, visual, vco) {
+  if (vco) visual.visualContainerObjects = vco;
   return { $schema: SCHEMA.vc, name, position: { z: 1000, tabOrder: 1000, ...pos }, visual };
 }
 
-function textbox(pos, runs) {
+// textbox — align: 'left' | 'right' | 'center'; fill: optional solid bg colour
+function textbox(pos, runs, { align = 'left', fill = null } = {}) {
+  const vco = {
+    background: [{ properties: { show: L(fill ? 'true' : 'false'), ...(fill ? { color: solid(fill), transparency: L('0D') } : {}) } }],
+    border: [{ properties: { show: L('false') } }],
+    padding: [{ properties: {
+      top: L('0D'), bottom: L('0D'), left: L('0D'), right: L('0D'),
+    } }],
+  };
   return baseVisual(vid(), pos, {
     visualType: 'textbox',
     objects: {
-      general: [{ properties: { paragraphs: [{ textRuns: runs, horizontalTextAlignment: 'left' }] } }],
+      general: [{ properties: { paragraphs: [{ textRuns: runs, horizontalTextAlignment: align }] } }],
     },
-    visualContainerObjects: {
-      background: [{ properties: { show: { expr: { Literal: { Value: 'false' } } } } }],
-      border: [{ properties: { show: { expr: { Literal: { Value: 'false' } } } } }],
-      padding: [{ properties: {
-        top: { expr: { Literal: { Value: '0D' } } }, bottom: { expr: { Literal: { Value: '0D' } } },
-        left: { expr: { Literal: { Value: '0D' } } }, right: { expr: { Literal: { Value: '0D' } } },
-      } }],
-    },
+    visualContainerObjects: vco,
   });
 }
 
-function card(pos, measures) {
+// solid rectangle (used for the header band + accent rule)
+function rect(pos, colr) {
   return baseVisual(vid(), pos, {
-    visualType: 'cardVisual',
-    query: { queryState: { Data: { projections: measures.map(([e, p]) => projMeas(e, p)) } } },
+    visualType: 'shape',
+    objects: {
+      shape: [{ properties: { tileShape: { expr: { Literal: { Value: "'rectangle'" } } } } }],
+      fill: [{ properties: {
+        show: { expr: { Literal: { Value: 'true' } } },
+        fillColor: { solid: { color: L(`'${colr}'`) } },
+        transparency: { expr: { Literal: { Value: '0D' } } },
+      } }],
+      outline: [{ properties: { show: { expr: { Literal: { Value: 'false' } } } } }],
+    },
+  }, {
+    background: [{ properties: { show: L('false') } }],
+    border: [{ properties: { show: L('false') } }],
   });
+}
+
+// KPI tiles — classic single-value `card` visuals (honor per-visual colour
+// objects in BOTH the interactive service and the ExportTo render, unlike the
+// modern `cardVisual` whose face/callout ignore per-visual styling here).
+// Returns an ARRAY (one tile per measure) laid out evenly across `pos`.
+function card(pos, measures) {
+  const n = measures.length;
+  const gap = n > 1 ? 16 : 0;
+  const w = n > 1 ? Math.floor((pos.width - gap * (n - 1)) / n) : pos.width;
+  return measures.map(([e, p], i) => baseVisual(vid(), {
+    x: pos.x + i * (w + gap), y: pos.y, width: w, height: pos.height,
+  }, {
+    visualType: 'card',
+    query: { queryState: { Values: { projections: [projMeas(e, p)] } } },
+    objects: {
+      labels: [{ properties: {
+        color: solid(ACCENT), fontSize: L('34D'),
+        fontFamily: L("'Georgia, serif'"), labelDisplayUnits: L('0D'),
+      } }],
+      categoryLabels: [{ properties: {
+        show: L('true'), color: solid(MUTED), fontSize: L('11D'),
+        fontFamily: L("'Segoe UI'"),
+      } }],
+      wordWrap: [{ properties: { show: L('true') } }],
+    },
+  }, darkVCO()));
 }
 
 function slicer(pos, e, p, header) {
+  const vco = {
+    ...darkVCO(),
+    padding: [{ properties: { top: L('8D'), bottom: L('8D'), left: L('8D'), right: L('8D') } }],
+  };
   return baseVisual(vid(), pos, {
     visualType: 'slicer',
     query: { queryState: { Values: { projections: [projCol(e, p)] } } },
@@ -135,18 +225,16 @@ function slicer(pos, e, p, header) {
       header: [{ properties: {
         show: { expr: { Literal: { Value: 'true' } } },
         text: { expr: { Literal: { Value: `'${header}'` } } },
+        fontColor: solid(CREAM),
       } }],
+      items: [{ properties: { fontColor: solid(CREAM) } }],
     },
-    visualContainerObjects: {
-      padding: [{ properties: {
-        top: { expr: { Literal: { Value: '8D' } } }, bottom: { expr: { Literal: { Value: '8D' } } },
-        left: { expr: { Literal: { Value: '8D' } } }, right: { expr: { Literal: { Value: '8D' } } },
-      } }],
-    },
-  });
+  }, vco);
 }
 
-// cartesian chart. sort: 'measureDesc' | 'catAsc' | null
+// cartesian chart. type: 'barChart' | 'columnChart' | 'lineChart' | 'areaChart'
+//                        | 'clusteredBarChart' | 'clusteredColumnChart'
+// sort: 'measureDesc' | 'catAsc' | null
 function cartesian(type, pos, catE, catP, yE, yP, sort, legend) {
   const qs = {
     Category: { projections: [projCol(catE, catP)] },
@@ -156,7 +244,7 @@ function cartesian(type, pos, catE, catP, yE, yP, sort, legend) {
   const v = { visualType: type, query: { queryState: qs } };
   if (sort === 'measureDesc') v.query.sortDefinition = sortByMeasureDesc(yE, yP);
   else if (sort === 'catAsc') v.query.sortDefinition = sortByColumnAsc(catE, catP);
-  return baseVisual(vid(), pos, v);
+  return baseVisual(vid(), pos, v, darkVCO());
 }
 
 // filled US map coloured by a legend category (pricing_action)
@@ -169,14 +257,37 @@ function filledMap(pos, locE, locP, legendE, legendP) {
         Series: { projections: [projCol(legendE, legendP)] },
       },
     },
-  });
+  }, darkVCO());
+}
+
+// per-visual dark styling for tableEx / pivotTable (theme table styles are not
+// honoured by the ExportTo render, so drive surfaces per-visual like the cards).
+function tableDarkObjects({ pivot = false } = {}) {
+  const hdr = { fontColor: solid(CREAM), backColor: solid(PANEL), fontFamily: L("'Segoe UI Semibold'") };
+  const vals = { fontColor: solid(CREAM), backColor: solid(PANEL), backColorSecondary: solid('#1B1830'), fontFamily: L("'Segoe UI'") };
+  const o = {
+    stylePreset: [{ properties: { name: L("'None'") } }],
+    grid: [{ properties: {
+      gridVertical: L('true'), gridVerticalColor: solid(HAIR),
+      gridHorizontal: L('true'), gridHorizontalColor: solid(HAIR),
+      outlineColor: solid(HAIR),
+    } }],
+    columnHeaders: [{ properties: hdr }],
+    values: [{ properties: vals }],
+  };
+  if (pivot) {
+    o.rowHeaders = [{ properties: hdr }];
+    o.subTotals = [{ properties: { fontColor: solid(CREAM), backColor: solid(PANEL) } }];
+  }
+  return o;
 }
 
 function table(pos, cols) {
   return baseVisual(vid(), pos, {
     visualType: 'tableEx',
     query: { queryState: { Values: { projections: cols.map((c) => (c[2] === 'm' ? projMeas(c[0], c[1]) : projCol(c[0], c[1]))) } } },
-  });
+    objects: tableDarkObjects(),
+  }, darkVCO());
 }
 
 function matrix(pos, rows, columns, values) {
@@ -185,56 +296,76 @@ function matrix(pos, rows, columns, values) {
     Values: { projections: values.map((c) => (c[2] === 'm' ? projMeas(c[0], c[1]) : projCol(c[0], c[1]))) },
   };
   if (columns && columns.length) qs.Columns = { projections: columns.map(([e, p]) => projCol(e, p)) };
-  return baseVisual(vid(), pos, { visualType: 'pivotTable', query: { queryState: qs } });
+  return baseVisual(vid(), pos, { visualType: 'pivotTable', query: { queryState: qs }, objects: tableDarkObjects({ pivot: true }) }, darkVCO());
 }
 
 // ---- text run styles ----
-const titleRun = (t) => [{ value: t, textStyle: { fontFamily: 'Segoe UI Semibold', fontSize: '24px', color: '#1B3A6B' } }];
-const subRun = (t) => [{ value: t, textStyle: { fontFamily: 'Segoe UI', fontSize: '12px', color: '#605E5C' } }];
+const titleRun = (t) => [{ value: t, textStyle: { fontFamily: 'Georgia', fontSize: '26px', color: CREAM, fontWeight: 'bold' } }];
+const wordmarkRun = (t) => [{ value: t, textStyle: { fontFamily: 'Segoe UI', fontSize: '11px', color: MUTED, letterSpacing: '2px' } }];
+const sectionRun = (t) => [{ value: t, textStyle: { fontFamily: 'Georgia', fontSize: '14px', color: CREAM } }];
+const noteRun = (t) => [{ value: t, textStyle: { fontFamily: 'Segoe UI', fontSize: '12px', color: MUTED } }];
+const accentRun = (t) => [{ value: t, textStyle: { fontFamily: 'Segoe UI Semibold', fontSize: '12px', color: ACCENT } }];
+
+// hero header band: dark strip + Georgia title + chartreuse rule + right wordmark.
+// Built from textboxes (their visualContainerObjects.background is reliably
+// honoured by this ring; `shape` fills are not) so the band renders regardless
+// of whether the custom theme is applied.
+function header(title) {
+  return [
+    textbox({ x: 0, y: 0, width: 1280, height: 80 }, [], { fill: PANEL }),
+    textbox({ x: 0, y: 80, width: 1280, height: 2 }, [], { fill: HAIR }),
+    textbox({ x: 24, y: 16, width: 900, height: 36 }, titleRun(title), { fill: PANEL }),
+    textbox({ x: 26, y: 58, width: 210, height: 3 }, [], { fill: ACCENT }),
+    textbox({ x: 760, y: 30, width: 496, height: 18 }, wordmarkRun('PMI · STATE REGULATORY MONITOR'), { align: 'right', fill: PANEL }),
+  ];
+}
 
 // ================= PAGES =================
 const pages = [];
 
-// ---------- Page 1: Pricing Overview ----------
+// ---------- Page 1: Command Center ----------
 {
   const name = pid();
   const visuals = [];
-  visuals.push(textbox({ x: 24, y: 16, width: 980, height: 40 }, titleRun('PMI Dynamic Pricing — State Pricing Overview')));
-  visuals.push(textbox({ x: 24, y: 58, width: 980, height: 20 }, subRun('Every US state screened before the dynamic-pricing engine sets a shelf price · Source: CDC STATE System + curated FDA/flavor-ban/registry layer')));
-  visuals.push(card({ x: 24, y: 80, width: 1232, height: 118 }, [
+  visuals.push(...header('Command Center — State Pricing Signals'));
+  visuals.push(...card({ x: 24, y: 96, width: 1232, height: 120 }, [
     ['PricingSignal', 'Total Signals'],
     ['PricingSignal', 'Restricted or Banned States'],
     ['PricingSignal', 'Avg Tax Burden'],
     ['PricingSignal', 'Pending Risk States'],
     ['PricingSignal', 'Signals Needing Price Change'],
   ]));
-  visuals.push(slicer({ x: 24, y: 210, width: 280, height: 96 }, 'Program', 'Name', 'Product line'));
-  visuals.push(textbox({ x: 24, y: 320, width: 280, height: 380 }, subRun(
-    'Map & bar are coloured by pricing action:\n\n■ price_freely (green)\n■ adjust_for_tax (amber)\n■ delist_banned (rose)\n■ restricted_assortment (orange)\n■ watch_pending (blue)\n\nUse the product-line slicer to isolate ZYN or VEEV — the two pricing heroes hit by tax + flavor bans.')));
-  visuals.push(filledMap({ x: 320, y: 210, width: 620, height: 490 }, 'State', 'State Name', 'PricingSignal', 'Pricing Action'));
-  visuals.push(cartesian('barChart', { x: 956, y: 210, width: 300, height: 490 }, 'PricingSignal', 'Pricing Action', 'PricingSignal', 'Total Signals', 'catAsc'));
-  pages.push({ name, displayName: 'Pricing Overview', visuals });
+  visuals.push(textbox({ x: 24, y: 232, width: 280, height: 20 }, sectionRun('Product line')));
+  visuals.push(slicer({ x: 24, y: 256, width: 280, height: 84 }, 'Program', 'Name', 'Product line'));
+  visuals.push(textbox({ x: 24, y: 360, width: 280, height: 344 }, noteRun(
+    'Every US state is screened before the dynamic-pricing engine sets a shelf price.\n\nThe map & bar are coloured by pricing action:\n\n■ price_freely (green)\n■ adjust_for_tax (amber)\n■ delist_banned (rose)\n■ restricted_assortment (sky)\n■ watch_pending (purple)\n\nUse the product-line slicer to isolate ZYN or VEEV — the two heroes hit by tax + flavor bans. IQOS heated tobacco is federal-context only.')));
+  visuals.push(textbox({ x: 320, y: 232, width: 620, height: 20 }, sectionRun('Regulatory stringency by state')));
+  visuals.push(filledMap({ x: 320, y: 256, width: 620, height: 448 }, 'State', 'State Name', 'PricingSignal', 'Pricing Action'));
+  visuals.push(textbox({ x: 956, y: 232, width: 300, height: 20 }, sectionRun('Signals by action')));
+  visuals.push(cartesian('barChart', { x: 956, y: 256, width: 300, height: 448 }, 'PricingSignal', 'Pricing Action', 'PricingSignal', 'Total Signals', 'catAsc'));
+  pages.push({ name, displayName: 'Command Center', visuals });
 }
 
 // ---------- Page 2: Tax & Margin ----------
 {
   const name = pid();
   const visuals = [];
-  visuals.push(textbox({ x: 24, y: 16, width: 980, height: 40 }, titleRun('Tax & Margin — Excise Burden by State')));
-  visuals.push(textbox({ x: 24, y: 58, width: 980, height: 20 }, subRun('State vapor excise tax burden (%). >20% → adjust price to protect margin. Colorado tops the list at 62%.')));
-  visuals.push(slicer({ x: 24, y: 96, width: 280, height: 96 }, 'Program', 'Name', 'Product line'));
-  visuals.push(card({ x: 24, y: 210, width: 280, height: 118 }, [['PricingSignal', 'Avg Tax Burden']]));
+  visuals.push(...header('Tax & Margin — Excise Burden by State'));
+  visuals.push(...card({ x: 24, y: 96, width: 280, height: 120 }, [['PricingSignal', 'Avg Tax Burden']]));
+  visuals.push(textbox({ x: 24, y: 232, width: 280, height: 20 }, sectionRun('Product line')));
+  visuals.push(slicer({ x: 24, y: 256, width: 280, height: 76 }, 'Program', 'Name', 'Product line'));
+  visuals.push(textbox({ x: 24, y: 344, width: 280, height: 20 }, sectionRun('Avg tax burden by program')));
+  visuals.push(cartesian('columnChart', { x: 24, y: 368, width: 280, height: 160 }, 'Program', 'Name', 'PricingSignal', 'Avg Tax Burden', 'measureDesc'));
+  visuals.push(textbox({ x: 24, y: 540, width: 280, height: 164 }, noteRun(
+    'State vapor excise tax burden (%). Above 20% → adjust price to protect margin. Colorado tops the list at 62%. VEEV vapor carries the excise load; ZYN pouches are not e-cigarettes.')));
 
-  // states by tax burden (only taxed states), sorted desc
-  const taxBar = cartesian('barChart', { x: 320, y: 96, width: 936, height: 300 }, 'State', 'State Name', 'PricingSignal', 'Avg Tax Burden', 'measureDesc');
+  visuals.push(textbox({ x: 320, y: 96, width: 936, height: 20 }, sectionRun('States by excise tax burden (desc)')));
+  const taxBar = cartesian('barChart', { x: 320, y: 120, width: 936, height: 288 }, 'State', 'State Name', 'PricingSignal', 'Avg Tax Burden', 'measureDesc');
   taxBar.filterConfig = { filters: [notBlankFilter('PricingSignal', 'Tax Burden')] };
   visuals.push(taxBar);
 
-  // avg tax burden by program
-  visuals.push(cartesian('columnChart', { x: 24, y: 340, width: 280, height: 360 }, 'Program', 'Name', 'PricingSignal', 'Avg Tax Burden', 'measureDesc'));
-
-  // table of the taxed states
-  const taxTable = table({ x: 320, y: 408, width: 936, height: 292 }, [
+  visuals.push(textbox({ x: 320, y: 420, width: 936, height: 20 }, sectionRun('Taxed states — burden · action · recommendation')));
+  const taxTable = table({ x: 320, y: 444, width: 936, height: 260 }, [
     ['State', 'State Name', 'c'],
     ['PricingSignal', 'Product Code', 'c'],
     ['PricingSignal', 'Avg Tax Burden', 'm'],
@@ -250,21 +381,23 @@ const pages = [];
 {
   const name = pid();
   const visuals = [];
-  visuals.push(textbox({ x: 24, y: 16, width: 980, height: 40 }, titleRun('Compliance & Assortment — Where SKUs Are Gated')));
-  visuals.push(textbox({ x: 24, y: 58, width: 980, height: 20 }, subRun('Flavor bans → delist; PMTA registry laws → restricted assortment (price only FDA-listed SKUs); pending bills → watch.')));
-  visuals.push(slicer({ x: 24, y: 96, width: 280, height: 96 }, 'Program', 'Name', 'Product line'));
+  visuals.push(...header('Compliance & Assortment — Where SKUs Are Gated'));
+  visuals.push(textbox({ x: 24, y: 96, width: 280, height: 20 }, sectionRun('Product line')));
+  visuals.push(slicer({ x: 24, y: 120, width: 280, height: 84 }, 'Program', 'Name', 'Product line'));
+  visuals.push(textbox({ x: 24, y: 216, width: 280, height: 120 }, noteRun(
+    'Flavor bans → delist; PMTA registry laws → restricted assortment (price only FDA-listed SKUs); pending bills → watch.')));
 
-  // clustered bar: signals by pricing action per program
-  visuals.push(cartesian('clusteredBarChart', { x: 320, y: 96, width: 936, height: 236 }, 'PricingSignal', 'Pricing Action', 'PricingSignal', 'Total Signals', 'catAsc', ['Program', 'Name']));
+  visuals.push(textbox({ x: 320, y: 96, width: 936, height: 20 }, sectionRun('Signals by action, per program')));
+  visuals.push(cartesian('clusteredBarChart', { x: 320, y: 120, width: 936, height: 216 }, 'PricingSignal', 'Pricing Action', 'PricingSignal', 'Total Signals', 'catAsc', ['Program', 'Name']));
 
-  // matrix State x Program of pricing action + sellable
-  visuals.push(matrix({ x: 24, y: 344, width: 760, height: 356 },
+  visuals.push(textbox({ x: 24, y: 352, width: 760, height: 20 }, sectionRun('State × Program — pricing action')));
+  visuals.push(matrix({ x: 24, y: 376, width: 760, height: 328 },
     [['State', 'State Name']],
     [['Program', 'Name']],
     [['PricingSignal', 'Pricing Action', 'c']]));
 
-  // watch_pending list
-  const pendTable = table({ x: 800, y: 344, width: 456, height: 356 }, [
+  visuals.push(textbox({ x: 800, y: 352, width: 456, height: 20 }, sectionRun('Gated states — delist · restricted · watch')));
+  const pendTable = table({ x: 800, y: 376, width: 456, height: 328 }, [
     ['State', 'State Name', 'c'],
     ['PricingSignal', 'Product Code', 'c'],
     ['PricingSignal', 'Recommendation', 'c'],
@@ -272,6 +405,30 @@ const pages = [];
   pendTable.filterConfig = { filters: [inFilter('PricingSignal', 'Pricing Action', ['watch_pending', 'delist_banned', 'restricted_assortment'])] };
   visuals.push(pendTable);
   pages.push({ name, displayName: 'Compliance & Assortment', visuals });
+}
+
+// ---------- Page 4: Regulatory Timeline (Date dimension) ----------
+{
+  const name = pid();
+  const visuals = [];
+  visuals.push(...header('Regulatory Timeline — CDC Activity Over Time'));
+
+  visuals.push(...card({ x: 24, y: 96, width: 280, height: 120 }, [['PricingSignal', 'Signals with Effective Date']]));
+  visuals.push(textbox({ x: 24, y: 232, width: 280, height: 20 }, sectionRun('Reporting year')));
+  visuals.push(slicer({ x: 24, y: 256, width: 280, height: 120 }, 'Date', 'Year', 'Reporting year'));
+  visuals.push(textbox({ x: 24, y: 396, width: 280, height: 308 }, noteRun(
+    'CDC-dated regulatory activity over time. 34 of 60 signals carry a CDC effective date; the remaining 26 seed-driven flavor-ban / PMTA signals are undated by design — no fabricated dates.\n\nThe Date dimension connects to the fact only through PricingSignal[Effective Date], so only CDC-sourced signals are date-sliceable.')));
+
+  visuals.push(textbox({ x: 320, y: 96, width: 936, height: 20 }, sectionRun('Signals by reporting year')));
+  const line = cartesian('lineChart', { x: 320, y: 120, width: 936, height: 288 }, 'Date', 'Year', 'PricingSignal', 'Total Signals', 'catAsc');
+  line.filterConfig = { filters: [notBlankFilter('Date', 'Year')] };
+  visuals.push(line);
+
+  visuals.push(textbox({ x: 320, y: 420, width: 936, height: 20 }, sectionRun('Signals by reporting quarter')));
+  const colq = cartesian('columnChart', { x: 320, y: 444, width: 936, height: 260 }, 'Date', 'Quarter Label', 'PricingSignal', 'Total Signals', 'catAsc');
+  colq.filterConfig = { filters: [notBlankFilter('Date', 'Year')] };
+  visuals.push(colq);
+  pages.push({ name, displayName: 'Regulatory Timeline', visuals });
 }
 
 // ================= WRITE FILES =================
@@ -299,14 +456,30 @@ w(join(OUT, 'definition.pbir'), {
 // version.json
 w(join(defDir, 'version.json'), { $schema: SCHEMA.version, version: '2.0.0' });
 
-// custom theme mapping pricing_action -> colours
+// ---- custom dark theme ----
+// Plain-value theme JSON (no expr wrappers). dataColors map pricing_action ->
+// status palette; visualStyles turn every surface dark with cream text and a
+// chartreuse KPI callout.
 const themeFile = 'PMIPricing.json';
 w(join(resDir, themeFile), {
   name: 'PMIPricing',
   dataColors: ACTION_COLORS,
-  foreground: '#1B3A6B',
-  background: '#FFFFFF',
-  tableAccent: '#1B3A6B',
+  foreground: CREAM,
+  foregroundNeutralSecondary: MUTED,
+  foregroundNeutralTertiary: '#6E6880',
+  background: INK,
+  backgroundLight: PANEL,
+  backgroundNeutral: HAIR,
+  tableAccent: ACCENT,
+  good: '#5FD08B', neutral: '#FFB020', bad: '#FF5C6A',
+  maximum: '#FF5C6A', center: '#FFB020', minimum: '#5FD08B',
+  textClasses: {
+    title: { fontFace: 'Georgia', color: CREAM, fontSize: 14 },
+    header: { fontFace: 'Georgia', color: CREAM, fontSize: 12 },
+    label: { fontFace: 'Segoe UI', color: CREAM, fontSize: 10 },
+    callout: { fontFace: 'Georgia', color: ACCENT, fontSize: 40 },
+  },
+  visualStyles: VISUAL_STYLES,
 });
 
 // report.json (base shared theme + registered custom theme)
@@ -339,6 +512,10 @@ for (const pg of pages) {
     displayOption: 'FitToPage',
     height: 720,
     width: 1280,
+    objects: {
+      background: [{ properties: { color: solid(INK), transparency: L('0D') } }],
+      outspace: [{ properties: { color: solid(INK), transparency: L('0D') } }],
+    },
   });
   for (const v of pg.visuals) {
     const dir = join(vDir, v.name);
