@@ -17,17 +17,15 @@
     />
     <script>
       // Pre-Angular theme bootstrap — runs before any paint so the page
-      // never flashes the wrong theme. Light PMI identity is the default.
+      // never flashes the wrong theme. Light PMI identity is the
+      // unconditional default: the app always opens light unless the user
+      // has an explicit stored manual preference. The OS `prefers-color-scheme`
+      // is deliberately NOT consulted here (a dark-mode machine must still
+      // open in light PMI branding).
       (function () {
         try {
           var stored = localStorage.getItem('dashboard.theme');
-          var theme =
-            stored === 'light' || stored === 'dark'
-              ? stored
-              : window.matchMedia &&
-                window.matchMedia('(prefers-color-scheme: dark)').matches
-              ? 'dark'
-              : 'light';
+          var theme = stored === 'light' || stored === 'dark' ? stored : 'light';
           document.documentElement.setAttribute('data-theme', theme);
         } catch (e) {
           document.documentElement.setAttribute('data-theme', 'light');
