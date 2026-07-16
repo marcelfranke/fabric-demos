@@ -1,0 +1,126 @@
+/// Monthly demand forecast per program and program × state (state = "ALL" is the
+/// national series). Actuals + Holt-Winters forecast + 80% band (±1.28σ), 12-month
+/// horizon. Sourced from gold_demand_forecast. Program & Month Start join the shared
+/// dims; State stays a native column (the "ALL" rows have no matching state row).
+table Forecast
+	lineageTag: e3b2c3d4-0001-4a5b-9c7d-700000000001
+
+	/// Actual monthly units (blank on forecast rows).
+	measure 'Actual Units' = SUM(Forecast[Actual Units (row)])
+		formatString: #,##0
+		displayFolder: Forecast
+		lineageTag: e3b2c3d4-0101-4a5b-9c7d-700000000101
+
+	/// Forecast monthly units (blank on actual rows).
+	measure 'Forecast Units' = SUM(Forecast[Forecast Units (row)])
+		formatString: #,##0
+		displayFolder: Forecast
+		lineageTag: e3b2c3d4-0102-4a5b-9c7d-700000000102
+
+	/// Forecast revenue ($) (blank on actual rows).
+	measure 'Forecast Revenue' = SUM(Forecast[Forecast Revenue (row)])
+		formatString: \$#,##0
+		displayFolder: Forecast
+		lineageTag: e3b2c3d4-0103-4a5b-9c7d-700000000103
+
+	/// Lower bound of the 80% forecast band (units).
+	measure 'Forecast Lower' = SUM(Forecast[Lower Units])
+		formatString: #,##0
+		displayFolder: Forecast
+		lineageTag: e3b2c3d4-0104-4a5b-9c7d-700000000104
+
+	/// Upper bound of the 80% forecast band (units).
+	measure 'Forecast Upper' = SUM(Forecast[Upper Units])
+		formatString: #,##0
+		displayFolder: Forecast
+		lineageTag: e3b2c3d4-0105-4a5b-9c7d-700000000105
+
+	column Id
+		dataType: int64
+		isHidden
+		lineageTag: e3b2c3d4-0011-4a5b-9c7d-700000000011
+		summarizeBy: none
+		sourceColumn: id
+
+	/// Product line (ZYN / VEEV) — join key to the Program dimension.
+	column Program
+		dataType: string
+		lineageTag: e3b2c3d4-0012-4a5b-9c7d-700000000012
+		summarizeBy: none
+		sourceColumn: program
+
+	/// State code, or "ALL" for the national series (not related to the State dim).
+	column State
+		dataType: string
+		lineageTag: e3b2c3d4-0013-4a5b-9c7d-700000000013
+		summarizeBy: none
+		sourceColumn: state
+
+	/// First day of the forecast month (join key to the Date dimension).
+	column 'Month Start'
+		dataType: dateTime
+		lineageTag: e3b2c3d4-0014-4a5b-9c7d-700000000014
+		summarizeBy: none
+		sourceColumn: month_start
+
+	column 'Actual Units (row)'
+		dataType: double
+		isHidden
+		lineageTag: e3b2c3d4-0015-4a5b-9c7d-700000000015
+		summarizeBy: sum
+		sourceColumn: actual_units
+
+	column 'Actual Revenue'
+		dataType: double
+		isHidden
+		lineageTag: e3b2c3d4-0016-4a5b-9c7d-700000000016
+		summarizeBy: sum
+		sourceColumn: actual_revenue
+
+	column 'Forecast Units (row)'
+		dataType: double
+		isHidden
+		lineageTag: e3b2c3d4-0017-4a5b-9c7d-700000000017
+		summarizeBy: sum
+		sourceColumn: forecast_units
+
+	column 'Forecast Revenue (row)'
+		dataType: double
+		isHidden
+		lineageTag: e3b2c3d4-0018-4a5b-9c7d-700000000018
+		summarizeBy: sum
+		sourceColumn: forecast_revenue
+
+	column 'Lower Units'
+		dataType: double
+		isHidden
+		lineageTag: e3b2c3d4-0019-4a5b-9c7d-700000000019
+		summarizeBy: sum
+		sourceColumn: lower_units
+
+	column 'Upper Units'
+		dataType: double
+		isHidden
+		lineageTag: e3b2c3d4-0020-4a5b-9c7d-700000000020
+		summarizeBy: sum
+		sourceColumn: upper_units
+
+	/// TRUE on forecast rows, FALSE on actual (historical) rows.
+	column 'Is Forecast'
+		dataType: boolean
+		lineageTag: e3b2c3d4-0021-4a5b-9c7d-700000000021
+		summarizeBy: none
+		sourceColumn: is_forecast
+
+	/// Forecast method used (holt_winters_add or seasonal_naive_trend).
+	column Method
+		dataType: string
+		lineageTag: e3b2c3d4-0022-4a5b-9c7d-700000000022
+		summarizeBy: none
+		sourceColumn: method
+
+	partition Forecast = entity
+		mode: directLake
+		source
+			entityName: gold_demand_forecast
+			expressionSource: 'DirectLake - PMI Dynamic Pricing'

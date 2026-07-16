@@ -1,0 +1,210 @@
+/// Synthetic monthly sales aggregate (month × state × city × shop × sku). The
+/// modeling / simulation grain. Sourced from gold_sales_monthly. Coupled to the
+/// pricing signal: banned rows carry the forgone baseline as Revenue at Risk.
+table SalesMonthly
+	lineageTag: e1b2c3d4-0001-4a5b-9c7d-500000000001
+
+	/// Total units actually sold in the current filter (post-ban reality).
+	measure 'Total Units' = SUM(SalesMonthly[Units])
+		formatString: #,##0
+		displayFolder: Sales
+		lineageTag: e1b2c3d4-0101-4a5b-9c7d-500000000101
+
+	/// Counterfactual units with no flavor ban applied (baseline demand).
+	measure 'Baseline Units' = SUM(SalesMonthly[Baseline Units (row)])
+		formatString: #,##0
+		displayFolder: Sales
+		lineageTag: e1b2c3d4-0102-4a5b-9c7d-500000000102
+
+	/// Total revenue actually realized ($) in the current filter.
+	measure 'Total Revenue' = SUM(SalesMonthly[Revenue])
+		formatString: \$#,##0
+		displayFolder: Sales
+		lineageTag: e1b2c3d4-0103-4a5b-9c7d-500000000103
+
+	/// Counterfactual revenue ($) with no flavor ban applied (baseline).
+	measure 'Baseline Revenue' = SUM(SalesMonthly[Baseline Revenue (row)])
+		formatString: \$#,##0
+		displayFolder: Sales
+		lineageTag: e1b2c3d4-0104-4a5b-9c7d-500000000104
+
+	/// Forgone revenue ($) lost to flavor bans (baseline minus realized, on banned rows).
+	measure 'Revenue at Risk' = SUM(SalesMonthly[Revenue at Risk (row)])
+		formatString: \$#,##0
+		displayFolder: Sales
+		lineageTag: e1b2c3d4-0105-4a5b-9c7d-500000000105
+
+	/// Volume-weighted average unit price ($) across the current filter.
+	measure 'Avg Price' = DIVIDE(SUM(SalesMonthly[Revenue]), SUM(SalesMonthly[Units]))
+		formatString: \$#,##0.00
+		displayFolder: Sales
+		lineageTag: e1b2c3d4-0106-4a5b-9c7d-500000000106
+
+	/// Baseline revenue ($) on rows that are NOT banned (the addressable base a price
+	/// change acts on). Banned rows are excluded because their in-market sales are ~0.
+	measure 'Baseline Revenue (Sellable)' = CALCULATE(SUM(SalesMonthly[Baseline Revenue (row)]), SalesMonthly[Is Banned] = FALSE)
+		formatString: \$#,##0
+		displayFolder: Simulation
+		lineageTag: e1b2c3d4-0107-4a5b-9c7d-500000000107
+
+	/// Simulated revenue ($) under the what-if Price change % and Elasticity sliders:
+	/// baseline_revenue × (1 + elasticity × Δprice%) × (1 + Δprice%), summed over
+	/// non-banned rows (forced to 0 where delisted/banned). Elasticity default -0.8
+	/// (category guides: ZYN ≈ -0.7, VEEV ≈ -0.9).
+	measure 'Sim Revenue' = SUMX(FILTER(SalesMonthly, SalesMonthly[Is Banned] = FALSE), SalesMonthly[Baseline Revenue (row)] * (1 + SELECTEDVALUE(Elasticity[Elasticity], -0.8) * SELECTEDVALUE('Price Change %'[Price Change %], 0)) * (1 + SELECTEDVALUE('Price Change %'[Price Change %], 0)))
+		formatString: \$#,##0
+		displayFolder: Simulation
+		lineageTag: e1b2c3d4-0108-4a5b-9c7d-500000000108
+
+	/// Net revenue change ($) from the simulated price move vs the sellable baseline.
+	measure 'Sim Revenue Delta' = [Sim Revenue] - [Baseline Revenue (Sellable)]
+		formatString: \$#,##0
+		displayFolder: Simulation
+		lineageTag: e1b2c3d4-0109-4a5b-9c7d-500000000109
+
+	column Id
+		dataType: int64
+		isHidden
+		lineageTag: e1b2c3d4-0011-4a5b-9c7d-500000000011
+		summarizeBy: none
+		sourceColumn: id
+
+	/// First day of the sales month (join key to the Date dimension).
+	column 'Month Start'
+		dataType: dateTime
+		lineageTag: e1b2c3d4-0012-4a5b-9c7d-500000000012
+		summarizeBy: none
+		sourceColumn: month_start
+
+	column Year
+		dataType: int64
+		lineageTag: e1b2c3d4-0013-4a5b-9c7d-500000000013
+		summarizeBy: none
+		sourceColumn: year
+
+	column State
+		dataType: string
+		lineageTag: e1b2c3d4-0014-4a5b-9c7d-500000000014
+		dataCategory: StateOrProvince
+		summarizeBy: none
+		sourceColumn: state
+
+	column City
+		dataType: string
+		lineageTag: e1b2c3d4-0015-4a5b-9c7d-500000000015
+		dataCategory: City
+		summarizeBy: none
+		sourceColumn: city
+
+	column 'Shop Id'
+		dataType: int64
+		isHidden
+		lineageTag: e1b2c3d4-0016-4a5b-9c7d-500000000016
+		summarizeBy: none
+		sourceColumn: shop_id
+
+	column 'Shop Name'
+		dataType: string
+		lineageTag: e1b2c3d4-0017-4a5b-9c7d-500000000017
+		summarizeBy: none
+		sourceColumn: shop_name
+
+	column Channel
+		dataType: string
+		lineageTag: e1b2c3d4-0018-4a5b-9c7d-500000000018
+		summarizeBy: none
+		sourceColumn: channel
+
+	column 'Sku Id'
+		dataType: int64
+		isHidden
+		lineageTag: e1b2c3d4-0019-4a5b-9c7d-500000000019
+		summarizeBy: none
+		sourceColumn: sku_id
+
+	column 'Sku Code'
+		dataType: string
+		lineageTag: e1b2c3d4-0020-4a5b-9c7d-500000000020
+		summarizeBy: none
+		sourceColumn: sku_code
+
+	/// Product line (ZYN / VEEV) — join key to the Program dimension.
+	column Program
+		dataType: string
+		lineageTag: e1b2c3d4-0021-4a5b-9c7d-500000000021
+		summarizeBy: none
+		sourceColumn: program
+
+	column Flavor
+		dataType: string
+		lineageTag: e1b2c3d4-0022-4a5b-9c7d-500000000022
+		summarizeBy: none
+		sourceColumn: flavor
+
+	column Pack
+		dataType: string
+		lineageTag: e1b2c3d4-0023-4a5b-9c7d-500000000023
+		summarizeBy: none
+		sourceColumn: pack
+
+	column Units
+		dataType: int64
+		isHidden
+		lineageTag: e1b2c3d4-0024-4a5b-9c7d-500000000024
+		summarizeBy: sum
+		sourceColumn: units
+
+	column 'Baseline Units (row)'
+		dataType: int64
+		isHidden
+		lineageTag: e1b2c3d4-0025-4a5b-9c7d-500000000025
+		summarizeBy: sum
+		sourceColumn: baseline_units
+
+	column Revenue
+		dataType: double
+		isHidden
+		lineageTag: e1b2c3d4-0026-4a5b-9c7d-500000000026
+		summarizeBy: sum
+		sourceColumn: revenue
+
+	column 'Baseline Revenue (row)'
+		dataType: double
+		isHidden
+		lineageTag: e1b2c3d4-0027-4a5b-9c7d-500000000027
+		summarizeBy: sum
+		sourceColumn: baseline_revenue
+
+	column 'Revenue at Risk (row)'
+		dataType: double
+		isHidden
+		lineageTag: e1b2c3d4-0028-4a5b-9c7d-500000000028
+		summarizeBy: sum
+		sourceColumn: revenue_at_risk
+
+	column 'Avg Price (row)'
+		dataType: double
+		isHidden
+		lineageTag: e1b2c3d4-0029-4a5b-9c7d-500000000029
+		summarizeBy: none
+		sourceColumn: avg_price
+
+	/// TRUE when the state × SKU is under a flavor ban (in-market sales forced to ~0).
+	column 'Is Banned'
+		dataType: boolean
+		lineageTag: e1b2c3d4-0030-4a5b-9c7d-500000000030
+		summarizeBy: none
+		sourceColumn: is_banned
+
+	/// Ban effective date (VEEV cliffs); blank for ZYN whole-window bans and non-banned rows.
+	column 'Effective Date'
+		dataType: dateTime
+		lineageTag: e1b2c3d4-0031-4a5b-9c7d-500000000031
+		summarizeBy: none
+		sourceColumn: effective_date
+
+	partition SalesMonthly = entity
+		mode: directLake
+		source
+			entityName: gold_sales_monthly
+			expressionSource: 'DirectLake - PMI Dynamic Pricing'

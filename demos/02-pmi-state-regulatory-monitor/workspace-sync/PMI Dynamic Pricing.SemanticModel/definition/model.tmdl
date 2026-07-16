@@ -12,3 +12,11 @@ ref table PricingSignal
 ref table State
 ref table Program
 ref table Date
+ref table SalesMonthly
+ref table SalesDaily
+ref table Forecast
+ref table Shop
+ref table Sku
+ref table City
+ref table 'Price Change %'
+ref table Elasticity
