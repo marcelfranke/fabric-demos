@@ -1,6 +1,6 @@
 # PMI Dynamic Pricing — Power BI Report
 
-A 5-page Power BI report (PBIR) over the **PMI Dynamic Pricing** Direct Lake
+A 7-page Power BI report (PBIR) over the **PMI Dynamic Pricing** Direct Lake
 semantic model in Microsoft Fabric — an executive dashboard that tells the full
 story end-to-end: state regulatory **rules** → per-state **Pricing Signal** →
 **revenue at risk** → **demand forecast** → **what-if price simulation**. Styled in
@@ -23,12 +23,19 @@ white numbers).
 
 ## Pages
 
-Every page carries a slim **top nav-pill strip** (a white rounded pill with the 5
-page names as tabs — the active tab bold near-navy `#14213D` with a brand-blue
-`#0074C2` underline; a right-aligned `Philip Morris International · State
-Regulatory Monitor` wordmark + a `0N / 05` page indicator) over a big near-black
+Every page carries a brand-blue **PMI logo monogram** (top-left of the header band —
+a `#0074C2` rounded "PMI" mark, inline so it survives ExportTo-PDF and stays
+consistent with the companion web app) and a slim **top nav-pill strip** (a white
+rounded pill with the 7 page names as tabs — the active tab bold near-navy `#14213D`
+with a brand-blue `#0074C2` underline; a right-aligned `Philip Morris International ·
+State Regulatory Monitor` wordmark + a `0N / 07` page indicator) over a big near-black
 Lato page title, on a near-white `#F7F9FC` canvas — mirroring the *Value Report
-2025* section headers (pp. 2/6).
+2025* section headers (pp. 2/6). A compact **synced State slicer** (bound to the
+shared `State[State Name]` dimension, `syncGroup: StateSync`) sits in the title-row
+right gutter of every page, so one selection cross-filters the regulatory, pricing
+and sales visuals across all pages via the model relationships. The national
+**Forecast** has no `Forecast → State` relationship in the model, so it is
+intentionally left at national level (the State slicer does not filter it).
 
 1. **Command Center** — a compact **"three rule types" framing strip** (EXCISE TAX →
    moves the margin floor · FLAVOR BAN → SKU illegal, delist · PMTA REGISTRY LAW →
@@ -51,7 +58,14 @@ Lato page title, on a near-white `#F7F9FC` canvas — mirroring the *Value Repor
 3. **Compliance & Assortment** — clustered bar of signals-by-action per program
    (per-visual action palette), a State × Program list of `pricing_action`, and a
    list of the gated states (delist / restricted / watch_pending).
-4. **Revenue at Risk** — the money the rules put on the table. 4 deep-blue KPI heroes
+4. **Regulatory Timeline** — the CDC effective-dated regulatory activity over time. A
+   **Signals with Effective Date** hero (`34` of 60), a reporting-year slicer, a
+   signals-by-year line and a signals-by-quarter column (both driven by `Total
+   Signals` over the `Date` dimension, which joins the fact only through
+   `PricingSignal[Effective Date]`). Carries the honesty note: 34 of 60 signals carry
+   a CDC effective date; the other 26 seed-driven flavor-ban / PMTA signals are
+   undated by design — **no fabricated dates**.
+5. **Revenue at Risk** — the money the rules put on the table. 4 deep-blue KPI heroes
    (Total Revenue `$18.65M` · Baseline Revenue `$22.30M` · **Revenue at Risk** `$3.66M`
    · Total Units `1.88M`); an actual-vs-baseline revenue line by year; a revenue-at-risk
    column by year; a **risk-by-banned-state** bar (CA `$911K`, NY `$669K`, MA `$533K`,
@@ -59,14 +73,24 @@ Lato page title, on a near-white `#F7F9FC` canvas — mirroring the *Value Repor
    `$1.45M` / 40%). Revenue at Risk = baseline revenue on SKUs a state's rules make
    unsellable, coupled to each ban's effective date. The 2026 dip is a truthful
    partial-year artifact (data ends 2026-06). Carries the CDC-dated honesty note.
-5. **Forecast & Price Simulation** — 4 deep-blue KPI heroes (Forecast Units `512.7K` ·
+6. **Demand & Revenue** — the synthetic POS performance layer. 4 KPI heroes (Total
+   Units `1.88M` · Total Revenue `$18.65M` · Avg Price · Revenue at Risk `$3.66M`);
+   a Product-line slicer + units-by-product column (VEEV/ZYN palette); revenue by
+   product × channel (clustered), a top shops & cities table (shop / city / state /
+   channel / revenue / units, sorted by revenue) over **SalesMonthly**; an
+   avg-price-by-state × channel matrix; and a recent-transactions table over
+   **SalesDaily** (date / shop / SKU / unit price, most recent first). Carries the
+   **synthetic-data honesty note** — deterministic seeded POS, only ZYN + VEEV modeled,
+   no real PMI sales.
+7. **Forecast & Price Simulation** — 4 deep-blue KPI heroes (Forecast Units `512.7K` ·
    Forecast Revenue `$5.00M` · **Sim Revenue @ +12%** `$17.61M` · **Sim Δ @ +12%**
    `$217K`); a units line with **actual + forecast + lower/upper confidence band** by
    month; a **price-optimization curve** (Sim Revenue Δ vs Price Change %, a textbook
    concave parabola peaking ≈ +$217K near +12%); and **Price change %** + **Elasticity**
    what-if slider slicers. The two Sim KPI cards are pinned via a visual-level filter to
    the +12% optimum so the exported PDF shows a live sim; the optimization curve is left
-   unfiltered so the full response renders. Elasticity held at −0.8.
+   unfiltered so the full response renders. Elasticity held at −0.8. The forecast is
+   **national** — the State slicer does not filter it (no `Forecast → State` relationship).
 
 ### Light + deep-blue theme (PMI *Value Report 2025* identity)
 
@@ -153,7 +177,7 @@ runtime). It is live in **Dynamic Pricing**:
 - Report item id: **`424faa25-2e39-4830-8725-09c77684d11a`**
 - URL: <https://app.powerbi.com/groups/aa0aa5fa-e638-4e4a-a0a2-a6da3e515f05/reports/424faa25-2e39-4830-8725-09c77684d11a>
 - Bound to dataset `6be9e165-fc81-4990-a479-a0cab935201c` (PMI Dynamic Pricing,
-  Direct Lake). All 5 pages render.
+  Direct Lake). All 7 pages render.
 
 ```
 node powerbi/deploy_report.mjs
@@ -230,13 +254,20 @@ Each page was rendered and inspected. **ExportTo image (PNG) is disabled
 tenant-wide** on this capacity (`403 … Export report to image is disabled on
 tenant level`), so QA used the **ExportTo PDF** path (`POST
 /reports/{id}/ExportTo {format:"PDF"}` → poll → GET file), rendered to PNG
-locally. All **5** pages verified: near-white `#F7F9FC` canvas, the white top nav-pill
-strip (active tab underlined in brand blue) + wordmark + `0N / 05` page indicator
-+ big near-black Lato page title, **deep-blue KPI hero cards with white numbers**,
+locally. All **7** pages verified: near-white `#F7F9FC` canvas, the brand-blue **PMI
+logo monogram** (top-left, identical on every page), the white top nav-pill
+strip (active tab underlined in brand blue) + wordmark + `0N / 07` page indicator
++ the **synced State slicer** in the title-row gutter (changing state cross-filters
+the regulatory / pricing / sales visuals across pages) + big near-black Lato page
+title, **deep-blue KPI hero cards with white numbers**,
 light readable p16-style tables, the per-visual action-palette map + bars, amber tax
-bars, blue-family clustered bars, the **Revenue at Risk** page (heroes `$18.65M` /
-`$22.30M` / `$3.66M` / `1.88M`, risk-by-state bar, risk-by-program donut), the
-**Forecast** page (forecast confidence band, concave optimization curve, Sim Δ `$217K`
+bars, blue-family clustered bars, the **Regulatory Timeline** page (Signals-with-date
+hero `34`, signals-by-year line + signals-by-quarter column), the **Revenue at Risk**
+page (heroes `$18.65M` / `$22.30M` / `$3.66M` / `1.88M`, risk-by-state bar,
+risk-by-program donut), the **Demand & Revenue** page (Units `1.88M` / Revenue
+`$18.65M` heroes, units-by-product, avg-price matrix, top-shops + recent-POS tables),
+the **Forecast** page (forecast confidence band — national, unaffected by the State
+slicer — concave optimization curve, Sim Δ `$217K`
 pinned to +12%), the Command Center **framing strip** and state-reactive **Pricing
 Decision** card (defaults to New Jersey — rendered populated in the exported PDF:
 "New Jersey", No - delisted, `delist_banned` in rose, "Delist: VEEV flavored SKUs

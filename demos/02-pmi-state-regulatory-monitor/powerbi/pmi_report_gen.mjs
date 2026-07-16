@@ -7,7 +7,9 @@
 // blue tints, near-black navy headlines, Lato (display) + Roboto (body), white
 // cards on a light canvas, deep-blue KPI hero cards with white numbers (p6),
 // and p16-style light tables (white header + bottom rule, blue category cells).
-// Five pages: Command Center, Tax & Margin, Compliance, Revenue at Risk, Forecast.
+// Seven pages: Command Center, Tax & Margin, Compliance, Regulatory Timeline,
+// Revenue at Risk, Demand & Revenue, Forecast. Every page carries the PMI logo
+// monogram (top-left) and a synced State[State Name] slicer (title-row gutter).
 // NOTE: display textStyle families always carry a ", sans-serif" fallback so the
 // ExportTo-PDF renderer (which does not embed Lato) resolves to a clean sans
 // rather than substituting a serif face.
@@ -102,6 +104,9 @@ function sortByMeasureDesc(e, p) {
 }
 function sortByColumnAsc(e, p) {
   return { sort: [{ field: col(e, p), direction: 'Ascending' }], isDefaultSort: false };
+}
+function sortByColumnDesc(e, p) {
+  return { sort: [{ field: col(e, p), direction: 'Descending' }], isDefaultSort: false };
 }
 
 // "is not blank" advanced filter on a column
@@ -315,12 +320,12 @@ function ruleBlock(x, y, w, h, dot, title, sub) {
   ];
 }
 
-function slicer(pos, e, p, header, { mode = 'Dropdown' } = {}) {
+function slicer(pos, e, p, header, { mode = 'Dropdown', sync = null } = {}) {
   const vco = {
     ...cardVCO(),
     padding: [{ properties: { top: L('8D'), bottom: L('8D'), left: L('8D'), right: L('8D') } }],
   };
-  return baseVisual(vid(), pos, {
+  const visual = {
     visualType: 'slicer',
     query: { queryState: { Values: { projections: [projCol(e, p)] } } },
     objects: {
@@ -332,7 +337,11 @@ function slicer(pos, e, p, header, { mode = 'Dropdown' } = {}) {
       } }],
       items: [{ properties: { fontColor: solid(INK) } }],
     },
-  }, vco);
+  };
+  // slicer synchronization — all slicers sharing a groupName stay in lockstep
+  // (same selection on every page). Only valid on slicer visuals.
+  if (sync) visual.syncGroup = { groupName: sync, fieldChanges: true, filterChanges: true };
+  return baseVisual(vid(), pos, visual, vco);
 }
 
 // cartesian chart. type: 'barChart' | 'columnChart' | 'lineChart' | 'areaChart'
@@ -518,19 +527,43 @@ const sectionRun = (t) => [{ value: t, textStyle: { fontFamily: 'Lato, sans-seri
 const noteRun = (t) => [{ value: t, textStyle: { fontFamily: 'Roboto', fontSize: '12px', color: MUTED } }];
 const accentRun = (t) => [{ value: t, textStyle: { fontFamily: 'Roboto', fontSize: '12px', color: BRAND } }];
 
-// PMI Value Report 2025 header (p2/p6): a slim WHITE rounded nav PILL across the
-// top holding the four page tabs (the active one underlined in brand blue) and a
-// right-aligned "Philip Morris International · State Regulatory Monitor" wordmark
-// + page indicator; below it a big near-black Lato page title. The underline sits
-// on the small active TAB (which is exactly what PMI does) — never under the page
-// title itself. Total height stays within 0..88 so page bodies are unchanged.
-const NAV_TABS = ['Command Center', 'Tax & Margin', 'Compliance', 'Revenue at Risk', 'Forecast'];
-const NAV_TABX = [44, 188, 300, 408, 540];
-const NAV_TABW = [108, 84, 78, 102, 62];
+// PMI logo — a clean brand-blue rounded monogram (#0074C2 square + white "PMI")
+// built from shapes so it is inline, identical on every page, and survives the
+// ExportTo-PDF render (no external image resource). This is a GENERIC brand-blue
+// mark, not PMI's registered logo artwork; it stays visually consistent with the
+// companion web app's PMI mark (same brand-blue "PMI").
+function logoMark(x, y) {
+  return [
+    textbox({ x, y, width: 34, height: 34 }, [], { fill: BRAND, radius: 8 }),
+    textbox({ x, y: y + 9, width: 34, height: 16 }, [
+      { value: 'PMI', textStyle: { fontFamily: 'Lato, sans-serif', fontSize: '13px', color: '#FFFFFF', fontWeight: 'bold' } },
+    ], { align: 'center' }),
+  ];
+}
+
+// PMI Value Report 2025 header (p2/p6): a PMI logo monogram top-left, then a slim
+// WHITE rounded nav PILL holding the page tabs (active one underlined in brand
+// blue) and a right-aligned "Philip Morris International · State Regulatory
+// Monitor" wordmark + page indicator; below it a big near-black Lato page title
+// with a synced State slicer in the right gutter. The underline sits on the small
+// active TAB (which is exactly what PMI does) — never under the page title itself.
+// Total height stays within 0..88 so page bodies are unchanged.
+const NAV_TABS = ['Command Center', 'Tax & Margin', 'Compliance', 'Timeline', 'Revenue at Risk', 'Demand', 'Forecast'];
+const NAV_TABW = [108, 84, 78, 62, 110, 56, 62];
+const NAV_GAP = 16;
+const NAV_X0 = 84;
+const NAV_TABX = (() => {
+  const xs = [];
+  let x = NAV_X0;
+  for (const w of NAV_TABW) { xs.push(x); x += w + NAV_GAP; }
+  return xs;
+})();
 function header(title, active = 0) {
   const out = [
-    // nav pill surface
-    textbox({ x: 24, y: 12, width: 1232, height: 30 }, [], { fill: BAND, radius: 16, border: BORDER }),
+    // PMI logo monogram (top-left of the header band)
+    ...logoMark(24, 10),
+    // nav pill surface (shifted right to clear the logo gutter)
+    textbox({ x: 66, y: 12, width: 1190, height: 30 }, [], { fill: BAND, radius: 16, border: BORDER }),
   ];
   NAV_TABS.forEach((t, i) => {
     const on = i === active;
@@ -539,15 +572,21 @@ function header(title, active = 0) {
     ]));
     if (on) out.push(textbox({ x: NAV_TABX[i], y: 36, width: NAV_TABW[i], height: 2 }, [], { fill: BRAND }));
   });
-  out.push(textbox({ x: 700, y: 19, width: 496, height: 16 }, [
+  out.push(textbox({ x: 760, y: 19, width: 436, height: 16 }, [
     { value: 'Philip Morris International', textStyle: { fontFamily: 'Lato, sans-serif', fontSize: '12px', color: INK, fontWeight: 'bold' } },
     { value: '   ·   State Regulatory Monitor', textStyle: { fontFamily: 'Roboto', fontSize: '12px', color: MUTED } },
   ], { align: 'right' }));
   out.push(textbox({ x: 1208, y: 19, width: 48, height: 16 }, [
-    { value: `0${active + 1} / 05`, textStyle: { fontFamily: 'Lato, sans-serif', fontSize: '11px', color: BRAND, fontWeight: 'bold' } },
+    { value: `0${active + 1} / 0${NAV_TABS.length}`, textStyle: { fontFamily: 'Lato, sans-serif', fontSize: '11px', color: BRAND, fontWeight: 'bold' } },
   ], { align: 'right' }));
   // page title (big, near-black navy) — whitespace under it, no accent rule
   out.push(textbox({ x: 24, y: 48, width: 1000, height: 40 }, titleRun(title)));
+  // synced State slicer — shared State[State Name] dimension (cross-filters every
+  // page's regulatory / pricing / sales visuals via the model relationships). Sits
+  // in the title-row right gutter, above every page body (bodies start y>=96), so
+  // no existing visual is relaid out. Sync = per-visual syncGroup 'StateSync' (same
+  // group name on every page keeps the selection in lockstep across pages).
+  out.push(slicer({ x: 1030, y: 50, width: 226, height: 34 }, 'State', 'State Name', 'State', { sync: 'StateSync' }));
   return out;
 }
 
@@ -677,11 +716,38 @@ const pages = [];
   pages.push({ name, displayName: 'Compliance & Assortment', visuals });
 }
 
+// ---------- Page 4: Regulatory Timeline (CDC effective-dated) ----------
+{
+  const name = pid();
+  const visuals = [];
+  visuals.push(...header('Regulatory Timeline — CDC Activity Over Time', 3));
+
+  visuals.push(...card({ x: 24, y: 96, width: 280, height: 120 }, [['PricingSignal', 'Signals with Effective Date', 'Signals with Effective Date']]));
+  visuals.push(textbox({ x: 24, y: 232, width: 280, height: 20 }, sectionRun('Reporting year')));
+  visuals.push(slicer({ x: 24, y: 256, width: 280, height: 120 }, 'Date', 'Year', 'Reporting year'));
+  visuals.push(textbox({ x: 24, y: 396, width: 280, height: 308 }, noteRun(
+    'CDC-dated regulatory activity over time. 34 of 60 signals carry a CDC effective date; the remaining 26 seed-driven flavor-ban / PMTA signals are undated by design \u2014 no fabricated dates.\n\nThe Date dimension connects to the fact only through PricingSignal[Effective Date], so only CDC-sourced signals are date-sliceable.')));
+
+  visuals.push(textbox({ x: 320, y: 96, width: 936, height: 20 }, sectionRun('Signals by reporting year')));
+  const tlYear = cartesian('lineChart', { x: 320, y: 120, width: 936, height: 288 }, 'Date', 'Year', 'PricingSignal', 'Total Signals', 'catAsc', null,
+    { fill: BRAND, lineWidth: 3 });
+  tlYear.filterConfig = { filters: [notBlankFilter('Date', 'Year')] };
+  visuals.push(tlYear);
+
+  visuals.push(textbox({ x: 320, y: 420, width: 936, height: 20 }, sectionRun('Signals by reporting quarter')));
+  const tlQtr = cartesian('columnChart', { x: 320, y: 444, width: 936, height: 260 }, 'Date', 'Quarter Label', 'PricingSignal', 'Total Signals', 'catAsc', null,
+    { fill: BRAND });
+  tlQtr.filterConfig = { filters: [notBlankFilter('Date', 'Year')] };
+  visuals.push(tlQtr);
+
+  pages.push({ name, displayName: 'Regulatory Timeline', visuals });
+}
+
 // ---------- Page 4: Revenue at Risk ----------
 {
   const name = pid();
   const visuals = [];
-  visuals.push(...header('Revenue at Risk — What the Rules Cost', 3));
+  visuals.push(...header('Revenue at Risk — What the Rules Cost', 4));
 
   // KPI hero row — the money the rules put on the table
   visuals.push(...card({ x: 24, y: 96, width: 1232, height: 100 }, [
@@ -724,11 +790,66 @@ const pages = [];
   pages.push({ name, displayName: 'Revenue at Risk', visuals });
 }
 
+// ---------- Page 6: Demand & Revenue (synthetic POS) ----------
+{
+  const name = pid();
+  const visuals = [];
+  visuals.push(...header('Demand & Revenue \u2014 Synthetic POS Performance', 5));
+
+  // KPI hero row
+  visuals.push(...card({ x: 24, y: 96, width: 1232, height: 100 }, [
+    ['SalesMonthly', 'Total Units', 'Total Units'],
+    ['SalesMonthly', 'Total Revenue', 'Total Revenue'],
+    ['SalesMonthly', 'Avg Price', 'Avg Price'],
+    ['SalesMonthly', 'Revenue at Risk', 'Revenue at Risk'],
+  ]));
+
+  // left column — product slicer, units-by-product, synthetic-data honesty note
+  visuals.push(textbox({ x: 24, y: 212, width: 280, height: 18 }, sectionRun('Product line')));
+  visuals.push(slicer({ x: 24, y: 234, width: 280, height: 60 }, 'Program', 'Name', 'Product line'));
+  visuals.push(textbox({ x: 24, y: 308, width: 280, height: 18 }, sectionRun('Units by product')));
+  visuals.push(cartesian('columnChart', { x: 24, y: 330, width: 280, height: 150 }, 'SalesMonthly', 'Program', 'SalesMonthly', 'Total Units', 'measureDesc', null,
+    { byCategory: { e: 'SalesMonthly', p: 'Program', map: PROGRAM_COLOR_MAP } }));
+  visuals.push(textbox({ x: 24, y: 492, width: 280, height: 200 }, noteRun(
+    'SYNTHETIC DATA \u2014 no real PMI POS. Daily transaction-style sales are generated deterministically (fixed seed), then rolled up to a monthly shop\u00d7SKU grain. Volume tracks city population, seasonality and a mild uptrend; unit price scales with state excise tax and channel. Only ZYN + VEEV are modeled.')));
+
+  // centre — revenue by product & channel + top shops (with city/state)
+  visuals.push(textbox({ x: 320, y: 212, width: 560, height: 18 }, sectionRun('Revenue by product & channel')));
+  visuals.push(cartesian('clusteredColumnChart', { x: 320, y: 234, width: 560, height: 208 }, 'SalesMonthly', 'Program', 'SalesMonthly', 'Total Revenue', 'measureDesc', ['SalesMonthly', 'Channel']));
+  visuals.push(textbox({ x: 320, y: 458, width: 560, height: 18 }, sectionRun('Top shops & cities by revenue')));
+  const shopTable = table({ x: 320, y: 480, width: 560, height: 214 }, [
+    ['SalesMonthly', 'Shop Name', 'c'],
+    ['SalesMonthly', 'City', 'c'],
+    ['SalesMonthly', 'State', 'c'],
+    ['SalesMonthly', 'Channel', 'c'],
+    ['SalesMonthly', 'Total Revenue', 'm'],
+    ['SalesMonthly', 'Total Units', 'm'],
+  ]);
+  shopTable.visual.query.sortDefinition = sortByMeasureDesc('SalesMonthly', 'Total Revenue');
+  visuals.push(shopTable);
+
+  // right — price by state/channel matrix + recent transactions (POS)
+  visuals.push(textbox({ x: 896, y: 212, width: 360, height: 18 }, sectionRun('Avg price by state & channel')));
+  visuals.push(matrix({ x: 896, y: 234, width: 360, height: 208 },
+    [['SalesMonthly', 'State']], [['SalesMonthly', 'Channel']], [['SalesMonthly', 'Avg Price', 'm']]));
+  visuals.push(textbox({ x: 896, y: 458, width: 360, height: 18 }, sectionRun('Recent transactions (POS)')));
+  const txTable = table({ x: 896, y: 480, width: 360, height: 214 }, [
+    ['SalesDaily', 'Date', 'c'],
+    ['SalesDaily', 'Shop Name', 'c'],
+    ['SalesDaily', 'Sku Code', 'c'],
+    ['SalesDaily', 'Unit Price', 'c'],
+  ]);
+  txTable.visual.query.sortDefinition = sortByColumnDesc('SalesDaily', 'Date');
+  visuals.push(txTable);
+
+  pages.push({ name, displayName: 'Demand & Revenue', visuals });
+}
+
 // ---------- Page 5: Forecast & Price Simulation ----------
 {
   const name = pid();
   const visuals = [];
-  visuals.push(...header('Forecast & Price Simulation', 4));
+  visuals.push(...header('Forecast & Price Simulation', 6));
 
   // KPI hero row — four separate cards; the two Sim cards are pinned to +12% (the optimum)
   const hw = 296;
@@ -750,6 +871,10 @@ const pages = [];
 
   // centre — forecast with confidence band
   visuals.push(textbox({ x: 320, y: 224, width: 620, height: 18 }, sectionRun('Units — actual, forecast & confidence band')));
+  // Forecast is national only — no Forecast->State relationship in the model, so the
+  // header State slicer intentionally does NOT filter the forecast band (option b).
+  visuals.push(textbox({ x: 700, y: 226, width: 240, height: 16 },
+    [{ value: 'National view — not affected by State slicer', textStyle: { fontFamily: 'Roboto', fontSize: '11px', color: MUTED } }], { align: 'right' }));
   const fc = cartesianMulti('lineChart', { x: 320, y: 246, width: 620, height: 458 }, 'Forecast', 'Month Start', [
     ['Forecast', 'Forecast Lower', SKY2],
     ['Forecast', 'Forecast Upper', SKY2],
