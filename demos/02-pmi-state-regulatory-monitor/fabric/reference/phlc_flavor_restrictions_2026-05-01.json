@@ -1,0 +1,40 @@
+{
+  "source": "Public Health Law Center — U.S. Sales Restrictions on Flavored Tobacco Products Map",
+  "source_url": "https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map",
+  "current_as_of": "2026-05-01",
+  "retrieved_at": "2026-07-16",
+  "retrieval_method": "web_fetch tool (Node built-in fetch + curl.exe are IP-blocked by the site's nginx caching proxy with a cached 403 to this datacenter egress range, regardless of browser User-Agent / full header set / cookie warm-up). The web_fetch channel routes through different infra and succeeds. Red/gray classification harvested from the inline SVG (<g class=\"region action-navigate_action|action-none\" fill=\"#a00303|#808080\">) and, authoritatively, by probing every jurisdiction's detail page: a red (navigate_action) state returns an HTML table; a gray state returns HTTP 404.",
+  "classification_rule": "Detail-page first table. If a row's Jurisdiction is 'State Policy' (or the full state/district name) => STATEWIDE restriction. If the table lists only cities/counties => LOCAL_ONLY (no statewide ban).",
+  "coverage": "All 50 states + DC probed (51 detail pages). 16 returned tables (red), 35 returned 404 (gray). Territories (PR, GU, VI, AS, MP) excluded.",
+  "red_count": 16,
+  "red_list": ["CA","CO","DC","IL","MA","MD","ME","MN","MT","NJ","NY","OH","OR","PA","RI","UT"],
+  "statewide": ["CA","DC","MA","MD","ME","NY","RI","UT"],
+  "local_only": ["CO","IL","MN","MT","NJ","OH","OR","PA"],
+  "states": [
+    {"code":"CA","scope":"statewide","local_jurisdiction_count":40,"local_jurisdiction_count_note":"40+; detail table truncated at fetch cap — has a 'State Policy' row plus many cities/counties (Alameda, Berkeley, Los Angeles, Oakland, San Francisco, San Jose, ...)","has_state_policy_row":true,"flavor_prohibited":null,"menthol_prohibited":null,"source_url":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/ca","note":"Detail table cells for the flavor/menthol/all-products/all-retailers/case-law columns render empty in the extracted markdown (icon-based in the live page), so those booleans are not determinable from text."},
+    {"code":"CO","scope":"local_only","local_jurisdiction_count":2,"jurisdictions":["Boulder","Denver"],"has_state_policy_row":false,"flavor_prohibited":null,"menthol_prohibited":null,"source_url":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/co"},
+    {"code":"DC","scope":"statewide","local_jurisdiction_count":0,"jurisdictions":["Washington D.C."],"has_state_policy_row":true,"flavor_prohibited":null,"menthol_prohibited":null,"source_url":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/dc","note":"District-wide restriction; intro reads 'summarizes the district's flavor restriction'."},
+    {"code":"IL","scope":"local_only","local_jurisdiction_count":2,"jurisdictions":["Chicago","Evanston"],"has_state_policy_row":false,"flavor_prohibited":null,"menthol_prohibited":null,"source_url":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/il"},
+    {"code":"MA","scope":"statewide","local_jurisdiction_count":9,"jurisdictions":["Boston","Brockton","Cambridge","Lawrence","Lowell","Lynn","Newton","Somerville","Worcester"],"has_state_policy_row":true,"flavor_prohibited":null,"menthol_prohibited":null,"source_url":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/ma"},
+    {"code":"MD","scope":"statewide","local_jurisdiction_count":1,"jurisdictions":["Montgomery County"],"has_state_policy_row":true,"flavor_prohibited":null,"menthol_prohibited":null,"source_url":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/md"},
+    {"code":"ME","scope":"statewide","local_jurisdiction_count":0,"jurisdictions":[],"has_state_policy_row":true,"flavor_prohibited":null,"menthol_prohibited":null,"source_url":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/me","note":"State Policy only; intro reads 'summarizes the state's flavor restriction'."},
+    {"code":"MN","scope":"local_only","local_jurisdiction_count":7,"jurisdictions":["Bloomington","Duluth","Hennepin County","Minneapolis","Plymouth","Saint Paul","Sherburne County"],"has_state_policy_row":false,"flavor_prohibited":null,"menthol_prohibited":null,"source_url":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/mn"},
+    {"code":"MT","scope":"local_only","local_jurisdiction_count":1,"jurisdictions":["Missoula"],"has_state_policy_row":false,"flavor_prohibited":null,"menthol_prohibited":null,"source_url":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/mt"},
+    {"code":"NJ","scope":"local_only","local_jurisdiction_count":2,"jurisdictions":["Jersey City","Paterson"],"has_state_policy_row":false,"flavor_prohibited":null,"menthol_prohibited":null,"source_url":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/nj","note":"CONFLICT: PHLC lists only Jersey City + Paterson (no 'State Policy' row), i.e. LOCAL-ONLY — but NJ enacted a STATEWIDE flavored e-cigarette sales ban in 2020 (P.L.2019 c.462, eff. Apr 2020). Likely a methodology gap: this PHLC map focuses on flavored-tobacco (incl. menthol/combustibles) restrictions, and NJ's ban is e-cig-only, so it may not register as a statewide 'flavored tobacco' State Policy here. Do NOT treat PHLC as authoritative for NJ's vape flavor ban."},
+    {"code":"NY","scope":"statewide","local_jurisdiction_count":5,"jurisdictions":["Babylon","Hempstead","Nassau County","New York City","Yonkers"],"has_state_policy_row":true,"flavor_prohibited":null,"menthol_prohibited":null,"source_url":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/ny"},
+    {"code":"OH","scope":"local_only","local_jurisdiction_count":2,"jurisdictions":["Columbus","Toledo"],"has_state_policy_row":false,"flavor_prohibited":null,"menthol_prohibited":null,"source_url":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/oh"},
+    {"code":"OR","scope":"local_only","local_jurisdiction_count":2,"jurisdictions":["Multnomah County","Washington County"],"has_state_policy_row":false,"flavor_prohibited":null,"menthol_prohibited":null,"source_url":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/or"},
+    {"code":"PA","scope":"local_only","local_jurisdiction_count":1,"jurisdictions":["Philadelphia"],"has_state_policy_row":false,"flavor_prohibited":null,"menthol_prohibited":null,"source_url":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/pa"},
+    {"code":"RI","scope":"statewide","local_jurisdiction_count":1,"jurisdictions":["Providence"],"has_state_policy_row":true,"flavor_prohibited":null,"menthol_prohibited":null,"source_url":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/ri"},
+    {"code":"UT","scope":"statewide","local_jurisdiction_count":0,"jurisdictions":[],"has_state_policy_row":true,"flavor_prohibited":null,"menthol_prohibited":null,"source_url":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/ut"}
+  ],
+  "diff_vs_current_curated": {
+    "current_curated_6": ["CA","MA","NJ","NY","RI","UT"],
+    "confirmed_statewide_of_curated": ["CA","MA","NY","RI","UT"],
+    "curated_but_local_only_in_phlc": ["NJ"],
+    "extra_red_states_not_in_curated": ["CO","DC","IL","MD","ME","MN","MT","OH","OR","PA"],
+    "extra_statewide": ["DC","MD","ME"],
+    "extra_local_only": ["CO","IL","MN","MT","OH","OR","PA"],
+    "phlc_statewide_set_if_adopted": ["CA","DC","MA","MD","ME","NY","RI","UT"]
+  }
+}

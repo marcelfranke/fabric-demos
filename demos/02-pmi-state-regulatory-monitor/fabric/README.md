@@ -61,15 +61,39 @@ and dedupe to the most-recent `(year, quarter)` per `(state, provision)`.
 
 | Table | Rows | Notes |
 |---|---:|---|
-| `silver_regulatory_item` | 3,941 | Normalized CDC provisions, deduped to most-recent year/quarter |
+| `silver_regulatory_item` | 3,947 | Normalized CDC provisions, deduped to most-recent year/quarter |
 | `silver_program` | 3 | IQOS / ZYN / VEEV |
-| `silver_flavor_ban` | 6 | Curated statewide flavor bans: CA, MA, NJ, NY, RI, UT → ZYN + VEEV |
+| `silver_flavor_ban` | 9 | Statewide flavor bans: CA, DC, MA, MD, ME, NJ, NY, RI, UT → ZYN + VEEV (source-upgraded — see below) |
 | `silver_pmta_registry` | 11 | Curated PMTA registry laws: AL, FL, KY, LA, NC, OK, VA, WI, MS enacted; IA, UT pending → VEEV |
 | `silver_tax_sample` | 10 | Curated VEEV excise sample (incl. CO 62%) |
 | `silver_fda_milestones` | 4 | Federal FDA milestones (state = US, context only) |
 
 CDC vapor legislation maps to the **VEEV** program; the curated flavor-ban layer
 applies to **ZYN + VEEV** (flavored SKUs); IQOS is federal/context only.
+
+#### Flavor-ban source upgrade (2026-07-16)
+
+The statewide flavor-ban list was upgraded from a hand-curated 6-state set
+(`CA, MA, NJ, NY, RI, UT`) to a **cross-validated 9-state set**
+(`CA, DC, MA, MD, ME, NJ, NY, RI, UT`):
+
+- **Primary source** — Public Health Law Center "U.S. Sales Restrictions on
+  Flavored Tobacco Products" map, **State Policy rows only** (= statewide, not
+  city/county local-only). Retrieved 2026-07-16; PHLC current-as-of 2026-05-01.
+  A reproducible snapshot is committed at
+  [`reference/phlc_flavor_restrictions_2026-05-01.json`](reference/phlc_flavor_restrictions_2026-05-01.json)
+  (+ [`.md`](reference/phlc_flavor_restrictions_2026-05-01.md)).
+- **Cross-validation** — JAMA Network Open 2025 (Cheng et al., article 2836918)
+  independently confirms statewide e-cig flavor bans in MA, MD, NJ, NY, RI, UT.
+- **NJ = curated override** — NJ enacted a real statewide e-cig flavor ban in
+  2020 (P.L.2019 c.462), but PHLC's tobacco-broad lens lists only Jersey City +
+  Paterson (local-only), so NJ uses its statute URL rather than the PHLC `/nj`
+  page.
+- **CA, DC** = PHLC statewide (JAMA excluded them for insufficient post-policy
+  survey data). **ME** = PHLC-only (JAMA did not measure it).
+- **Limitation** — "statewide" here means a PHLC State Policy row exists;
+  product/menthol scope (menthol-only vs all-flavor vs e-cig-only) is **not**
+  modeled in this version (deferred column-extension).
 
 ### Gold — pricing star (`gold_` prefix)
 
@@ -79,7 +103,7 @@ the app's `pricing.service.ts` `computeSignals()`.
 
 | Table | Rows | Role |
 |---|---:|---|
-| `gold_pricing_signal` | 57 | Fact — one pricing signal per state × program (VEEV 51, ZYN 6) |
+| `gold_pricing_signal` | 60 | Fact — one pricing signal per state × program (VEEV 51, ZYN 9) |
 | `gold_dim_state` | 51 | State dimension (50 + DC) with lat/long |
 | `gold_dim_program` | 3 | Program dimension (IQOS / ZYN / VEEV) |
 | `gold_signals_by_action` | 5 | Rollup: signals per `pricing_action` |
@@ -119,13 +143,13 @@ Lake DAX):
 
 | Metric | Value |
 |---|---:|
-| Normalized CDC rows (`silver_regulatory_item`) | 3,941 |
-| Pricing signals (`gold_pricing_signal`) | 57 |
-| — VEEV / ZYN | 51 / 6 |
+| Normalized CDC rows (`silver_regulatory_item`) | 3,947 |
+| Pricing signals (`gold_pricing_signal`) | 60 |
+| — VEEV / ZYN | 51 / 9 |
 | Distinct states with a signal | 51 |
-| `price_freely` | 26 |
-| `delist_banned` | 12 |
-| `adjust_for_tax` | 9 |
+| `price_freely` | 25 |
+| `delist_banned` | 18 |
+| `adjust_for_tax` | 7 |
 | `restricted_assortment` | 9 |
 | `watch_pending` | 1 |
 | Taxed states | 34 |
@@ -141,11 +165,11 @@ Direct Lake star over the Gold tables: fact `PricingSignal` (`gold_pricing_signa
 
 | Measure | Value |
 |---|---:|
-| Total Signals | 57 |
-| Restricted or Banned States | 15 |
+| Total Signals | 60 |
+| Restricted or Banned States | 18 |
 | Avg Tax Burden | 24.2 |
-| Pending Risk States | 1 |
-| Signals Needing Price Change | 31 |
+| Pending Risk States | 2 |
+| Signals Needing Price Change | 35 |
 
 Reframed (refreshed) after each load so Direct Lake picks up the latest Delta tables.
 The committed TMDL under [`semantic-model/`](./semantic-model) is the source of truth;
