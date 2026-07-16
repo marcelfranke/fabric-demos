@@ -1,8 +1,9 @@
 # PMI Dynamic Pricing — Power BI Report
 
-A 4-page Power BI report (PBIR) over the **PMI Dynamic Pricing** Direct Lake
-semantic model in Microsoft Fabric — a pricing-decision dashboard that turns 50
-states of tobacco/vapor law into a per-state **Pricing Signal**. Styled in
+A 5-page Power BI report (PBIR) over the **PMI Dynamic Pricing** Direct Lake
+semantic model in Microsoft Fabric — an executive dashboard that tells the full
+story end-to-end: state regulatory **rules** → per-state **Pricing Signal** →
+**revenue at risk** → **demand forecast** → **what-if price simulation**. Styled in
 **PMI's real corporate identity** (from PMI's official *Value Report 2025*): a
 confident light + deep-blue two-tone system (brand blue `#0074C2`, near-black
 navy headlines `#14213D`, Lato + Roboto typography, deep-blue KPI hero cards with
@@ -22,10 +23,10 @@ white numbers).
 
 ## Pages
 
-Every page carries a slim **top nav-pill strip** (a white rounded pill with the 6
+Every page carries a slim **top nav-pill strip** (a white rounded pill with the 5
 page names as tabs — the active tab bold near-navy `#14213D` with a brand-blue
 `#0074C2` underline; a right-aligned `Philip Morris International · State
-Regulatory Monitor` wordmark + a `0N / 06` page indicator) over a big near-black
+Regulatory Monitor` wordmark + a `0N / 05` page indicator) over a big near-black
 Lato page title, on a near-white `#F7F9FC` canvas — mirroring the *Value Report
 2025* section headers (pp. 2/6).
 
@@ -34,47 +35,38 @@ Lato page title, on a near-white `#F7F9FC` canvas — mirroring the *Value Repor
    gates the assortment, each with its action-colour dot); 5 KPI cards rendered as
    solid **deep-blue hero cards with large white Lato numbers** + white uppercase
    captions (the *Value Report 2025* p6 "pop": Total Signals · Restricted or Banned
-   States · Avg Tax Burden % · Pending Risk States · Signals Needing Price Change);
-   a **US filled map** coloured by `pricing_action`; a bar of
+   States · Avg Tax Burden % · **Revenue at Risk** `$3.66M` · Signals Needing Price
+   Change); a **US filled map** coloured by `pricing_action`; a bar of
    signals-by-`pricing_action`; a Product-line (ZYN/VEEV/IQOS) slicer; and a
    state-reactive **Pricing Decision** card that reads the state selected on the map
    (× the product slicer) and shows Sellable? / Tax burden % / pricing action (in its
-   action colour) / recommendation. It **defaults to New Jersey + VEEV** (the
-   flavor-ban delist — the deck's dramatic aha) whenever no single state is
-   cross-filtered, so it always renders a real, populated decision (map-click and the
-   product slicer override it). Driven by `SELECTEDVALUE`/`CALCULATE` measures over the
-   real `gold_pricing_signal` rows — no fabricated values.
+   action colour) / recommendation. It **defaults to New Jersey** (the flavor-ban
+   delist — the dramatic aha) whenever no single state is cross-filtered, so it always
+   renders a real, populated decision (map-click and the product slicer override it).
+   Driven by `SELECTEDVALUE`/`CALCULATE` measures over the real `gold_pricing_signal`
+   rows — no fabricated values.
 2. **Tax & Margin** — states by tax burden (bar, sorted desc; Colorado tops at
    62%), avg tax burden by program, an Avg Tax Burden KPI, and a table of the 34
    taxed states with tax burden + pricing action + recommendation.
 3. **Compliance & Assortment** — clustered bar of signals-by-action per program
    (per-visual action palette), a State × Program list of `pricing_action`, and a
    list of the gated states (delist / restricted / watch_pending).
-4. **Regulatory Timeline** — showcases the Date dimension (PR #18): a line chart
-   of Total Signals by `Date`-driven reporting year (peaks in 2019), a column
-   chart by reporting quarter (2013-Q3 … 2027-Q3), a Reporting-year slicer, a
-   `Signals with Effective Date` KPI (**34**), and an honesty note — only the
-   **34** CDC-dated signals are date-sliceable; the **26** seed-driven
-   flavor-ban/PMTA signals are undated by design (no fabricated dates). See the
-   *CDC-only date connection* note below.
-5. **Demand & Revenue** *(synthetic sales — Phase 3)* — 4 deep-blue hero KPIs
-   (**Total Units ≈ 1.88M** · **Total Revenue $18.65M** · **Avg Price $9.91** ·
-   **Revenue at Risk $3.66M**); a units-by-product column, a **revenue by product ×
-   channel** clustered column (per-visual convenience/grocery/tobacco colours), an
-   **avg price by state × channel** matrix, a **top shops & cities** table (sorted by
-   revenue desc), a **recent transactions (POS)** table (sorted date desc), and a
-   Product-line slicer. Bound to the additive `SalesMonthly`/`SalesDaily` tables. A
-   prominent note states the sales are **synthetic** (no real PMI POS).
-6. **Forecast & Simulation** *(demand outlook + price what-if — Phase 3)* — 4 hero
-   KPIs (**Baseline Revenue (Sellable) $17.39M** · **Sim Revenue** · **Revenue Delta**
-   · **Revenue at Risk $3.66M**); a **national demand forecast + 80% band** line
-   (`Forecast[State] = ALL` to avoid double-counting the per-state series), a
-   **ban-cliff-over-time** line filtered to `Is Banned = true` (VEEV visibly tapers to
-   zero as flavor bans take effect; ZYN flat at zero), a **Baseline vs Simulated**
-   clustered column, a **revenue-at-risk by product** column (delist-red), and two
-   **what-if slicers** — *Price change %* (−20%…+30%) and *Elasticity* (−1.5…0.0).
-   The slicers rest **unselected**, so Sim Revenue == Baseline (Delta $0) until the
-   presenter dials a value; `Sim Revenue` is forced to 0 where a SKU is banned.
+4. **Revenue at Risk** — the money the rules put on the table. 4 deep-blue KPI heroes
+   (Total Revenue `$18.65M` · Baseline Revenue `$22.30M` · **Revenue at Risk** `$3.66M`
+   · Total Units `1.88M`); an actual-vs-baseline revenue line by year; a revenue-at-risk
+   column by year; a **risk-by-banned-state** bar (CA `$911K`, NY `$669K`, MA `$533K`,
+   NJ `$428K`, DC, UT …); and a **risk-by-program** donut (VEEV `$2.21M` / 60% · ZYN
+   `$1.45M` / 40%). Revenue at Risk = baseline revenue on SKUs a state's rules make
+   unsellable, coupled to each ban's effective date. The 2026 dip is a truthful
+   partial-year artifact (data ends 2026-06). Carries the CDC-dated honesty note.
+5. **Forecast & Price Simulation** — 4 deep-blue KPI heroes (Forecast Units `512.7K` ·
+   Forecast Revenue `$5.00M` · **Sim Revenue @ +12%** `$17.61M` · **Sim Δ @ +12%**
+   `$217K`); a units line with **actual + forecast + lower/upper confidence band** by
+   month; a **price-optimization curve** (Sim Revenue Δ vs Price Change %, a textbook
+   concave parabola peaking ≈ +$217K near +12%); and **Price change %** + **Elasticity**
+   what-if slider slicers. The two Sim KPI cards are pinned via a visual-level filter to
+   the +12% optimum so the exported PDF shows a live sim; the optimization curve is left
+   unfiltered so the full response renders. Elasticity held at −0.8.
 
 ### Light + deep-blue theme (PMI *Value Report 2025* identity)
 
@@ -124,21 +116,28 @@ its intended colour:
 - Model: **PMI Dynamic Pricing** (`6be9e165-fc81-4990-a479-a0cab935201c`) — Direct
   Lake over `pmi_lakehouse` Gold tables.
 - Tables referenced: `PricingSignal` (fact = `gold_pricing_signal`), `State`
-  (`gold_dim_state`, lat/long), `Program` (`gold_dim_program`), and `Date`
-  (`gold_dim_date`, a daily calendar) — added in PR #18.
-- Fact date columns (PR #18, CDC-sourced only): `Effective Date`,
-  `Reporting Year`, `Reporting Quarter`.
-- Measures used: Total Signals, Restricted or Banned States, Avg Tax Burden,
-  Pending Risk States, Signals Needing Price Change, and `Signals with Effective
-  Date` (= 34; the count of CDC-dated signals).
+  (`gold_dim_state`, lat/long), `Program` (`gold_dim_program`), `Date`
+  (`gold_dim_date`, a daily calendar), plus the revenue/forecast layer:
+  `SalesMonthly` (`gold_sales_monthly` — synthetic monthly sales fact),
+  `Forecast` (`gold_forecast` — actual + forecast units with a confidence band),
+  and the what-if parameter tables `Price Change %` and `Elasticity`.
+- Fact date columns (CDC-sourced only): `Effective Date`, `Reporting Year`,
+  `Reporting Quarter`.
+- Regulatory measures: Total Signals, Restricted or Banned States, Avg Tax Burden,
+  Pending Risk States, Signals Needing Price Change, `Signals with Effective Date`
+  (= 34), and the Pricing Decision `Selected …` measures.
+- Revenue/forecast measures: `Total Revenue`, `Baseline Revenue`, `Revenue at Risk`,
+  `Total Units`, `Baseline Units`, `Avg Price` (SalesMonthly); `Actual Units`,
+  `Forecast Units`, `Forecast Revenue`, `Forecast Lower`, `Forecast Upper` (Forecast);
+  and `Sim Revenue` / `Sim Revenue Delta` (what-if, over `Price Change %` × `Elasticity`).
 
 ### CDC-only date connection
 
 The `Date` table relates to the fact **only** through
 `PricingSignal[Effective Date]`, which is populated **only for CDC-sourced
-signals**. So the Regulatory Timeline page slices only the **34** CDC-dated
-signals; the **26** seed-driven flavor-ban / PMTA signals have a null effective
-date by design and are intentionally not date-sliceable — no dates are
+signals**. So the Revenue at Risk page's date-driven visuals slice only the **34**
+CDC-dated signals; the **26** seed-driven flavor-ban / PMTA signals have a null
+effective date by design and are intentionally not date-sliceable — no dates are
 fabricated for them.
 
 ## How to publish (Fabric REST API — deployed)
@@ -150,7 +149,7 @@ runtime). It is live in **Dynamic Pricing**:
 - Report item id: **`424faa25-2e39-4830-8725-09c77684d11a`**
 - URL: <https://app.powerbi.com/groups/aa0aa5fa-e638-4e4a-a0a2-a6da3e515f05/reports/424faa25-2e39-4830-8725-09c77684d11a>
 - Bound to dataset `6be9e165-fc81-4990-a479-a0cab935201c` (PMI Dynamic Pricing,
-  Direct Lake). All 6 pages render.
+  Direct Lake). All 5 pages render.
 
 ```
 node powerbi/deploy_report.mjs
@@ -192,6 +191,8 @@ The `.pbip` also opens and publishes cleanly from Desktop:
 
 ## Key insights (live model — reconciled with the app)
 
+**Regulatory signal layer**
+
 - **60** pricing signals across **51** states (VEEV 51, ZYN 9; IQOS = federal
   context only).
 - **18** state×program combinations are `delist_banned` (statewide flavor bans:
@@ -199,11 +200,25 @@ The `.pbip` also opens and publishes cleanly from Desktop:
   `restricted_assortment` (PMTA registry states, VEEV).
 - **34** states carry a vapor excise tax; **average burden ≈ 24.2%**. **Colorado
   leads at 62%** → `adjust_for_tax`. **7** signals are `adjust_for_tax`.
-- Only **1** `watch_pending` signal (Iowa registry bill — pricing risk to watch).
+- Only **1** `watch_pending` signal (Iowa registry bill — pricing risk to watch);
+  **2** pending-risk states.
 - **35** signals need a price change this quarter (any action other than
   `price_freely`); **25** signals `price_freely`.
-- **34** of 60 signals carry a CDC effective date (date-sliceable on the
-  Regulatory Timeline page); the other **26** are seed-driven and undated.
+- **34** of 60 signals carry a CDC effective date (date-sliceable); the other
+  **26** are seed-driven and undated.
+
+**Revenue / forecast / what-if layer**
+
+- **Total Revenue `$18.65M`** vs **Baseline Revenue `$22.30M`** →
+  **Revenue at Risk `$3.66M`** across banned states (VEEV `$2.21M` / 60%, ZYN
+  `$1.45M` / 40%); **1.88M** units over 88,128 monthly rows (2018-01 … 2026-06).
+- Risk concentrated in CA `$911K`, NY `$669K`, MA `$533K`, NJ `$428K`, DC `$297K`,
+  UT `$278K`, MD `$215K`, ME `$191K`.
+- Forecast horizon to **2027-06**: **512.7K** forecast units, **`$5.00M`** forecast
+  revenue, with a lower/upper confidence band.
+- **What-if price simulation** (elasticity −0.8) is a concave optimization curve
+  peaking at **≈ +$217K around +12%** (−20% → −$1.25M, 0% → ~$0, +30% → −$209K);
+  at the +12% optimum, **Sim Revenue `$17.61M`**, **Sim Δ `$217K`**.
 
 ## QA — rendered verification
 
@@ -211,25 +226,17 @@ Each page was rendered and inspected. **ExportTo image (PNG) is disabled
 tenant-wide** on this capacity (`403 … Export report to image is disabled on
 tenant level`), so QA used the **ExportTo PDF** path (`POST
 /reports/{id}/ExportTo {format:"PDF"}` → poll → GET file), rendered to PNG
-locally. All 6 pages verified: near-white `#F7F9FC` canvas, the white top nav-pill
-strip (active tab underlined in brand blue) + wordmark + `0N / 06` page indicator
+locally. All **5** pages verified: near-white `#F7F9FC` canvas, the white top nav-pill
+strip (active tab underlined in brand blue) + wordmark + `0N / 05` page indicator
 + big near-black Lato page title, **deep-blue KPI hero cards with white numbers**,
-light readable p16-style tables (near-black header on `#EAF3FB` tint + bottom rule,
-`#F4F6FA` banding, navy text; matrix left column solid brand-blue + white text),
-the per-visual action-palette map + bars, amber tax bars, the brand-blue timeline
-line/column, the Command Center **framing strip** and state-reactive **Pricing
-Decision** card (defaults to New Jersey + VEEV — rendered populated in the
-exported PDF: "New Jersey", No - delisted, 0.1%, `delist_banned` in rose, "Delist:
-VEEV flavored SKUs banned in New Jersey").
-
-Pages 5–6 (Phase 3) were re-exported and inspected after the *Value Report 2025*
-reskin: **Demand & Revenue** binds the synthetic sales star (hero KPIs 1.88M units
-/ $18.65M / $9.91 / $3.66M at-risk; per-channel revenue colours; top-shops and
-recent-POS tables sorted desc). **Forecast & Simulation** rests at baseline
-(Simulated $17.39M == Baseline, Delta **$0**) until a slider is dialled, the
-national forecast line shows the 80% band + amber forecast tail, and the ban-cliff
-line (filtered to `Is Banned = true`) shows VEEV tapering to zero as bans take
-effect. All series colours are per-visual so they survive the theme-less ExportTo.
+light readable p16-style tables, the per-visual action-palette map + bars, amber tax
+bars, blue-family clustered bars, the **Revenue at Risk** page (heroes `$18.65M` /
+`$22.30M` / `$3.66M` / `1.88M`, risk-by-state bar, risk-by-program donut), the
+**Forecast** page (forecast confidence band, concave optimization curve, Sim Δ `$217K`
+pinned to +12%), the Command Center **framing strip** and state-reactive **Pricing
+Decision** card (defaults to New Jersey — rendered populated in the exported PDF:
+"New Jersey", No - delisted, `delist_banned` in rose, "Delist: VEEV flavored SKUs
+banned in New Jersey").
 
 > **ExportTo caveat:** the PDF/image export path on this capacity renders with
 > the **base theme** (the custom theme is dropped in export), so anything driven
@@ -241,9 +248,11 @@ effect. All series colours are per-visual so they survive the theme-less ExportT
 >   is coloured by the status palette via per-category `dataPoint` fills
 >   (adjust_for_tax amber `#E8A23D`, delist_banned rose `#E0523E`, price_freely
 >   green `#2E9E6B`, restricted_assortment blue `#3D7DD8`, watch_pending purple
->   `#7A5CD0`); tax bars are single-fill amber `#E8A23D`; the timeline line **and**
->   quarter column are brand blue `#0074C2`. These render on-brand in the exported
->   PDF — no monochrome base-blue.
+>   `#7A5CD0`); tax bars are single-fill amber `#E8A23D`; the revenue-at-risk
+>   column/bar are rose `#E0523E`; the actual-vs-baseline, forecast band and
+>   optimization-curve series are set per-series (brand blue `#0074C2`, navy
+>   `#00335C`, sky `#7FC4E8`) and the risk-by-program donut per-category by program.
+>   These render on-brand in the exported PDF — no monochrome base-blue.
 > - **Tables (per-visual light objects):** `tableEx`/`pivotTable` set explicit
 >   p16-style light `values` / `columnHeaders` / `total` / `grid` (+ matrix
 >   `rowHeaders`): near-black bold header on a light `#EAF3FB` tint with a bottom
