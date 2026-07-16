@@ -32,9 +32,11 @@ wordmark) over a midnight-ink `#0A0911` canvas.
    signals-by-`pricing_action`; a Product-line (ZYN/VEEV/IQOS) slicer; and a
    state-reactive **Pricing Decision** card that reads the state selected on the map
    (× the product slicer) and shows Sellable? / Tax burden % / pricing action (in its
-   action colour) / recommendation — with a graceful "Select a state on the map"
-   prompt when no single state is selected (driven by `SELECTEDVALUE` measures, no
-   fabricated values).
+   action colour) / recommendation. It **defaults to New Jersey + VEEV** (the
+   flavor-ban delist — the deck's dramatic aha) whenever no single state is
+   cross-filtered, so it always renders a real, populated decision (map-click and the
+   product slicer override it). Driven by `SELECTEDVALUE`/`CALCULATE` measures over the
+   real `gold_pricing_signal` rows — no fabricated values.
 2. **Tax & Margin** — states by tax burden (bar, sorted desc; Colorado tops at
    62%), avg tax burden by program, an Avg Tax Burden KPI, and a table of the 34
    taxed states with tax burden + pricing action + recommendation.
@@ -168,7 +170,9 @@ tenant level`), so QA used the **ExportTo PDF** path (`POST
 locally. All 4 pages verified: midnight canvas, dark hero headers with chartreuse
 rules, chartreuse KPI heroes on dark cards, dark slicers/notes/charts, the
 per-visual action-palette map + bars, the Command Center **framing strip** and
-state-reactive **Pricing Decision** card (graceful empty-state prompt), and the
+state-reactive **Pricing Decision** card (defaults to New Jersey + VEEV — rendered
+populated in the exported PDF: "New Jersey", No - delisted, 0.1%, delist_banned in
+rose, "Delist: VEEV flavored SKUs banned in New Jersey"), and the
 date-trend line/column charts on the Regulatory Timeline page.
 
 > **ExportTo caveat:** the PDF/image export path on this capacity renders with
