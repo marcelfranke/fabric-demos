@@ -65,7 +65,26 @@ Fabric only for auth/hosting (a mock auth service is used for offline
 | [`src/app/services/constants.ts`](./src/app/services/constants.ts) | CDC dataset descriptors, category→program map, `PRICING_ACTIONS` (labels + map colors), curated ban/registry/tax seed layer, FDA milestones, US state names. |
 | [`src/app/components/us-choropleth.ts`](./src/app/components/us-choropleth.ts) + [`src/app/data/us-states-paths.ts`](./src/app/data/us-states-paths.ts) | Inline-SVG US states choropleth colored by `pricing_action` (zero runtime map deps). |
 | [`rayfin/`](./rayfin) | Rayfin service config + data schema (`Program` / `RegulatoryItem` / `PricingSignal` / `AppConfig`). |
+| [`fabric/`](./fabric) | Microsoft Fabric medallion backend — Lakehouse + notebook + pipeline + Direct Lake semantic model (see [`fabric/README.md`](./fabric/README.md)). |
+| [`workspace-sync/`](./workspace-sync) | Git-synced exports of the deployed Fabric items (Lakehouse, Notebook, DataPipeline, SemanticModel). |
 | `manifest.json`, `angular.json`, `package.json` | App + Rayfin template configuration. |
+
+## Fabric backend
+
+The dashboard also has a full **Microsoft Fabric** data-engineering backend that
+computes the Pricing Signal server-side (mirroring the browser-side logic), deployed to
+the dedicated **`Dynamic Pricing`** workspace:
+
+- **Lakehouse** `pmi_lakehouse` — medallion Bronze → Silver → Gold Delta tables.
+- **Notebook** `02_pmi_pricing_medallion` — PySpark port of `cdc-state-sync.service.ts`
+  + `pricing.service.ts`; loads the 5 CDC datasets and computes `gold_pricing_signal`.
+- **Pipeline** `pmi_pricing_pipeline` — runs the notebook on a daily schedule.
+- **Semantic model** `PMI Dynamic Pricing` — Direct Lake star over the Gold tables.
+
+Reconciles with the app: **3,941** normalized CDC rows, **57** pricing signals (VEEV 51,
+ZYN 6) across **51** states, avg tax burden ~**24.2%**. See
+[`fabric/README.md`](./fabric/README.md) for the full architecture, table lists, and
+build/deploy steps.
 
 ## Schema
 

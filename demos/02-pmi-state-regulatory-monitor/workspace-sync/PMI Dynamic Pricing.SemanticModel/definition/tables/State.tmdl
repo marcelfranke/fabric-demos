@@ -1,0 +1,43 @@
+/// US state dimension (50 states + DC) with geo coordinates for the map. Sourced from gold_dim_state.
+table State
+	lineageTag: b1b2c3d4-0001-4a5b-9c7d-200000000001
+
+	/// Two-letter state code (grain key).
+	column State
+		dataType: string
+		lineageTag: b1b2c3d4-0002-4a5b-9c7d-200000000002
+		dataCategory: StateOrProvince
+		sourceColumn: state
+
+	column 'State Name'
+		dataType: string
+		lineageTag: b1b2c3d4-0003-4a5b-9c7d-200000000003
+		dataCategory: StateOrProvince
+		sourceColumn: state_name
+
+	column Latitude
+		dataType: double
+		lineageTag: b1b2c3d4-0004-4a5b-9c7d-200000000004
+		dataCategory: Latitude
+		summarizeBy: none
+		sourceColumn: latitude
+
+	column Longitude
+		dataType: double
+		lineageTag: b1b2c3d4-0005-4a5b-9c7d-200000000005
+		dataCategory: Longitude
+		summarizeBy: none
+		sourceColumn: longitude
+
+	column Id
+		dataType: int64
+		isHidden
+		lineageTag: b1b2c3d4-0006-4a5b-9c7d-200000000006
+		summarizeBy: none
+		sourceColumn: id
+
+	partition State = entity
+		mode: directLake
+		source
+			entityName: gold_dim_state
+			expressionSource: 'DirectLake - PMI Dynamic Pricing'
