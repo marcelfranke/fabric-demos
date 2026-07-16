@@ -9,6 +9,7 @@ and instructions.
 | # | Demo | Description |
 |---|------|-------------|
 | 01 | [European Patents](./demos/01-european-patents) | Microsoft Fabric OneLake + Direct Lake Power BI semantic model over EPO patent data, with an Angular dashboard frontend. |
+| 02 | [PMI State Regulatory Monitor](./demos/02-pmi-state-regulatory-monitor) | State-by-state US dynamic-pricing screening dashboard for Philip Morris International's smoke-free lines (ZYN, VEEV, IQOS) — turns live CDC STATE System tax + flavor-ban + registry law into a per-state Pricing Signal on an action-colored US choropleth map. |
 
 ## Getting started
 
