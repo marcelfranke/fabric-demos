@@ -1,0 +1,70 @@
+/// Retail shop dimension (synthetic) — one row per shop with its channel. Sourced
+/// from dim_shop.
+table Shop
+	lineageTag: e4b2c3d4-0001-4a5b-9c7d-800000000001
+
+	column Id
+		dataType: int64
+		isHidden
+		lineageTag: e4b2c3d4-0011-4a5b-9c7d-800000000011
+		summarizeBy: none
+		sourceColumn: id
+
+	/// Shop code (natural business key).
+	column 'Shop Code'
+		dataType: string
+		lineageTag: e4b2c3d4-0012-4a5b-9c7d-800000000012
+		summarizeBy: none
+		sourceColumn: shop_code
+
+	column 'Shop Name'
+		dataType: string
+		lineageTag: e4b2c3d4-0013-4a5b-9c7d-800000000013
+		summarizeBy: none
+		sourceColumn: shop_name
+
+	column City
+		dataType: string
+		lineageTag: e4b2c3d4-0014-4a5b-9c7d-800000000014
+		dataCategory: City
+		summarizeBy: none
+		sourceColumn: city
+
+	column State
+		dataType: string
+		lineageTag: e4b2c3d4-0015-4a5b-9c7d-800000000015
+		dataCategory: StateOrProvince
+		summarizeBy: none
+		sourceColumn: state
+
+	/// Retail channel (convenience / tobacco / grocery).
+	column Channel
+		dataType: string
+		lineageTag: e4b2c3d4-0016-4a5b-9c7d-800000000016
+		summarizeBy: none
+		sourceColumn: channel
+
+	column 'Demand Factor'
+		dataType: double
+		lineageTag: e4b2c3d4-0017-4a5b-9c7d-800000000017
+		summarizeBy: none
+		sourceColumn: demand_factor
+
+	column 'Population Weight'
+		dataType: double
+		lineageTag: e4b2c3d4-0018-4a5b-9c7d-800000000018
+		summarizeBy: none
+		sourceColumn: population_weight
+
+	column 'City Id'
+		dataType: int64
+		isHidden
+		lineageTag: e4b2c3d4-0019-4a5b-9c7d-800000000019
+		summarizeBy: none
+		sourceColumn: city_id
+
+	partition Shop = entity
+		mode: directLake
+		source
+			entityName: dim_shop
+			expressionSource: 'DirectLake - PMI Dynamic Pricing'

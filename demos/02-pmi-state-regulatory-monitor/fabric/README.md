@@ -209,6 +209,50 @@ Reframed (refreshed) after each load so Direct Lake picks up the latest Delta ta
 The committed TMDL under [`semantic-model/`](./semantic-model) is the source of truth;
 the Git-synced export lives under `../workspace-sync/PMI Dynamic Pricing.SemanticModel`.
 
+### Sales + forecast + revenue-simulation extension
+
+The same Direct Lake model is extended (additively) with the synthetic sales star,
+the demand forecast, and an interactive revenue what-if. New tables:
+
+| Table | Source Gold table | Role |
+|---|---|---|
+| `SalesMonthly` | `gold_sales_monthly` | fact — monthly modeling / simulation grain |
+| `SalesDaily` | `fact_sales_daily` | fact — daily POS-feel transaction grain |
+| `Forecast` | `gold_demand_forecast` | monthly actuals + Holt-Winters forecast + band |
+| `Shop` | `dim_shop` | dimension (→ `City`) |
+| `Sku` | `dim_sku` | dimension |
+| `City` | `dim_city` | dimension |
+| `Price Change %` | *calculated* `GENERATESERIES(-0.2, 0.3, 0.01)` | what-if slider (−20%…+30%, 51 rows) |
+| `Elasticity` | *calculated* `GENERATESERIES(-1.5, 0, 0.1)` | what-if slider (−1.5…0.0, 16 rows) |
+
+Relationships (all many-to-one, single-direction): `SalesMonthly` / `SalesDaily`
+→ `State`, `Program` (`Product Code`), `Date` (`Month Start`/`Date` → `Date.Date`),
+`Shop` (`Shop Id`), `Sku` (`Sku Id`); `Forecast` → `Program`, `Date`; `Shop` → `City`.
+`Forecast.State` stays a **native column** (the national `ALL` series has no matching
+`State` row, so it is deliberately not related — avoids a broken join). The what-if
+tables are **disconnected** (report sliders bind to their columns).
+
+Key measures (live-verified via `executeQueries`):
+
+| Measure | Value | Notes |
+|---|---:|---|
+| Total Units | 1,882,518 | daily == monthly (reconciled) |
+| Total Revenue | \$18,646,356 | == Σ daily revenue |
+| Baseline Revenue | \$22,302,881 | counterfactual, no bans |
+| Revenue at Risk | \$3,656,525 | forgone to flavor bans |
+| Baseline Revenue (Sellable) | \$17,390,997 | non-banned base the sim acts on |
+| Avg Price | \$9.91 | volume-weighted |
+
+`Sim Revenue` = `SUMX(FILTER(SalesMonthly, [Is Banned]=FALSE), [Baseline Revenue (row)]
+× (1 + e·Δp) × (1 + Δp))` where `Δp = SELECTEDVALUE('Price Change %')` and
+`e = SELECTEDVALUE(Elasticity, -0.8)`; banned rows are forced out (their in-market
+sales are ~0). `Sim Revenue Delta` = `Sim Revenue − Baseline Revenue (Sellable)`.
+Elasticity category guides: **ZYN ≈ −0.7, VEEV ≈ −0.9** (global slider default −0.8).
+Verified live: +8% price @ e=−0.8 → **\$17,580,211 (+\$189,214)**; −10% @ e=−0.7 →
+**\$16,747,530 (−\$643,467)** — the "raise price in high-tax states nets +\$X but −\$Y
+is forgone to bans" narrative. Forecast splits into 10,608 actual + 1,140 Holt-Winters
++ 108 seasonal-naive rows (11,856 total). Dims: 110 cities · 152 shops · 8 SKUs.
+
 ## Synthetic sales & demand forecast
 
 > **⚠️ Synthetic data.** There is **no real PMI point-of-sale data** in this demo.

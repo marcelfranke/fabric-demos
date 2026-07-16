@@ -1,0 +1,38 @@
+/// City dimension (synthetic) — city × state with a relative population weight that
+/// drives demand volume. Sourced from dim_city.
+table City
+	lineageTag: e6b2c3d4-0001-4a5b-9c7d-a00000000001
+
+	column Id
+		dataType: int64
+		isHidden
+		lineageTag: e6b2c3d4-0011-4a5b-9c7d-a00000000011
+		summarizeBy: none
+		sourceColumn: id
+
+	column State
+		dataType: string
+		lineageTag: e6b2c3d4-0012-4a5b-9c7d-a00000000012
+		dataCategory: StateOrProvince
+		summarizeBy: none
+		sourceColumn: state
+
+	column City
+		dataType: string
+		lineageTag: e6b2c3d4-0013-4a5b-9c7d-a00000000013
+		dataCategory: City
+		summarizeBy: none
+		sourceColumn: city
+
+	/// Relative population weight (1-10) used to scale demand.
+	column 'Population Weight'
+		dataType: double
+		lineageTag: e6b2c3d4-0014-4a5b-9c7d-a00000000014
+		summarizeBy: none
+		sourceColumn: population_weight
+
+	partition City = entity
+		mode: directLake
+		source
+			entityName: dim_city
+			expressionSource: 'DirectLake - PMI Dynamic Pricing'
