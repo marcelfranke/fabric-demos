@@ -45,7 +45,26 @@ const ROUTE_LABELS: Record<string, string> = {
       <aside class="rail" [class.rail--collapsed]="collapsed()">
         <a routerLink="/" class="brand" aria-label="Dashboard home">
           <span class="brand__mark" aria-hidden="true">
-            <mat-icon>gavel</mat-icon>
+            <svg
+              class="brand__logo"
+              viewBox="0 0 40 40"
+              xmlns="http://www.w3.org/2000/svg"
+              role="img"
+              aria-label="PMI"
+            >
+              <rect x="0" y="0" width="40" height="40" rx="9" fill="#0074c2" />
+              <text
+                x="20"
+                y="21"
+                text-anchor="middle"
+                dominant-baseline="central"
+                font-family="'Lato', 'Segoe UI', system-ui, sans-serif"
+                font-size="15"
+                font-weight="900"
+                letter-spacing="0.4"
+                fill="#ffffff"
+              >PMI</text>
+            </svg>
           </span>
           <span class="brand__name">PMI Monitor</span>
         </a>
@@ -239,7 +258,7 @@ const ROUTE_LABELS: Record<string, string> = {
       gap: 0.625rem;
       /* The rail itself adds 0.75rem horizontal padding. 0.5rem here
        * gives 1.25rem from the rail edge, which centres the ~24px
-       * Fraunces ◐ mark in the collapsed 64px rail. Same padding in
+       * PMI monogram mark in the collapsed 64px rail. Same padding in
        * expanded mode keeps the mark at the exact same x-position. */
       padding: 0 0.5rem 0.25rem;
       color: var(--cream);
@@ -259,24 +278,22 @@ const ROUTE_LABELS: Record<string, string> = {
       width: 1.75rem;
       height: 1.75rem;
       flex-shrink: 0;
-      color: var(--lime-on);
-      background: var(--lime);
-      border-radius: 7px;
-      box-shadow: 0 0 0 1px rgba(212, 255, 58, 0.4),
-        0 6px 16px -4px var(--accent-glow);
+      border-radius: 8px;
+      box-shadow: 0 6px 16px -6px var(--accent-glow);
     }
 
-    .brand__mark mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
+    .brand__logo {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 8px;
     }
 
     .brand__name {
       font-family: var(--font-display);
-      font-variation-settings: 'opsz' 96, 'SOFT' 50, 'wght' 500;
-      font-size: 1.375rem;
-      letter-spacing: -0.02em;
+      font-weight: 700;
+      font-size: 1.25rem;
+      letter-spacing: -0.01em;
       line-height: 1;
       transition: opacity var(--d-2) var(--ease-out);
     }

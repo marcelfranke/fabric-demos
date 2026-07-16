@@ -18,7 +18,26 @@ import { ThemeService } from '../../services/theme.service';
       <header class="brand-row">
         <div class="brand">
           <span class="brand__mark" aria-hidden="true">
-            <mat-icon>gavel</mat-icon>
+            <svg
+              class="brand__logo"
+              viewBox="0 0 40 40"
+              xmlns="http://www.w3.org/2000/svg"
+              role="img"
+              aria-label="PMI"
+            >
+              <rect x="0" y="0" width="40" height="40" rx="9" fill="#0074c2" />
+              <text
+                x="20"
+                y="21"
+                text-anchor="middle"
+                dominant-baseline="central"
+                font-family="'Lato', 'Segoe UI', system-ui, sans-serif"
+                font-size="15"
+                font-weight="900"
+                letter-spacing="0.4"
+                fill="#ffffff"
+              >PMI</text>
+            </svg>
           </span>
           <span class="brand__name">PMI Regulatory Monitor</span>
         </div>
@@ -108,8 +127,8 @@ import { ThemeService } from '../../services/theme.service';
       height: 45rem;
       background: radial-gradient(
         circle,
-        rgba(212, 255, 58, 0.18),
-        rgba(212, 255, 58, 0) 60%
+        rgba(0, 116, 194, 0.16),
+        rgba(0, 116, 194, 0) 60%
       );
       filter: blur(20px);
       z-index: -2;
@@ -184,24 +203,22 @@ import { ThemeService } from '../../services/theme.service';
       width: 1.75rem;
       height: 1.75rem;
       flex-shrink: 0;
-      color: var(--lime-on);
-      background: var(--lime);
-      border-radius: 7px;
-      box-shadow: 0 0 0 1px rgba(212, 255, 58, 0.4),
-        0 6px 16px -4px var(--accent-glow);
+      border-radius: 8px;
+      box-shadow: 0 6px 16px -6px var(--accent-glow);
     }
 
-    .brand__mark mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
+    .brand__logo {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 8px;
     }
 
     .brand__name {
       font-family: var(--font-display);
-      font-variation-settings: 'opsz' 96, 'SOFT' 50, 'wght' 500;
-      font-size: 1.375rem;
-      letter-spacing: -0.02em;
+      font-weight: 700;
+      font-size: 1.25rem;
+      letter-spacing: -0.01em;
     }
 
     /* Hero */
@@ -240,7 +257,7 @@ import { ThemeService } from '../../services/theme.service';
       font-style: italic;
       font-variation-settings: 'opsz' 144, 'SOFT' 90, 'wght' 400;
       color: var(--accent);
-      /* Italic Fraunces terminals overshoot their bounding box; add
+      /* Italic display terminals overshoot their bounding box; add
        * breathing room so the next word doesn't visually kiss them. */
       padding-right: 0.18em;
     }
@@ -269,7 +286,7 @@ import { ThemeService } from '../../services/theme.service';
       height: 3.5rem;
       padding: 0 1.75rem 0 1.5rem;
       background: var(--accent);
-      color: var(--ink-bg);
+      color: #ffffff;
       border: none;
       border-radius: var(--radius-pill);
       cursor: pointer;
@@ -281,7 +298,7 @@ import { ThemeService } from '../../services/theme.service';
       max-width: 100%;
       overflow: hidden;
       isolation: isolate;
-      box-shadow: 0 0 0 0 var(--accent-glow), 0 20px 50px -20px rgba(212, 255, 58, 0.4);
+      box-shadow: 0 0 0 0 var(--accent-glow), 0 20px 50px -20px rgba(0, 116, 194, 0.4);
       transition: transform var(--d-2) var(--ease-out),
         box-shadow var(--d-2) var(--ease-out);
     }
@@ -289,7 +306,7 @@ import { ThemeService } from '../../services/theme.service';
     .signin:hover:not([disabled]) {
       transform: translateY(-1px);
       box-shadow: 0 0 0 4px var(--accent-soft),
-        0 24px 60px -16px rgba(212, 255, 58, 0.5);
+        0 24px 60px -16px rgba(0, 116, 194, 0.5);
     }
 
     .signin:active:not([disabled]) {

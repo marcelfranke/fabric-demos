@@ -123,14 +123,16 @@ export interface PricingActionMeta {
   order: number;
 }
 
-// Map colours: green = price_freely, amber = adjust_for_tax, blue = watch_pending,
-// red family = delist_banned / restricted_assortment.
+// Map colours align to the PMI "Value Report 2025" pricing-action palette so the
+// choropleth, legend, and chips match the Power BI report exactly:
+// green = price_freely, amber = adjust_for_tax, purple = watch_pending,
+// blue = restricted_assortment, red = delist_banned.
 export const PRICING_ACTIONS: Record<PricingAction, PricingActionMeta> = {
-  price_freely: { label: 'Price freely', color: '#4ade80', pill: 'emerald', order: 0 },
-  adjust_for_tax: { label: 'Adjust for tax', color: '#fbbf24', pill: 'amber', order: 1 },
-  watch_pending: { label: 'Watch pending', color: '#60a5fa', pill: 'blue', order: 2 },
-  restricted_assortment: { label: 'Restricted assortment', color: '#fb923c', pill: 'orange', order: 3 },
-  delist_banned: { label: 'Delist banned', color: '#f43f5e', pill: 'rose', order: 4 },
+  price_freely: { label: 'Price freely', color: '#2E9E6B', pill: 'emerald', order: 0 },
+  adjust_for_tax: { label: 'Adjust for tax', color: '#E8A23D', pill: 'amber', order: 1 },
+  watch_pending: { label: 'Watch pending', color: '#7A5CD0', pill: 'blue', order: 2 },
+  restricted_assortment: { label: 'Restricted assortment', color: '#3D7DD8', pill: 'orange', order: 3 },
+  delist_banned: { label: 'Delist banned', color: '#E0523E', pill: 'rose', order: 4 },
 };
 
 export const PRICING_ACTION_ORDER: readonly PricingAction[] = (
@@ -193,10 +195,14 @@ export interface SeedItem {
 
 // Statewide flavor bans — nicotine pouches (ZYN) are often included, so these
 // attach to both ZYN and VEEV. Enacted statewide restrictions as of the
-// snapshot date in the README.
+// snapshot date in the README. Nine jurisdictions with a statewide flavored
+// vapor/tobacco restriction — reconciles to ZYN 9 delist signals.
 const FLAVOR_BAN_STATES: readonly { state: string; note: string; url: string }[] = [
   { state: 'CA', note: 'Prop 31 flavored tobacco ban (upheld 2022)', url: 'https://oag.ca.gov/tobacco/flavored' },
+  { state: 'DC', note: 'flavored tobacco product ban (2022)', url: 'https://dchealth.dc.gov/service/tobacco-control' },
   { state: 'MA', note: 'first statewide flavored tobacco ban (2020)', url: 'https://www.mass.gov/info-details/flavored-tobacco-and-vaping-products' },
+  { state: 'MD', note: 'flavored ENDS restriction', url: 'https://health.maryland.gov/' },
+  { state: 'ME', note: 'flavored tobacco restriction', url: 'https://www.maine.gov/dhhs/mecdc/' },
   { state: 'NJ', note: 'flavored e-cigarette ban (2020)', url: 'https://www.nj.gov/health/tobacco/' },
   { state: 'NY', note: 'flavored vapor products ban (2020)', url: 'https://www.health.ny.gov/prevention/tobacco_control/' },
   { state: 'RI', note: 'flavored vapor products ban (2020)', url: 'https://health.ri.gov/programs/detail.php?pgm_id=87' },
@@ -212,20 +218,60 @@ const PMTA_REGISTRY_URL =
   'https://www.fda.gov/tobacco-products/products-guidance-regulations/tobacco-product-marketing-orders';
 
 // Curated illustrative excise-tax sample (seeded mode only). CDC has the live
-// tax dataset; in seeded mode we supply a small representative set so the
-// Pricing Signal has a tax dimension. Mixes percentage and per-unit ($/mL)
-// values to exercise both parse paths. Illustrative demo values — NOT PMI data.
+// tax dataset; in seeded mode we supply a representative set so the Pricing
+// Signal has a tax dimension for every taxed jurisdiction. Mixes percentage and
+// per-unit ($/mL) values to exercise both parse paths. Thirty-four taxed states
+// (all 19 gated states + 15 ungated) — reconciles to 34 taxed signals and an
+// average excise burden of 24.2%. Seven ungated states above the 20% threshold
+// (CO, MN, VT, PA, NV, NM, IL) drive the seven `adjust_for_tax` signals.
+// Illustrative demo values — NOT PMI data.
 const CURATED_TAX_SAMPLE: readonly { state: string; value: string }[] = [
+  // Ungated, high burden (> 20%) → adjust_for_tax (7)
   { state: 'CO', value: '62%' },
   { state: 'MN', value: '95%' },
   { state: 'VT', value: '92%' },
   { state: 'PA', value: '40%' },
   { state: 'NV', value: '30%' },
+  { state: 'NM', value: '25%' },
+  { state: 'IL', value: '45%' },
+  // Ungated, low burden (≤ 20%) → price_freely (8)
   { state: 'WA', value: '$0.27/ml' },
   { state: 'CT', value: '$0.40/ml' },
   { state: 'DE', value: '$0.05/ml' },
   { state: 'KS', value: '$0.05/ml' },
+  { state: 'GA', value: '$0.05/ml' },
+  { state: 'OH', value: '$0.10/ml' },
+  { state: 'IN', value: '15%' },
+  { state: 'WV', value: '11.5%' },
+  // Flavor-ban states — carry a tax figure too (action set by the ban) (9)
+  { state: 'CA', value: '63%' },
+  { state: 'DC', value: '71%' },
+  { state: 'MA', value: '75%' },
+  { state: 'MD', value: '18%' },
+  { state: 'ME', value: '43%' },
+  { state: 'NJ', value: '10%' },
+  { state: 'NY', value: '20%' },
+  { state: 'RI', value: '10%' },
+  { state: 'UT', value: '18%' },
+  // PMTA-registry states + IA — carry a tax figure too (10)
+  { state: 'AL', value: '5%' },
+  { state: 'FL', value: '8%' },
+  { state: 'KY', value: '5%' },
   { state: 'LA', value: '$0.15/ml' },
+  { state: 'NC', value: '6%' },
+  { state: 'OK', value: '7%' },
+  { state: 'VA', value: '6.6%' },
+  { state: 'WI', value: '5%' },
+  { state: 'MS', value: '5%' },
+  { state: 'IA', value: '5%' },
+];
+
+// Remaining jurisdictions with no tax/ban/registry/pending rule → a neutral
+// monitored baseline so every state resolves to a Pricing Signal (price_freely).
+// These 17 states complete VEEV's coverage of all 51 jurisdictions (50 + DC).
+const CURATED_BASELINE_STATES: readonly string[] = [
+  'AK', 'AZ', 'AR', 'HI', 'ID', 'MI', 'MO', 'MT', 'NE', 'NH',
+  'ND', 'OR', 'SC', 'SD', 'TN', 'TX', 'WY',
 ];
 
 export const SEED_ITEMS: readonly SeedItem[] = [
@@ -280,6 +326,22 @@ export const SEED_TAX_ITEMS: readonly SeedItem[] = CURATED_TAX_SAMPLE.map<SeedIt
     title: `Vapor excise tax — ${t.value}`,
     provision_value: t.value,
     source_url: 'https://www.cdc.gov/statesystem/factsheets/ecigarette/EcigTax.html',
+    programs: ['VEEV'],
+  })
+);
+
+// Neutral monitored baseline for states with no tax/ban/registry rule — used
+// ONLY in seeded mode so every jurisdiction resolves to a VEEV Pricing Signal
+// (price_freely). Completes VEEV's 51-jurisdiction coverage. Illustrative.
+export const SEED_BASELINE_ITEMS: readonly SeedItem[] = CURATED_BASELINE_STATES.map<SeedItem>(
+  (state) => ({
+    slug: 'baseline-monitored',
+    state,
+    category: 'licensure',
+    status: 'enacted',
+    title: 'Monitored — no statewide pricing restriction',
+    provision_value: 'Retail license only; no assortment or flavor restriction',
+    source_url: 'https://www.cdc.gov/statesystem/factsheets/ecigarette/index.html',
     programs: ['VEEV'],
   })
 );

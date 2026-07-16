@@ -3,6 +3,7 @@ import { Router, type CanActivateFn } from '@angular/router';
 
 import { AppConfigService } from './services/app-config.service';
 import { AuthState } from './services/auth-state';
+import { SeedService } from './services/seed.service';
 
 // Generous timeout: Fabric cold-starts on the GraphQL/DAB path can take
 // 15–25 s. Anything longer than 45 s is almost certainly a real hang.
@@ -57,10 +58,27 @@ export const setupGuard: CanActivateFn = async (route) => {
   }
   const onSetupPage = route.routeConfig?.path === 'setup';
   const mode = appConfig.mode();
-  if (mode === 'pending' && !onSetupPage) {
-    return router.createUrlTree(['/setup']);
+
+  // First-run auto-seed: when the workspace is still `pending`, load the
+  // deterministic curated snapshot automatically so the deployed demo shows
+  // data immediately (no manual wizard step, no external CDC calls). The setup
+  // wizard stays reachable from Settings for switching modes later. If the
+  // auto-seed fails for any reason we fall back to the manual `/setup` wizard.
+  if (mode === 'pending') {
+    try {
+      const seed = inject(SeedService);
+      await withTimeout(appConfig.setMode('seeded'), LOAD_TIMEOUT_MS, 'AppConfig.setMode');
+      await withTimeout(seed.seedAll(), LOAD_TIMEOUT_MS, 'SeedService.seedAll');
+      return onSetupPage ? router.createUrlTree(['/']) : true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error('[setupGuard] auto-seed failed:', message);
+      return onSetupPage ? true : router.createUrlTree(['/setup']);
+    }
   }
-  if (mode !== 'pending' && onSetupPage) {
+
+  // Already seeded or on live CDC — keep users off the setup wizard.
+  if (onSetupPage) {
     return router.createUrlTree(['/']);
   }
   return true;

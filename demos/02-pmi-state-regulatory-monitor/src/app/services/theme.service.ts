@@ -11,7 +11,7 @@ const ATTR = 'data-theme';
  * Resolution order:
  *   1. Manual override stored in `localStorage[dashboard.theme]`
  *   2. `prefers-color-scheme` media query (system default)
- *   3. Dark as a final fallback
+ *   3. Light (PMI brand) as a final fallback
  *
  * The matching attribute is also set on `<html>` by an inline script in
  * `index.html` before Angular boots, so the first paint already uses the
@@ -66,10 +66,10 @@ export class ThemeService {
     ) {
       return;
     }
-    this.mql = window.matchMedia('(prefers-color-scheme: light)');
+    this.mql = window.matchMedia('(prefers-color-scheme: dark)');
     const onChange = (e: MediaQueryListEvent) => {
       if (hasManualOverride()) return;
-      const next: Theme = e.matches ? 'light' : 'dark';
+      const next: Theme = e.matches ? 'dark' : 'light';
       this._theme.set(next);
       applyAttr(next);
     };
@@ -110,11 +110,11 @@ function systemTheme(): Theme {
   if (
     typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-color-scheme: light)').matches
+    window.matchMedia('(prefers-color-scheme: dark)').matches
   ) {
-    return 'light';
+    return 'dark';
   }
-  return 'dark';
+  return 'light';
 }
 
 function applyAttr(theme: Theme): void {
