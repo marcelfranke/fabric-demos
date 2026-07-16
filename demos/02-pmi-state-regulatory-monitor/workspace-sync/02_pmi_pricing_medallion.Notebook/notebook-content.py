@@ -88,13 +88,40 @@ PROGRAM_SEEDS = [
     ("ZYN","ZYN","Oral nicotine pouches."),
     ("VEEV","VEEV","Vapor / e-cigarette product line."),
 ]
+# Statewide flavor-ban states (source-upgraded 2026-07-16). Same table shape and
+# ZYN+VEEV seed loop as before — only the state list + provenance changed.
+#
+# HOW THIS LIST WAS DERIVED (provenance):
+#  * Primary source: Public Health Law Center "U.S. Sales Restrictions on Flavored
+#    Tobacco Products" interactive map — STATE POLICY rows only (= statewide, as
+#    opposed to city/county local-only). Retrieved 2026-07-16; PHLC current-as-of
+#    2026-05-01. Reproducible snapshot committed at
+#    fabric/reference/phlc_flavor_restrictions_2026-05-01.json (+ .md).
+#    PHLC statewide set = {CA, DC, MA, MD, ME, NY, RI, UT}.
+#  * Cross-validated against JAMA Network Open 2025 (Cheng et al., article
+#    2836918), which independently confirms statewide e-cig flavor bans in
+#    MA, MD, NJ, NY, RI, UT.
+#  * NJ = curated override -> NOT PHLC's /nj page (that page lists only Jersey
+#    City + Paterson, i.e. local-only, and would misrepresent NJ). NJ enacted a
+#    real STATEWIDE e-cigarette flavor ban in 2020 (P.L.2019 c.462). PHLC's
+#    tobacco-broad lens classifies NJ as local-only, so PHLC is not authoritative
+#    for NJ's vape ban; JAMA confirms it. -> use NJ's statute page.
+#  * CA, DC = PHLC statewide; JAMA notes the bans are real but excluded them from
+#    its analysis for insufficient post-policy survey data (CA effective Dec 2022).
+#  * ME = PHLC-only (statewide State Policy row present); JAMA did not measure ME.
+#  * LIMITATION (flagged): "statewide" here means a PHLC State Policy row exists;
+#    product/menthol scope (menthol-only vs all-flavor vs e-cig-only) is NOT
+#    modeled in this version. That column-extension is deferred.
 FLAVOR_BAN_STATES = {
- "CA":"https://oag.ca.gov/tobacco/flavored",
- "MA":"https://www.mass.gov/info-details/flavored-tobacco-and-vaping-products",
- "NJ":"https://www.nj.gov/health/tobacco/",
- "NY":"https://www.health.ny.gov/prevention/tobacco_control/",
- "RI":"https://health.ri.gov/programs/detail.php?pgm_id=87",
- "UT":"https://tobaccofreeutah.org/",
+ "CA":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/ca",
+ "DC":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/dc",
+ "MA":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/ma",
+ "MD":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/md",
+ "ME":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/me",
+ "NJ":"https://www.njleg.state.nj.us/bill-search/2018/A5922",  # NJ P.L.2019 c.462 (statewide e-cig flavor ban)
+ "NY":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/ny",
+ "RI":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/ri",
+ "UT":"https://www.publichealthlawcenter.org/us-sales-restrictions-flavored-tobacco-products-map/ut",
 }
 PMTA_REGISTRY_ENACTED = ["AL","FL","KY","LA","NC","OK","VA","WI","MS"]
 PMTA_REGISTRY_PENDING = ["IA","UT"]  # court-challenged
