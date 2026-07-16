@@ -22,10 +22,10 @@ white numbers).
 
 ## Pages
 
-Every page carries a slim **top nav-pill strip** (a white rounded pill with the 4
+Every page carries a slim **top nav-pill strip** (a white rounded pill with the 6
 page names as tabs — the active tab bold near-navy `#14213D` with a brand-blue
 `#0074C2` underline; a right-aligned `Philip Morris International · State
-Regulatory Monitor` wordmark + a `0N / 04` page indicator) over a big near-black
+Regulatory Monitor` wordmark + a `0N / 06` page indicator) over a big near-black
 Lato page title, on a near-white `#F7F9FC` canvas — mirroring the *Value Report
 2025* section headers (pp. 2/6).
 
@@ -57,6 +57,24 @@ Lato page title, on a near-white `#F7F9FC` canvas — mirroring the *Value Repor
    **34** CDC-dated signals are date-sliceable; the **26** seed-driven
    flavor-ban/PMTA signals are undated by design (no fabricated dates). See the
    *CDC-only date connection* note below.
+5. **Demand & Revenue** *(synthetic sales — Phase 3)* — 4 deep-blue hero KPIs
+   (**Total Units ≈ 1.88M** · **Total Revenue $18.65M** · **Avg Price $9.91** ·
+   **Revenue at Risk $3.66M**); a units-by-product column, a **revenue by product ×
+   channel** clustered column (per-visual convenience/grocery/tobacco colours), an
+   **avg price by state × channel** matrix, a **top shops & cities** table (sorted by
+   revenue desc), a **recent transactions (POS)** table (sorted date desc), and a
+   Product-line slicer. Bound to the additive `SalesMonthly`/`SalesDaily` tables. A
+   prominent note states the sales are **synthetic** (no real PMI POS).
+6. **Forecast & Simulation** *(demand outlook + price what-if — Phase 3)* — 4 hero
+   KPIs (**Baseline Revenue (Sellable) $17.39M** · **Sim Revenue** · **Revenue Delta**
+   · **Revenue at Risk $3.66M**); a **national demand forecast + 80% band** line
+   (`Forecast[State] = ALL` to avoid double-counting the per-state series), a
+   **ban-cliff-over-time** line filtered to `Is Banned = true` (VEEV visibly tapers to
+   zero as flavor bans take effect; ZYN flat at zero), a **Baseline vs Simulated**
+   clustered column, a **revenue-at-risk by product** column (delist-red), and two
+   **what-if slicers** — *Price change %* (−20%…+30%) and *Elasticity* (−1.5…0.0).
+   The slicers rest **unselected**, so Sim Revenue == Baseline (Delta $0) until the
+   presenter dials a value; `Sim Revenue` is forced to 0 where a SKU is banned.
 
 ### Light + deep-blue theme (PMI *Value Report 2025* identity)
 
@@ -132,7 +150,7 @@ runtime). It is live in **Dynamic Pricing**:
 - Report item id: **`424faa25-2e39-4830-8725-09c77684d11a`**
 - URL: <https://app.powerbi.com/groups/aa0aa5fa-e638-4e4a-a0a2-a6da3e515f05/reports/424faa25-2e39-4830-8725-09c77684d11a>
 - Bound to dataset `6be9e165-fc81-4990-a479-a0cab935201c` (PMI Dynamic Pricing,
-  Direct Lake). All 4 pages render.
+  Direct Lake). All 6 pages render.
 
 ```
 node powerbi/deploy_report.mjs
@@ -193,8 +211,8 @@ Each page was rendered and inspected. **ExportTo image (PNG) is disabled
 tenant-wide** on this capacity (`403 … Export report to image is disabled on
 tenant level`), so QA used the **ExportTo PDF** path (`POST
 /reports/{id}/ExportTo {format:"PDF"}` → poll → GET file), rendered to PNG
-locally. All 4 pages verified: near-white `#F7F9FC` canvas, the white top nav-pill
-strip (active tab underlined in brand blue) + wordmark + `0N / 04` page indicator
+locally. All 6 pages verified: near-white `#F7F9FC` canvas, the white top nav-pill
+strip (active tab underlined in brand blue) + wordmark + `0N / 06` page indicator
 + big near-black Lato page title, **deep-blue KPI hero cards with white numbers**,
 light readable p16-style tables (near-black header on `#EAF3FB` tint + bottom rule,
 `#F4F6FA` banding, navy text; matrix left column solid brand-blue + white text),
@@ -203,6 +221,15 @@ line/column, the Command Center **framing strip** and state-reactive **Pricing
 Decision** card (defaults to New Jersey + VEEV — rendered populated in the
 exported PDF: "New Jersey", No - delisted, 0.1%, `delist_banned` in rose, "Delist:
 VEEV flavored SKUs banned in New Jersey").
+
+Pages 5–6 (Phase 3) were re-exported and inspected after the *Value Report 2025*
+reskin: **Demand & Revenue** binds the synthetic sales star (hero KPIs 1.88M units
+/ $18.65M / $9.91 / $3.66M at-risk; per-channel revenue colours; top-shops and
+recent-POS tables sorted desc). **Forecast & Simulation** rests at baseline
+(Simulated $17.39M == Baseline, Delta **$0**) until a slider is dialled, the
+national forecast line shows the 80% band + amber forecast tail, and the ban-cliff
+line (filtered to `Is Banned = true`) shows VEEV tapering to zero as bans take
+effect. All series colours are per-visual so they survive the theme-less ExportTo.
 
 > **ExportTo caveat:** the PDF/image export path on this capacity renders with
 > the **base theme** (the custom theme is dropped in export), so anything driven

@@ -433,9 +433,9 @@ const accentRun = (t) => [{ value: t, textStyle: { fontFamily: 'Roboto', fontSiz
 // + page indicator; below it a big near-black Lato page title. The underline sits
 // on the small active TAB (which is exactly what PMI does) — never under the page
 // title itself. Total height stays within 0..88 so page bodies are unchanged.
-const NAV_TABS = ['Command Center', 'Tax & Margin', 'Compliance', 'Timeline'];
-const NAV_TABX = [44, 194, 312, 424];
-const NAV_TABW = [108, 84, 90, 62];
+const NAV_TABS = ['Command Center', 'Tax & Margin', 'Compliance', 'Timeline', 'Demand', 'Forecast'];
+const NAV_TABX = [44, 194, 312, 424, 508, 586];
+const NAV_TABW = [108, 84, 90, 62, 60, 66];
 function header(title, active = 0) {
   const out = [
     // nav pill surface
@@ -453,11 +453,90 @@ function header(title, active = 0) {
     { value: '   ·   State Regulatory Monitor', textStyle: { fontFamily: 'Roboto', fontSize: '12px', color: MUTED } },
   ], { align: 'right' }));
   out.push(textbox({ x: 1208, y: 19, width: 48, height: 16 }, [
-    { value: `0${active + 1} / 04`, textStyle: { fontFamily: 'Lato, sans-serif', fontSize: '11px', color: BRAND, fontWeight: 'bold' } },
+    { value: `0${active + 1} / 06`, textStyle: { fontFamily: 'Lato, sans-serif', fontSize: '11px', color: BRAND, fontWeight: 'bold' } },
   ], { align: 'right' }));
   // page title (big, near-black navy) — whitespace under it, no accent rule
   out.push(textbox({ x: 24, y: 48, width: 1000, height: 40 }, titleRun(title)));
   return out;
+}
+
+// ---- extra helpers for the sales/forecast/simulation pages (Phase 3) ----
+function sortByColumnDesc(e, p) {
+  return { sort: [{ field: col(e, p), direction: 'Descending' }], isDefaultSort: false };
+}
+// per-series colours for a MULTI-MEASURE chart: the dataPoint selector is keyed
+// by the measure's queryRef metadata (not a category literal), so each measure
+// series gets its colour in BOTH the service and the ExportTo render.
+function dpByMeasure(list) {
+  return list.map(({ e, p, color }) => ({
+    properties: { fill: solid(color) },
+    selector: { metadata: `${e}.${p}` },
+  }));
+}
+// cartesian chart with SEVERAL measures on Y (e.g. actual+forecast+band, or
+// baseline vs simulated). measures: [{ e, p, color }]. type as in cartesian().
+function cartesianMulti(type, pos, catE, catP, measures, sort, opts = {}) {
+  const qs = {
+    Category: { projections: [projCol(catE, catP)] },
+    Y: { projections: measures.map((m) => projMeas(m.e, m.p)) },
+  };
+  const v = { visualType: type, query: { queryState: qs } };
+  if (sort === 'catAsc') v.query.sortDefinition = sortByColumnAsc(catE, catP);
+  const objs = { dataPoint: dpByMeasure(measures) };
+  if (type === 'lineChart' || type === 'areaChart') {
+    objs.lineStyles = [{ properties: { strokeWidth: L(`${opts.lineWidth || 3}D`), showMarker: L(opts.marker === false ? 'false' : 'true') } }];
+  }
+  v.objects = objs;
+  return baseVisual(vid(), pos, v, cardVCO());
+}
+// categorical "= true/false" boolean filter on a column
+function boolFilter(e, p, val) {
+  return {
+    name: fid(),
+    field: col(e, p),
+    type: 'Advanced',
+    filter: {
+      Version: 2,
+      From: [{ Name: 'p', Entity: e, Type: 0 }],
+      Where: [
+        {
+          Condition: {
+            Comparison: {
+              ComparisonKind: 0,
+              Left: { Column: { Expression: { SourceRef: { Source: 'p' } }, Property: p } },
+              Right: { Literal: { Value: val ? 'true' : 'false' } },
+            },
+          },
+        },
+      ],
+    },
+    howCreated: 'User',
+  };
+}
+
+// single-select numeric slicer for a what-if parameter (SELECTEDVALUE-friendly).
+// Radio-style single selection, but rests UNSELECTED so the model uses the
+// parameter default (Δprice 0 / elasticity -0.8) → simulated == baseline until
+// the presenter dials a value.
+function paramSlicer(pos, e, p, header) {
+  const vco = {
+    ...cardVCO(),
+    padding: [{ properties: { top: L('8D'), bottom: L('8D'), left: L('8D'), right: L('8D') } }],
+  };
+  return baseVisual(vid(), pos, {
+    visualType: 'slicer',
+    query: { queryState: { Values: { projections: [projCol(e, p)] } } },
+    objects: {
+      data: [{ properties: { mode: { expr: { Literal: { Value: "'Dropdown'" } } } } }],
+      selection: [{ properties: { singleSelect: L('true') } }],
+      header: [{ properties: {
+        show: { expr: { Literal: { Value: 'true' } } },
+        text: { expr: { Literal: { Value: `'${header}'` } } },
+        fontColor: solid(NAVY),
+      } }],
+      items: [{ properties: { fontColor: solid(INK) } }],
+    },
+  }, vco);
 }
 
 // ================= PAGES =================
@@ -605,6 +684,115 @@ const pages = [];
   colq.filterConfig = { filters: [notBlankFilter('Date', 'Year')] };
   visuals.push(colq);
   pages.push({ name, displayName: 'Regulatory Timeline', visuals });
+}
+
+// ---------- Page 5: Demand & Revenue (synthetic POS) ----------
+{
+  const name = pid();
+  const visuals = [];
+  visuals.push(...header('Demand & Revenue — Synthetic POS Performance', 4));
+
+  // KPI hero row
+  visuals.push(...card({ x: 24, y: 96, width: 1232, height: 100 }, [
+    ['SalesMonthly', 'Total Units', 'Total Units'],
+    ['SalesMonthly', 'Total Revenue', 'Total Revenue'],
+    ['SalesMonthly', 'Avg Price', 'Avg Price'],
+    ['SalesMonthly', 'Revenue at Risk', 'Revenue at Risk'],
+  ]));
+
+  // left column — product slicer, units-by-product, synthetic-data note
+  visuals.push(textbox({ x: 24, y: 212, width: 280, height: 18 }, sectionRun('Product line')));
+  visuals.push(slicer({ x: 24, y: 234, width: 280, height: 60 }, 'Program', 'Name', 'Product line'));
+  visuals.push(textbox({ x: 24, y: 308, width: 280, height: 18 }, sectionRun('Units by product')));
+  visuals.push(cartesian('columnChart', { x: 24, y: 330, width: 280, height: 150 }, 'SalesMonthly', 'Program', 'SalesMonthly', 'Total Units', 'measureDesc', null,
+    { byCategory: { e: 'SalesMonthly', p: 'Program', map: PROGRAM_COLOR_MAP } }));
+  visuals.push(textbox({ x: 24, y: 492, width: 280, height: 200 }, noteRun(
+    'SYNTHETIC DATA — no real PMI POS. Daily transaction-style sales are generated deterministically (fixed seed), then rolled up to a monthly shop×SKU grain. Volume tracks city population, seasonality and a mild uptrend; unit price scales with state excise tax and channel. Only ZYN + VEEV are modeled.')));
+
+  // centre — revenue by product & channel + top shops (with city/state)
+  visuals.push(textbox({ x: 320, y: 212, width: 560, height: 18 }, sectionRun('Revenue by product & channel')));
+  visuals.push(cartesian('clusteredColumnChart', { x: 320, y: 234, width: 560, height: 208 }, 'SalesMonthly', 'Program', 'SalesMonthly', 'Total Revenue', 'measureDesc', ['SalesMonthly', 'Channel']));
+  visuals.push(textbox({ x: 320, y: 458, width: 560, height: 18 }, sectionRun('Top shops & cities by revenue')));
+  const shopTable = table({ x: 320, y: 480, width: 560, height: 214 }, [
+    ['SalesMonthly', 'Shop Name', 'c'],
+    ['SalesMonthly', 'City', 'c'],
+    ['SalesMonthly', 'State', 'c'],
+    ['SalesMonthly', 'Channel', 'c'],
+    ['SalesMonthly', 'Total Revenue', 'm'],
+    ['SalesMonthly', 'Total Units', 'm'],
+  ]);
+  shopTable.visual.query.sortDefinition = sortByMeasureDesc('SalesMonthly', 'Total Revenue');
+  visuals.push(shopTable);
+
+  // right — price by state/channel matrix + recent transactions (POS)
+  visuals.push(textbox({ x: 896, y: 212, width: 360, height: 18 }, sectionRun('Avg price by state & channel')));
+  visuals.push(matrix({ x: 896, y: 234, width: 360, height: 208 },
+    [['SalesMonthly', 'State']], [['SalesMonthly', 'Channel']], [['SalesMonthly', 'Avg Price', 'm']]));
+  visuals.push(textbox({ x: 896, y: 458, width: 360, height: 18 }, sectionRun('Recent transactions (POS)')));
+  const txTable = table({ x: 896, y: 480, width: 360, height: 214 }, [
+    ['SalesDaily', 'Date', 'c'],
+    ['SalesDaily', 'Shop Name', 'c'],
+    ['SalesDaily', 'Sku Code', 'c'],
+    ['SalesDaily', 'Unit Price', 'c'],
+  ]);
+  txTable.visual.query.sortDefinition = sortByColumnDesc('SalesDaily', 'Date');
+  visuals.push(txTable);
+
+  pages.push({ name, displayName: 'Demand & Revenue', visuals });
+}
+
+// ---------- Page 6: Forecast & Simulation (what-if) ----------
+{
+  const name = pid();
+  const visuals = [];
+  visuals.push(...header('Forecast & Simulation — Demand Outlook & Price What-If', 5));
+
+  // KPI hero row — the narrative numbers (respond to the what-if sliders)
+  visuals.push(...card({ x: 24, y: 96, width: 1232, height: 100 }, [
+    ['SalesMonthly', 'Baseline Revenue (Sellable)', 'Baseline Revenue'],
+    ['SalesMonthly', 'Sim Revenue', 'Simulated Revenue'],
+    ['SalesMonthly', 'Sim Revenue Delta', 'Revenue Delta'],
+    ['SalesMonthly', 'Revenue at Risk', 'Revenue at Risk'],
+  ]));
+
+  // left column — product slicer + the two what-if parameter sliders + note
+  visuals.push(textbox({ x: 24, y: 212, width: 280, height: 18 }, sectionRun('Product line')));
+  visuals.push(slicer({ x: 24, y: 234, width: 280, height: 56 }, 'Program', 'Name', 'Product line'));
+  visuals.push(textbox({ x: 24, y: 302, width: 280, height: 18 }, sectionRun('Price change %')));
+  visuals.push(paramSlicer({ x: 24, y: 324, width: 280, height: 56 }, 'Price Change %', 'Price Change %', 'Price change %'));
+  visuals.push(textbox({ x: 24, y: 392, width: 280, height: 18 }, sectionRun('Elasticity')));
+  visuals.push(paramSlicer({ x: 24, y: 414, width: 280, height: 56 }, 'Elasticity', 'Elasticity', 'Elasticity'));
+  visuals.push(textbox({ x: 24, y: 484, width: 280, height: 210 }, noteRun(
+    'WHAT-IF: Sim Revenue = Σ baseline_units × (1 + elasticity×Δprice) × baseline_price × (1+Δprice), forced to 0 where a SKU is banned. Category defaults: ZYN ≈ -0.7, VEEV ≈ -0.9 (model default -0.8). Revenue at Risk is the forgone baseline revenue in ban states. Raise price in high-tax states → gain, minus the ban forgone.')));
+
+  // centre — national demand forecast + 80% band, and the ban-cliff timeline
+  visuals.push(textbox({ x: 320, y: 212, width: 560, height: 18 }, sectionRun('Demand forecast + 80% band (national, by product)')));
+  const fcLine = cartesianMulti('lineChart', { x: 320, y: 234, width: 560, height: 230 }, 'Forecast', 'Month Start', [
+    { e: 'Forecast', p: 'Actual Units', color: BRAND },
+    { e: 'Forecast', p: 'Forecast Units', color: AMBER },
+    { e: 'Forecast', p: 'Forecast Lower', color: SKY3 },
+    { e: 'Forecast', p: 'Forecast Upper', color: SKY3 },
+  ], 'catAsc', { lineWidth: 2, marker: false });
+  fcLine.filterConfig = { filters: [inFilter('Forecast', 'State', ['ALL'])] };
+  visuals.push(fcLine);
+  visuals.push(textbox({ x: 320, y: 480, width: 560, height: 18 }, sectionRun('Ban cliff over time — units in ban states')));
+  const cliff = cartesian('lineChart', { x: 320, y: 502, width: 560, height: 192 }, 'SalesMonthly', 'Month Start', 'SalesMonthly', 'Total Units', 'catAsc', ['SalesMonthly', 'Program'],
+    { byCategory: { e: 'SalesMonthly', p: 'Program', map: PROGRAM_COLOR_MAP }, lineWidth: 3 });
+  cliff.filterConfig = { filters: [boolFilter('SalesMonthly', 'Is Banned', true)] };
+  visuals.push(cliff);
+
+  // right — baseline vs simulated revenue + revenue-at-risk by program
+  visuals.push(textbox({ x: 896, y: 212, width: 360, height: 18 }, sectionRun('Baseline vs simulated revenue')));
+  const bvs = cartesianMulti('clusteredColumnChart', { x: 896, y: 234, width: 360, height: 230 }, 'SalesMonthly', 'Program', [
+    { e: 'SalesMonthly', p: 'Baseline Revenue (Sellable)', color: NAVY },
+    { e: 'SalesMonthly', p: 'Sim Revenue', color: BRAND },
+  ], null);
+  visuals.push(bvs);
+  visuals.push(textbox({ x: 896, y: 480, width: 360, height: 18 }, sectionRun('Revenue at risk by product')));
+  visuals.push(cartesian('columnChart', { x: 896, y: 502, width: 360, height: 192 }, 'SalesMonthly', 'Program', 'SalesMonthly', 'Revenue at Risk', 'measureDesc', null,
+    { fill: ACTION_COLOR_MAP.delist_banned }));
+
+  pages.push({ name, displayName: 'Forecast & Simulation', visuals });
 }
 
 // ================= WRITE FILES =================

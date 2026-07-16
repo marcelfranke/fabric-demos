@@ -89,11 +89,15 @@ build/deploy steps.
 
 ## Power BI report
 
-A 3-page Power BI report (PBIP/PBIR) sits over the **PMI Dynamic Pricing** Direct
-Lake model as a pricing-decision dashboard: **Pricing Overview** (KPI cards + a US
+A 6-page Power BI report (PBIP/PBIR) sits over the **PMI Dynamic Pricing** Direct
+Lake model as a pricing-decision dashboard: **Command Center** (KPI cards + a US
 filled map coloured by `pricing_action`), **Tax & Margin** (states by excise
-burden; CO 62%), and **Compliance & Assortment** (State × Program matrix + gated
-states). Bound `byConnection` to the model
+burden; CO 62%), **Compliance & Assortment** (State × Program matrix + gated
+states), **Regulatory Timeline** (CDC effective-date signals over time), and the
+synthetic-sales Phase-3 pair **Demand & Revenue** (POS-feel sales facts, top
+shops/cities, price by state × channel) and **Forecast & Simulation** (national
+demand forecast + 80% band, ban-cliff timeline, and a price/elasticity what-if).
+Bound `byConnection` to the model
 (`semanticmodelid=6be9e165-…`), regenerated deterministically via
 `node powerbi/pmi_report_gen.mjs`.
 
