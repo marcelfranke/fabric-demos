@@ -23,17 +23,24 @@ Every page carries a hero header band (dark `#141221` strip, Georgia cream title
 a thin chartreuse rule, and a right-aligned `PMI · STATE REGULATORY MONITOR`
 wordmark) over a midnight-ink `#0A0911` canvas.
 
-1. **Command Center** — 5 KPI cards with chartreuse hero numbers on dark tiles
-   (Total Signals · Restricted or Banned States · Avg Tax Burden % · Pending Risk
-   States · Signals Needing Price Change); a **US filled map** coloured by
-   `pricing_action`; a bar of signals-by-`pricing_action`; a Product-line
-   (ZYN/VEEV/IQOS) slicer.
+1. **Command Center** — a compact **"three rule types" framing strip** (EXCISE TAX →
+   moves the margin floor · FLAVOR BAN → SKU illegal, delist · PMTA REGISTRY LAW →
+   gates the assortment, each with its action-colour dot); 5 KPI cards with
+   chartreuse hero numbers on dark tiles (Total Signals · Restricted or Banned
+   States · Avg Tax Burden % · Pending Risk States · Signals Needing Price Change);
+   a **US filled map** coloured by `pricing_action`; a bar of
+   signals-by-`pricing_action`; a Product-line (ZYN/VEEV/IQOS) slicer; and a
+   state-reactive **Pricing Decision** card that reads the state selected on the map
+   (× the product slicer) and shows Sellable? / Tax burden % / pricing action (in its
+   action colour) / recommendation — with a graceful "Select a state on the map"
+   prompt when no single state is selected (driven by `SELECTEDVALUE` measures, no
+   fabricated values).
 2. **Tax & Margin** — states by tax burden (bar, sorted desc; Colorado tops at
    62%), avg tax burden by program, an Avg Tax Burden KPI, and a table of the 34
    taxed states with tax burden + pricing action + recommendation.
-3. **Compliance & Assortment** — clustered bar of signals-by-action per program,
-   a State × Program matrix of `pricing_action`, and a list of the gated states
-   (delist / restricted / watch_pending).
+3. **Compliance & Assortment** — clustered bar of signals-by-action per program
+   (per-visual action palette), a State × Program list of `pricing_action`, and a
+   list of the gated states (delist / restricted / watch_pending).
 4. **Regulatory Timeline** — showcases the Date dimension (PR #18): a line chart
    of Total Signals by `Date`-driven reporting year (peaks in 2019), a column
    chart by reporting quarter (2013-Q3 … 2027-Q3), a Reporting-year slicer, a
@@ -159,7 +166,9 @@ tenant-wide** on this capacity (`403 … Export report to image is disabled on
 tenant level`), so QA used the **ExportTo PDF** path (`POST
 /reports/{id}/ExportTo {format:"PDF"}` → poll → GET file), rendered to PNG
 locally. All 4 pages verified: midnight canvas, dark hero headers with chartreuse
-rules, chartreuse KPI heroes on dark cards, dark slicers/notes/charts, and the
+rules, chartreuse KPI heroes on dark cards, dark slicers/notes/charts, the
+per-visual action-palette map + bars, the Command Center **framing strip** and
+state-reactive **Pricing Decision** card (graceful empty-state prompt), and the
 date-trend line/column charts on the Regulatory Timeline page.
 
 > **ExportTo caveat:** the PDF/image export path on this capacity renders with
@@ -172,21 +181,31 @@ date-trend line/column charts on the Regulatory Timeline page.
 >   is coloured by the status palette via per-category `dataPoint` fills
 >   (adjust_for_tax amber `#FFB020`, delist_banned rose `#FF5C6A`, price_freely
 >   green `#5FD08B`, restricted_assortment sky `#5AA9FF`, watch_pending purple
->   `#8A7CFF`); tax bars are single-fill amber; the timeline line is chartreuse
->   `#D4FF3A` (3px) and the quarter column is sky. These render on-brand in the
->   exported PDF — no more monochrome base-blue.
+>   `#8A7CFF`); tax bars are single-fill amber; the timeline line **and** quarter
+>   column are chartreuse `#D4FF3A`. These render on-brand in the exported PDF — no
+>   more monochrome base-blue.
 > - **Tables (per-visual dark objects):** `tableEx`/`pivotTable` set explicit dark
 >   `values` / `columnHeaders` / `total` / `grid` (+ matrix `rowHeaders`) so they
 >   are dark in the interactive service.
 >
+> **Why per-visual (not theme):** the ExportTo renderer drops the entire custom
+> theme (its `dataColors` never reach the export), and this ring silently discards
+> the whole theme if the `visualStyles` block contains any unsupported property — so
+> theme-only styling is unreliable in both export and service. Colours and dark
+> surfaces are therefore set **per-visual** on every chart/table.
+>
 > **Known ExportTo limitation (table primary rows):** on this ring the export
-> renderer **ignores `values.backColor` (primary/odd rows)** and defaults them to
-> opaque white, while honouring `backColorSecondary` (alternate rows), `total`,
-> `columnHeaders`, and matrix `rowHeaders`. This was proven with a 4-cycle
-> diagnostic (vivid-colour + transparent-cell + stripped-theme tests): the custom
-> theme is dropped **and** primary-row `backColor` is not applied in export, so
-> exported table primary rows appear white regardless of theme or per-visual
-> setting. Every other surface (headers, total, alternate rows, grid, all charts,
-> KPI cards, canvas) renders dark/on-brand in the export. The interactive Power BI
-> service applies the full custom theme + per-visual dark table objects, so tables
-> display fully dark in-service.
+> renderer paints table/matrix **data cells with an opaque light fill that no
+> per-visual property overrides** — only `backColorSecondary` (alternate rows),
+> `total`, `columnHeaders`, matrix `rowHeaders`, and the visual container background
+> survive. This was proven exhaustively across six approaches: static
+> `values.backColor`, a **measure-bound conditional-format** fill, `stylePreset:'None'`,
+> a **transparent** cell fill, a **rows-only "flat matrix"** (which this ring collapses
+> to its first field), and a **crosstab matrix** (row headers render dark but the value
+> cells stay light). Consequently, exported table **primary/odd rows appear white**
+> (they render with dark, still-legible text), while every other surface — headers,
+> total, alternate rows, grid, all charts, KPI cards, the framing strip, the Pricing
+> Decision card, and the midnight canvas — renders dark/on-brand in the export. The
+> interactive Power BI service applies the per-visual dark `values` styling, so tables
+> display **fully dark in-service**; the white primary rows are an **export-only**
+> residual, not a model or in-service defect.

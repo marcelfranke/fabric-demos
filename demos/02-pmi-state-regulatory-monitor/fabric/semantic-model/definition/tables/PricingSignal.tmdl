@@ -39,6 +39,36 @@ table PricingSignal
 		displayFolder: Pricing
 		lineageTag: a1b2c3d4-0022-4a5b-9c7d-100000000022
 
+	/// Selected state name for the Pricing Decision card; graceful prompt when no single state is chosen.
+	measure 'Selected State' = SELECTEDVALUE(PricingSignal[State Name], "Select a state on the map")
+		displayFolder: Decision
+		lineageTag: a1b2c3d4-0023-4a5b-9c7d-100000000023
+
+	/// Sellable? verdict for the selected state + product line.
+	measure 'Selected Sellable' = IF(NOT HASONEVALUE(PricingSignal[State Name]), "—", IF(ISBLANK(SELECTEDVALUE(PricingSignal[Sellable])), "Choose a product line", IF(SELECTEDVALUE(PricingSignal[Sellable]), "Yes - sellable", "No - delisted")))
+		displayFolder: Decision
+		lineageTag: a1b2c3d4-0024-4a5b-9c7d-100000000024
+
+	/// The pricing action (the decision) for the selected state + product line.
+	measure 'Selected Action' = IF(NOT HASONEVALUE(PricingSignal[State Name]), "—", SELECTEDVALUE(PricingSignal[Pricing Action], "Choose a product line"))
+		displayFolder: Decision
+		lineageTag: a1b2c3d4-0025-4a5b-9c7d-100000000025
+
+	/// Tax burden for the selected state, as display text; em-dash until a state is chosen.
+	measure 'Selected Tax Burden' = IF(NOT HASONEVALUE(PricingSignal[State Name]), "—", IF(ISBLANK(SELECTEDVALUE(PricingSignal[Tax Burden])), "No excise tax", FORMAT(SELECTEDVALUE(PricingSignal[Tax Burden]), "0.0") & "%"))
+		displayFolder: Decision
+		lineageTag: a1b2c3d4-0028-4a5b-9c7d-100000000028
+
+	/// The one-line pricing recommendation for the selected state + product line.
+	measure 'Selected Recommendation' = SELECTEDVALUE(PricingSignal[Recommendation], "Select a state on the map, then a product line, to see its pricing decision.")
+		displayFolder: Decision
+		lineageTag: a1b2c3d4-0026-4a5b-9c7d-100000000026
+
+	/// Status-palette hex for the selected pricing action (field-value conditional formatting on the decision card).
+	measure 'Selected Action Color' = SWITCH(SELECTEDVALUE(PricingSignal[Pricing Action]), "adjust_for_tax", "#FFB020", "delist_banned", "#FF5C6A", "price_freely", "#5FD08B", "restricted_assortment", "#5AA9FF", "watch_pending", "#8A7CFF", "#D4FF3A")
+		displayFolder: Decision
+		lineageTag: a1b2c3d4-0027-4a5b-9c7d-100000000027
+
 	column State
 		dataType: string
 		lineageTag: a1b2c3d4-0007-4a5b-9c7d-100000000007
