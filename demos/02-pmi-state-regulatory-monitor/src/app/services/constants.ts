@@ -156,6 +156,27 @@ export const ASSUMED_RETAIL_PRICE_USD = 20;
 export const PRICING_HERO_PROGRAMS: readonly ProductCode[] = ['ZYN', 'VEEV'];
 export const DEFAULT_PRICING_PROGRAM: ProductCode = 'VEEV';
 
+// ── Revenue-at-risk (synthetic) ───────────────────────────────────────────
+// The app has no real revenue basis, so the Revenue-at-risk what-if uses a
+// LIGHTWEIGHT deterministic synthetic baseline (revenue.service.ts) allocated
+// across the 60 (state × program) Pricing Signals. It is normalized so the
+// portfolio total equals the Power BI "Value Report 2025" baseline and the
+// non-`price_freely` (at-risk) slice matches the report's revenue-at-risk, so
+// the app and report tell the same story. Deterministic + offline; clearly
+// labeled synthetic. NOT PMI financials.
+export const TOTAL_BASELINE_USD = 18_650_000;
+export const REVENUE_AT_RISK_USD = 3_660_000;
+
+// Default what-if inputs (sliders start here). A negative price change models a
+// forced markdown; elasticity is the demand response to a 1% price move.
+export const DEFAULT_PRICE_CHANGE_PCT = -10;
+export const DEFAULT_ELASTICITY = 0.8;
+
+// Fixed "as-of" snapshot the Alerts feed + Timeline classify against, so the
+// upcoming-vs-recently-effective split is DETERMINISTIC (never drifts with the
+// wall clock). Matches the curated seed's reporting snapshot. ISO yyyy-mm-dd.
+export const REPORT_AS_OF_DATE = '2025-09-01';
+
 // ── Curated / seeded layer ────────────────────────────────────────────────
 // Well-documented, high-relevance items with no clean public API. Point-in-time
 // snapshot (see README "Caveats"). Deterministic ids keep re-seeds idempotent:
@@ -189,6 +210,8 @@ export interface SeedItem {
   title: string;
   provision_value?: string;
   source_url: string;
+  /** ISO effective date (curated). Only the tax sample carries one today. */
+  effective_date?: string;
   /** Product lines this row is attached to (one RegulatoryItem row per program). */
   programs: ProductCode[];
 }
@@ -224,46 +247,49 @@ const PMTA_REGISTRY_URL =
 // (all 19 gated states + 15 ungated) — reconciles to 34 taxed signals and an
 // average excise burden of 24.2%. Seven ungated states above the 20% threshold
 // (CO, MN, VT, PA, NV, NM, IL) drive the seven `adjust_for_tax` signals.
-// Illustrative demo values — NOT PMI data.
-const CURATED_TAX_SAMPLE: readonly { state: string; value: string }[] = [
+// Each row also carries a curated ISO `effective` date spread across 2024-2026
+// (several future-dated) — these are the ONLY dated rows, so they reconcile to
+// exactly 34 dated signals / 26 undated. Dates never feed the action logic, so
+// action + KPI counts are unchanged. Illustrative demo values — NOT PMI data.
+const CURATED_TAX_SAMPLE: readonly { state: string; value: string; effective: string }[] = [
   // Ungated, high burden (> 20%) → adjust_for_tax (7)
-  { state: 'CO', value: '62%' },
-  { state: 'MN', value: '95%' },
-  { state: 'VT', value: '92%' },
-  { state: 'PA', value: '40%' },
-  { state: 'NV', value: '30%' },
-  { state: 'NM', value: '25%' },
-  { state: 'IL', value: '45%' },
+  { state: 'CO', value: '62%', effective: '2024-01-01' },
+  { state: 'MN', value: '95%', effective: '2024-01-01' },
+  { state: 'VT', value: '92%', effective: '2025-07-01' },
+  { state: 'PA', value: '40%', effective: '2024-10-01' },
+  { state: 'NV', value: '30%', effective: '2026-01-01' },
+  { state: 'NM', value: '25%', effective: '2025-01-01' },
+  { state: 'IL', value: '45%', effective: '2025-09-15' },
   // Ungated, low burden (≤ 20%) → price_freely (8)
-  { state: 'WA', value: '$0.27/ml' },
-  { state: 'CT', value: '$0.40/ml' },
-  { state: 'DE', value: '$0.05/ml' },
-  { state: 'KS', value: '$0.05/ml' },
-  { state: 'GA', value: '$0.05/ml' },
-  { state: 'OH', value: '$0.10/ml' },
-  { state: 'IN', value: '15%' },
-  { state: 'WV', value: '11.5%' },
+  { state: 'WA', value: '$0.27/ml', effective: '2024-04-01' },
+  { state: 'CT', value: '$0.40/ml', effective: '2024-10-01' },
+  { state: 'DE', value: '$0.05/ml', effective: '2025-03-15' },
+  { state: 'KS', value: '$0.05/ml', effective: '2025-07-01' },
+  { state: 'GA', value: '$0.05/ml', effective: '2026-03-01' },
+  { state: 'OH', value: '$0.10/ml', effective: '2024-10-01' },
+  { state: 'IN', value: '15%', effective: '2025-07-01' },
+  { state: 'WV', value: '11.5%', effective: '2025-01-01' },
   // Flavor-ban states — carry a tax figure too (action set by the ban) (9)
-  { state: 'CA', value: '63%' },
-  { state: 'DC', value: '71%' },
-  { state: 'MA', value: '75%' },
-  { state: 'MD', value: '18%' },
-  { state: 'ME', value: '43%' },
-  { state: 'NJ', value: '10%' },
-  { state: 'NY', value: '20%' },
-  { state: 'RI', value: '10%' },
-  { state: 'UT', value: '18%' },
+  { state: 'CA', value: '63%', effective: '2024-01-01' },
+  { state: 'DC', value: '71%', effective: '2024-10-01' },
+  { state: 'MA', value: '75%', effective: '2024-06-01' },
+  { state: 'MD', value: '18%', effective: '2025-03-31' },
+  { state: 'ME', value: '43%', effective: '2025-01-01' },
+  { state: 'NJ', value: '10%', effective: '2024-04-20' },
+  { state: 'NY', value: '20%', effective: '2024-01-01' },
+  { state: 'RI', value: '10%', effective: '2025-01-01' },
+  { state: 'UT', value: '18%', effective: '2026-01-01' },
   // PMTA-registry states + IA — carry a tax figure too (10)
-  { state: 'AL', value: '5%' },
-  { state: 'FL', value: '8%' },
-  { state: 'KY', value: '5%' },
-  { state: 'LA', value: '$0.15/ml' },
-  { state: 'NC', value: '6%' },
-  { state: 'OK', value: '7%' },
-  { state: 'VA', value: '6.6%' },
-  { state: 'WI', value: '5%' },
-  { state: 'MS', value: '5%' },
-  { state: 'IA', value: '5%' },
+  { state: 'AL', value: '5%', effective: '2025-07-01' },
+  { state: 'FL', value: '8%', effective: '2025-10-01' },
+  { state: 'KY', value: '5%', effective: '2025-01-01' },
+  { state: 'LA', value: '$0.15/ml', effective: '2024-07-01' },
+  { state: 'NC', value: '6%', effective: '2025-07-01' },
+  { state: 'OK', value: '7%', effective: '2024-11-01' },
+  { state: 'VA', value: '6.6%', effective: '2025-07-01' },
+  { state: 'WI', value: '5%', effective: '2025-09-01' },
+  { state: 'MS', value: '5%', effective: '2026-05-01' },
+  { state: 'IA', value: '5%', effective: '2026-01-01' },
 ];
 
 // Remaining jurisdictions with no tax/ban/registry/pending rule → a neutral
@@ -325,6 +351,7 @@ export const SEED_TAX_ITEMS: readonly SeedItem[] = CURATED_TAX_SAMPLE.map<SeedIt
     status: 'enacted',
     title: `Vapor excise tax — ${t.value}`,
     provision_value: t.value,
+    effective_date: t.effective,
     source_url: 'https://www.cdc.gov/statesystem/factsheets/ecigarette/EcigTax.html',
     programs: ['VEEV'],
   })

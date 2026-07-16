@@ -127,6 +127,9 @@ export class PricingSignal {
   @boolean() flavor_banned!: boolean;
   @boolean() registry_gated!: boolean;
   @boolean() has_pending!: boolean;
+  // Effective date carried up from the driving tax RegulatoryItem (curated).
+  // Null for the 26 signals with no dated rule — feeds the alerts + timeline.
+  @date({ optional: true }) effective_date?: Date;
   @date({ optional: true }) updated_at?: Date;
   @one(() => Program) program!: Program;
 }
