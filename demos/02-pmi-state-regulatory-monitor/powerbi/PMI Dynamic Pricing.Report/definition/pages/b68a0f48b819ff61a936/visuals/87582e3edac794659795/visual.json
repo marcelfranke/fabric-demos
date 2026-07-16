@@ -1,0 +1,73 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "87582e3edac794659795",
+  "position": {
+    "z": 1000,
+    "tabOrder": 1000,
+    "x": 956,
+    "y": 210,
+    "width": 300,
+    "height": 490
+  },
+  "visual": {
+    "visualType": "barChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "PricingSignal"
+                    }
+                  },
+                  "Property": "Pricing Action"
+                }
+              },
+              "queryRef": "PricingSignal.Pricing Action",
+              "nativeQueryRef": "Pricing Action"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "PricingSignal"
+                    }
+                  },
+                  "Property": "Total Signals"
+                }
+              },
+              "queryRef": "PricingSignal.Total Signals",
+              "nativeQueryRef": "Total Signals"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "PricingSignal"
+                  }
+                },
+                "Property": "Pricing Action"
+              }
+            },
+            "direction": "Ascending"
+          }
+        ],
+        "isDefaultSort": false
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "PMIPricing",
+  "dataColors": [
+    "#E8A317",
+    "#C6395F",
+    "#2E8B57",
+    "#E8703A",
+    "#5B5FC7"
+  ],
+  "foreground": "#1B3A6B",
+  "background": "#FFFFFF",
+  "tableAccent": "#1B3A6B"
+}
