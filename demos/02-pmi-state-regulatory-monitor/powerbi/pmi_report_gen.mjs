@@ -23,15 +23,19 @@ const SCHEMA = {
   pbir: 'https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/2.0.0/schema.json',
 };
 
-// ---- corporate identity (PMI real brand — light theme) ----
-const CANVAS = '#F4F6FA'; // page canvas / wallpaper (very light cool gray)
-const CARD = '#FFFFFF';   // cards / panels (white)
-const HAIR = '#E6EBF2';   // hairline borders / gridlines / dividers
-const INK = '#14213D';    // primary text (near-navy ink)
+// ---- corporate identity (PMI real brand — Value Report 2025 light + deep-blue two-tone) ----
+const CANVAS = '#F7F9FC'; // page canvas / wallpaper (near-white, very slightly cool)
+const CARD = '#FFFFFF';   // white cards / panels
+const TINT = '#EAF3FB';   // light-blue tint card fill (secondary / notes / decision panel)
+const BORDER = '#CFE0F2'; // thin blue card border
+const HAIR = '#E6EBF2';   // hairline gridlines / dividers
+const ALT = '#F4F6FA';    // table alternate-row banding
+const INK = '#14213D';    // primary / headline text (near-black navy — headlines look almost black)
 const MUTED = '#6B7A90';  // secondary / muted text
-const BRAND = '#0074C2';  // PMI signature brand blue (KPI heroes, key series, accents)
-const NAVY = '#00335C';   // deep navy (headlines, hero band text, dark bars)
-const BAND = '#FFFFFF';   // hero header band surface (light)
+const BRAND = '#0074C2';  // PMI signature brand blue (key series, accents, active nav underline)
+const NAVY = '#00335C';   // deep navy (secondary headings)
+const HERO = '#0A5AB5';   // solid deep-blue KPI-hero card fill (white text) — the PMI "pop"
+const BAND = '#FFFFFF';   // nav-pill surface (light)
 // supporting blue tints
 const SKY = '#4BA3DB';
 const SKY2 = '#7FC4E8';
@@ -60,7 +64,7 @@ const LEAN_VISUAL_STYLES = {
   '*': {
     '*': {
       background: [{ color: { solid: { color: CARD } }, show: true, transparency: 0 }],
-      border: [{ color: { solid: { color: HAIR } }, show: true, radius: 10 }],
+      border: [{ color: { solid: { color: BORDER } }, show: true, radius: 14 }],
       dropShadow: [{ show: false }],
     },
   },
@@ -150,14 +154,16 @@ function inFilter(e, p, values) {
 }
 
 // ---- light card surface styling applied to (almost) every visual ----
-function cardVCO({ bg = CARD, border = true, title = false } = {}) {
+// PMI Value Report 2025 card: white fill, thin blue #CFE0F2 border, ~14px rounded
+// corners, soft shadow. Variants: bg (deep-blue HERO / tint), borderless, radius.
+function cardVCO({ bg = CARD, border = true, borderColor = BORDER, radius = 14, shadow = false, title = false } = {}) {
   const vco = {
     background: [{ properties: { show: L('true'), color: solid(bg), transparency: L('0D') } }],
-    border: [{ properties: { show: L(border ? 'true' : 'false'), color: solid(HAIR), radius: L('10D') } }],
+    border: [{ properties: { show: L(border ? 'true' : 'false'), color: solid(borderColor), radius: L(`${radius}D`) } }],
     dropShadow: [{ properties: {
-      show: L(border ? 'true' : 'false'), color: solid('#102A43'), position: L("'Outer'"),
-      preset: L("'Custom'"), shadowSpread: L('2D'), shadowBlur: L('10D'),
-      angle: L('90D'), shadowDistance: L('2D'), transparency: L('88D'),
+      show: L(shadow ? 'true' : 'false'), color: solid('#102A43'), position: L("'Outer'"),
+      preset: L("'Custom'"), shadowSpread: L('1D'), shadowBlur: L('12D'),
+      angle: L('90D'), shadowDistance: L('2D'), transparency: L('86D'),
     } }],
     title: [{ properties: { show: L(title ? 'true' : 'false') } }],
     visualHeader: [{ properties: { show: L('false') } }],
@@ -171,11 +177,15 @@ function baseVisual(name, pos, visual, vco) {
   return { $schema: SCHEMA.vc, name, position: { z: 1000, tabOrder: 1000, ...pos }, visual };
 }
 
-// textbox — align: 'left' | 'right' | 'center'; fill: optional solid bg colour
-function textbox(pos, runs, { align = 'left', fill = null } = {}) {
+// textbox — align: 'left' | 'right' | 'center'; fill: optional solid bg colour;
+// radius/border: optional rounded pill / bordered surface (nav strip)
+function textbox(pos, runs, { align = 'left', fill = null, radius = 0, border = null } = {}) {
+  const hasEdge = radius || border;
   const vco = {
     background: [{ properties: { show: L(fill ? 'true' : 'false'), ...(fill ? { color: solid(fill), transparency: L('0D') } : {}) } }],
-    border: [{ properties: { show: L('false') } }],
+    border: [{ properties: hasEdge
+      ? { show: L('true'), color: solid(border || HAIR), radius: L(`${radius}D`) }
+      : { show: L('false') } }],
     padding: [{ properties: {
       top: L('0D'), bottom: L('0D'), left: L('0D'), right: L('0D'),
     } }],
@@ -208,12 +218,12 @@ function rect(pos, colr) {
   });
 }
 
-// KPI hero tiles — sample-inspired: a white rounded card with an uppercase
-// muted caption at the top, a small brand-blue mark, and a big bold PMI-blue
-// Lato number (classic single-value `card` visual; honors per-visual colour in
-// BOTH the interactive service and the ExportTo render). Each measure entry is
-// [entity, property, caption]. Returns a flat ARRAY of visuals (card + caption
-// + mark per tile) laid out evenly across `pos`.
+// KPI hero tiles — PMI Value Report 2025 signature "pop": a solid DEEP-BLUE
+// rounded card (#0A5AB5) with a big bold WHITE Lato number and a small uppercase
+// WHITE caption (classic single-value `card` visual; honors the per-visual white
+// callout colour in BOTH the interactive service and the ExportTo render). Each
+// measure entry is [entity, property, caption]. Returns a flat ARRAY of visuals
+// (card + caption per tile) laid out evenly across `pos`.
 function card(pos, measures) {
   const n = measures.length;
   const gap = n > 1 ? 16 : 0;
@@ -226,17 +236,16 @@ function card(pos, measures) {
       query: { queryState: { Values: { projections: [projMeas(e, p)] } } },
       objects: {
         labels: [{ properties: {
-          color: solid(BRAND), fontSize: L('34D'),
+          color: solid('#FFFFFF'), fontSize: L('36D'),
           fontFamily: L("'Lato, sans-serif'"), labelDisplayUnits: L('0D'),
         } }],
         categoryLabels: [{ properties: { show: L('false') } }],
         wordWrap: [{ properties: { show: L('true') } }],
       },
-    }, cardVCO()));
-    if (caption) out.push(textbox({ x: x + 18, y: pos.y + 14, width: w - 54, height: 16 }, [
-      { value: caption.toUpperCase(), textStyle: { fontFamily: 'Roboto', fontSize: '10px', color: MUTED, letterSpacing: '1px', fontWeight: 'bold' } },
+    }, cardVCO({ bg: HERO, border: false, radius: 16 })));
+    if (caption) out.push(textbox({ x: x + 18, y: pos.y + 16, width: w - 36, height: 16 }, [
+      { value: caption.toUpperCase(), textStyle: { fontFamily: 'Roboto', fontSize: '10px', color: '#CFE0F2', letterSpacing: '1px', fontWeight: 'bold' } },
     ]));
-    out.push(textbox({ x: x + w - 28, y: pos.y + 16, width: 12, height: 12 }, [], { fill: BRAND }));
   });
   return out;
 }
@@ -258,7 +267,7 @@ function valueCard(pos, e, p, { color = BRAND, size = 24, font = 'Lato, sans-ser
       categoryLabels: [{ properties: { show: L(category ? 'true' : 'false') } }],
       wordWrap: [{ properties: { show: L('true') } }],
     },
-  }, cardVCO({ bg: '#EEF4FB', border: false }));
+  }, cardVCO({ bg: TINT, border: false, shadow: false }));
 }
 
 // one "rule type" mini-block for the Page-1 framing strip: white card + a
@@ -335,34 +344,37 @@ function filledMap(pos, locE, locP, legendE, legendP, opts = {}) {
   return baseVisual(vid(), pos, v, cardVCO());
 }
 
-// per-visual LIGHT styling for tableEx / pivotTable: white rows on a light
-// #F4F6FA alternate band, navy ink text, a brand-blue column-header row, and
-// subtle #E6EBF2 gridlines. On a light theme the ExportTo-PDF renderer's opaque
-// light cell fill (which fought the previous dark design) is a non-issue — the
-// tables render clean and consistent in both the service and the PDF export.
+// per-visual LIGHT styling for tableEx / pivotTable — PMI Value Report 2025 p16
+// table template: a bold near-black header on a light-blue #EAF3FB tint with a
+// thin bottom rule, navy-ink values on white with a subtle #F4F6FA alternate
+// band, and hairline #E6EBF2 gridlines. For pivotTables the left category
+// (row-header) column is a solid brand-blue cell with bold white text, exactly
+// like the p16 "Category" column. On a light theme the ExportTo-PDF renderer's
+// opaque light cell fill is a non-issue — clean in both service and PDF export.
 function tableLightObjects({ pivot = false } = {}) {
-  const hdr = { fontColor: solid('#FFFFFF'), backColor: solid(BRAND), fontFamily: L("'Roboto'"), bold: L('true') };
+  const hdr = { fontColor: solid(INK), backColor: solid(TINT), fontFamily: L("'Lato, sans-serif'"), bold: L('true') };
   const vals = {
     fontColor: solid(INK), backColor: solid(CARD),
-    backColorSecondary: solid(CANVAS), fontColorSecondary: solid(INK),
+    backColorSecondary: solid(ALT), fontColorSecondary: solid(INK),
     fontFamily: L("'Roboto'"),
   };
   const grid = {
     gridVertical: L('true'), gridVerticalColor: solid(HAIR),
     gridHorizontal: L('true'), gridHorizontalColor: solid(HAIR),
-    outlineColor: solid(HAIR), rowPadding: L('5D'),
+    outlineColor: solid(HAIR), outline: L("'BottomOnly'"), rowPadding: L('7D'),
   };
   const o = {
     stylePreset: [{ properties: { name: L("'None'") } }],
     columnHeaders: [{ properties: hdr }],
     values: [{ properties: vals }],
     grid: [{ properties: grid }],
-    total: [{ properties: { fontColor: solid(NAVY), backColor: solid('#EEF4FB'), bold: L('true') } }],
+    total: [{ properties: { fontColor: solid(NAVY), backColor: solid(TINT), bold: L('true') } }],
   };
   if (pivot) {
-    o.rowHeaders = [{ properties: hdr }];
-    o.subTotals = [{ properties: { fontColor: solid(NAVY), backColor: solid('#EEF4FB') } }];
-    o.grandTotal = [{ properties: { fontColor: solid(NAVY), backColor: solid('#EEF4FB'), bold: L('true') } }];
+    // p16 left category column = solid brand-blue cell with bold white text
+    o.rowHeaders = [{ properties: { fontColor: solid('#FFFFFF'), backColor: solid(BRAND), fontFamily: L("'Lato, sans-serif'"), bold: L('true') } }];
+    o.subTotals = [{ properties: { fontColor: solid(NAVY), backColor: solid(TINT) } }];
+    o.grandTotal = [{ properties: { fontColor: solid(NAVY), backColor: solid(TINT), bold: L('true') } }];
   }
   return o;
 }
@@ -409,25 +421,43 @@ function matrix(pos, rows, columns, values) {
 }
 
 
-const titleRun = (t) => [{ value: t, textStyle: { fontFamily: 'Lato', fontSize: '26px', color: NAVY, fontWeight: 'bold' } }];
+const titleRun = (t) => [{ value: t, textStyle: { fontFamily: 'Lato', fontSize: '26px', color: INK, fontWeight: 'bold' } }];
 const wordmarkRun = (t) => [{ value: t, textStyle: { fontFamily: 'Roboto', fontSize: '11px', color: MUTED, letterSpacing: '2px' } }];
 const sectionRun = (t) => [{ value: t, textStyle: { fontFamily: 'Lato', fontSize: '14px', color: NAVY, fontWeight: 'bold' } }];
 const noteRun = (t) => [{ value: t, textStyle: { fontFamily: 'Roboto', fontSize: '12px', color: MUTED } }];
 const accentRun = (t) => [{ value: t, textStyle: { fontFamily: 'Roboto', fontSize: '12px', color: BRAND } }];
 
-// hero header band: a slim WHITE band with a small PMI-blue mark, a navy Lato
-// title, and a right-aligned muted wordmark. A thin #E6EBF2 divider separates it
-// from the canvas — no accent line directly under the title (whitespace instead).
-// Built from textboxes (their visualContainerObjects.background is reliably
-// honoured by this ring; `shape` fills are not).
-function header(title) {
-  return [
-    textbox({ x: 0, y: 0, width: 1280, height: 80 }, [], { fill: BAND }),
-    textbox({ x: 0, y: 80, width: 1280, height: 1 }, [], { fill: HAIR }),
-    textbox({ x: 24, y: 26, width: 8, height: 30 }, [], { fill: BRAND }),
-    textbox({ x: 48, y: 22, width: 900, height: 40 }, titleRun(title)),
-    textbox({ x: 760, y: 32, width: 496, height: 18 }, wordmarkRun('PMI · STATE REGULATORY MONITOR'), { align: 'right' }),
+// PMI Value Report 2025 header (p2/p6): a slim WHITE rounded nav PILL across the
+// top holding the four page tabs (the active one underlined in brand blue) and a
+// right-aligned "Philip Morris International · State Regulatory Monitor" wordmark
+// + page indicator; below it a big near-black Lato page title. The underline sits
+// on the small active TAB (which is exactly what PMI does) — never under the page
+// title itself. Total height stays within 0..88 so page bodies are unchanged.
+const NAV_TABS = ['Command Center', 'Tax & Margin', 'Compliance', 'Timeline'];
+const NAV_TABX = [44, 194, 312, 424];
+const NAV_TABW = [108, 84, 90, 62];
+function header(title, active = 0) {
+  const out = [
+    // nav pill surface
+    textbox({ x: 24, y: 12, width: 1232, height: 30 }, [], { fill: BAND, radius: 16, border: BORDER }),
   ];
+  NAV_TABS.forEach((t, i) => {
+    const on = i === active;
+    out.push(textbox({ x: NAV_TABX[i], y: 19, width: NAV_TABW[i] + 8, height: 16 }, [
+      { value: t, textStyle: { fontFamily: 'Lato, sans-serif', fontSize: '12px', color: on ? INK : MUTED, fontWeight: on ? 'bold' : 'normal' } },
+    ]));
+    if (on) out.push(textbox({ x: NAV_TABX[i], y: 36, width: NAV_TABW[i], height: 2 }, [], { fill: BRAND }));
+  });
+  out.push(textbox({ x: 700, y: 19, width: 496, height: 16 }, [
+    { value: 'Philip Morris International', textStyle: { fontFamily: 'Lato, sans-serif', fontSize: '12px', color: INK, fontWeight: 'bold' } },
+    { value: '   ·   State Regulatory Monitor', textStyle: { fontFamily: 'Roboto', fontSize: '12px', color: MUTED } },
+  ], { align: 'right' }));
+  out.push(textbox({ x: 1208, y: 19, width: 48, height: 16 }, [
+    { value: `0${active + 1} / 04`, textStyle: { fontFamily: 'Lato, sans-serif', fontSize: '11px', color: BRAND, fontWeight: 'bold' } },
+  ], { align: 'right' }));
+  // page title (big, near-black navy) — whitespace under it, no accent rule
+  out.push(textbox({ x: 24, y: 48, width: 1000, height: 40 }, titleRun(title)));
+  return out;
 }
 
 // ================= PAGES =================
@@ -437,7 +467,7 @@ const pages = [];
 {
   const name = pid();
   const visuals = [];
-  visuals.push(...header('Command Center — State Pricing Signals'));
+  visuals.push(...header('Command Center — State Pricing Signals', 0));
 
   // T3: three-rule-types framing strip — names the drivers and their pricing consequence.
   const sw = Math.floor((1232 - 32) / 3);
@@ -459,7 +489,7 @@ const pages = [];
   visuals.push(slicer({ x: 24, y: 290, width: 280, height: 60 }, 'Program', 'Name', 'Product line'));
 
   // T4: state-reactive Pricing Decision panel (cross-filtered by the map + product slicer)
-  visuals.push(textbox({ x: 24, y: 362, width: 280, height: 342 }, [], { fill: '#EEF4FB' }));
+  visuals.push(textbox({ x: 24, y: 362, width: 280, height: 342 }, [], { fill: TINT }));
   visuals.push(textbox({ x: 40, y: 376, width: 248, height: 14 }, [
     { value: 'PRICING DECISION', textStyle: { fontFamily: 'Roboto', fontSize: '11px', color: BRAND, letterSpacing: '2px', fontWeight: 'bold' } },
   ]));
@@ -490,7 +520,7 @@ const pages = [];
 {
   const name = pid();
   const visuals = [];
-  visuals.push(...header('Tax & Margin — Excise Burden by State'));
+  visuals.push(...header('Tax & Margin — Excise Burden by State', 1));
   visuals.push(...card({ x: 24, y: 96, width: 280, height: 120 }, [['PricingSignal', 'Avg Tax Burden', 'Avg Tax Burden']]));
   visuals.push(textbox({ x: 24, y: 232, width: 280, height: 20 }, sectionRun('Product line')));
   visuals.push(slicer({ x: 24, y: 256, width: 280, height: 76 }, 'Program', 'Name', 'Product line'));
@@ -523,7 +553,7 @@ const pages = [];
 {
   const name = pid();
   const visuals = [];
-  visuals.push(...header('Compliance & Assortment — Where SKUs Are Gated'));
+  visuals.push(...header('Compliance & Assortment — Where SKUs Are Gated', 2));
   visuals.push(textbox({ x: 24, y: 96, width: 280, height: 20 }, sectionRun('Product line')));
   visuals.push(slicer({ x: 24, y: 120, width: 280, height: 84 }, 'Program', 'Name', 'Product line'));
   visuals.push(textbox({ x: 24, y: 216, width: 280, height: 120 }, noteRun(
@@ -555,7 +585,7 @@ const pages = [];
 {
   const name = pid();
   const visuals = [];
-  visuals.push(...header('Regulatory Timeline — CDC Activity Over Time'));
+  visuals.push(...header('Regulatory Timeline — CDC Activity Over Time', 3));
 
   visuals.push(...card({ x: 24, y: 96, width: 280, height: 120 }, [['PricingSignal', 'Signals with Effective Date', 'Signals with Effective Date']]));
   visuals.push(textbox({ x: 24, y: 232, width: 280, height: 20 }, sectionRun('Reporting year')));

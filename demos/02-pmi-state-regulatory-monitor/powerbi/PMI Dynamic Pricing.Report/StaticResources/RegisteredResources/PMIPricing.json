@@ -11,7 +11,7 @@
   "foregroundNeutralSecondary": "#6B7A90",
   "foregroundNeutralTertiary": "#9AA6B8",
   "background": "#FFFFFF",
-  "backgroundLight": "#F4F6FA",
+  "backgroundLight": "#F7F9FC",
   "backgroundNeutral": "#E6EBF2",
   "tableAccent": "#0074C2",
   "good": "#2E9E6B",
@@ -60,11 +60,11 @@
           {
             "color": {
               "solid": {
-                "color": "#E6EBF2"
+                "color": "#CFE0F2"
               }
             },
             "show": true,
-            "radius": 10
+            "radius": 14
           }
         ],
         "dropShadow": [
@@ -80,7 +80,7 @@
           {
             "color": {
               "solid": {
-                "color": "#F4F6FA"
+                "color": "#F7F9FC"
               }
             },
             "transparency": 0
@@ -90,7 +90,7 @@
           {
             "color": {
               "solid": {
-                "color": "#F4F6FA"
+                "color": "#F7F9FC"
               }
             },
             "transparency": 0

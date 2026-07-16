@@ -3,8 +3,10 @@
 A 4-page Power BI report (PBIR) over the **PMI Dynamic Pricing** Direct Lake
 semantic model in Microsoft Fabric — a pricing-decision dashboard that turns 50
 states of tobacco/vapor law into a per-state **Pricing Signal**. Styled in
-**PMI's real corporate identity**: a light, premium blue-on-white system (brand
-blue `#0074C2`, Lato + Roboto typography).
+**PMI's real corporate identity** (from PMI's official *Value Report 2025*): a
+confident light + deep-blue two-tone system (brand blue `#0074C2`, near-black
+navy headlines `#14213D`, Lato + Roboto typography, deep-blue KPI hero cards with
+white numbers).
 
 ## Contents
 
@@ -20,14 +22,18 @@ blue `#0074C2`, Lato + Roboto typography).
 
 ## Pages
 
-Every page carries a hero header band (slim white band, navy `#00335C` Lato
-title, a small PMI-blue mark, and a right-aligned `PMI · STATE REGULATORY
-MONITOR` wordmark) over a light `#F4F6FA` canvas.
+Every page carries a slim **top nav-pill strip** (a white rounded pill with the 4
+page names as tabs — the active tab bold near-navy `#14213D` with a brand-blue
+`#0074C2` underline; a right-aligned `Philip Morris International · State
+Regulatory Monitor` wordmark + a `0N / 04` page indicator) over a big near-black
+Lato page title, on a near-white `#F7F9FC` canvas — mirroring the *Value Report
+2025* section headers (pp. 2/6).
 
 1. **Command Center** — a compact **"three rule types" framing strip** (EXCISE TAX →
    moves the margin floor · FLAVOR BAN → SKU illegal, delist · PMTA REGISTRY LAW →
-   gates the assortment, each with its action-colour dot); 5 KPI cards with
-   blue hero numbers on white tiles (Total Signals · Restricted or Banned
+   gates the assortment, each with its action-colour dot); 5 KPI cards rendered as
+   solid **deep-blue hero cards with large white Lato numbers** + white uppercase
+   captions (the *Value Report 2025* p6 "pop": Total Signals · Restricted or Banned
    States · Avg Tax Burden % · Pending Risk States · Signals Needing Price Change);
    a **US filled map** coloured by `pricing_action`; a bar of
    signals-by-`pricing_action`; a Product-line (ZYN/VEEV/IQOS) slicer; and a
@@ -52,19 +58,33 @@ MONITOR` wordmark) over a light `#F4F6FA` canvas.
    flavor-ban/PMTA signals are undated by design (no fabricated dates). See the
    *CDC-only date connection* note below.
 
-### Light theme (PMI corporate identity)
+### Light + deep-blue theme (PMI *Value Report 2025* identity)
 
-The report registers a custom light theme
-(`StaticResources/RegisteredResources/PMIPricing.json`) built from PMI's real
-brand: a very-light cool-gray canvas `#F4F6FA`, white card surfaces `#FFFFFF`
-with soft shadows + `#E6EBF2` hairline borders, near-navy ink text `#14213D`,
-muted secondary `#6B7A90`, and the signature **PMI brand blue `#0074C2`** used
-for KPI hero numbers, key series, and accents (deep navy `#00335C` for
-headlines). Headlines/KPI numbers are **Lato**, body/labels/tables are
-**Roboto**. Per-page `wallpaper`/`background` objects paint the whole canvas the
-light `#F4F6FA`. Supporting blue tints `#4BA3DB` / `#7FC4E8` / `#D6E8F5` carry
-program splits and secondary series — one dominant colour (blue) + tints, with
-the saturated status palette reserved for the `pricing_action` encoding.
+The report registers a custom theme
+(`StaticResources/RegisteredResources/PMIPricing.json`) built from PMI's official
+*Value Report 2025* design system — a confident **light + deep-blue two-tone**
+look (not flat-light, not dark):
+
+- **Canvas** near-white `#F7F9FC` (very slightly cool).
+- **White cards** with a thin blue `#CFE0F2` border + `#E6EBF2` hairline dividers,
+  rounded ~14-16px.
+- **Deep-blue KPI hero cards** — solid `#0A5AB5` fill with large **white Lato**
+  numbers + white uppercase captions. This is the signature *Value Report 2025* p6
+  "pop." (Power BI PBIR card backgrounds don't support real CSS gradients in this
+  ring, so the deep-blue "gradient" is a **solid `#0A5AB5` fill** approximation —
+  it still reads as the on-brand deep-blue hero.)
+- **Light-blue tint cards** `#EAF3FB` for secondary/notes surfaces (the framing
+  strip, the Pricing Decision panel).
+- **Near-black navy headlines** `#14213D` (INK — the big Lato page titles look
+  almost black, matching the report's section heads).
+- Signature **PMI brand blue `#0074C2`** for key series, the nav underline, and
+  accents; deep navy `#00335C` for secondary heads.
+- Headlines / KPI numbers are **Lato** (Black/Bold), body / labels / tables are
+  **Roboto**. Georgia and Segoe UI are fully removed.
+
+Supporting blue tints `#4BA3DB` / `#7FC4E8` / `#D6E8F5` carry program splits and
+secondary series — one dominant colour (blue) + tints, with the saturated status
+palette reserved for the `pricing_action` encoding.
 
 ### Pricing-action colours
 
@@ -173,9 +193,11 @@ Each page was rendered and inspected. **ExportTo image (PNG) is disabled
 tenant-wide** on this capacity (`403 … Export report to image is disabled on
 tenant level`), so QA used the **ExportTo PDF** path (`POST
 /reports/{id}/ExportTo {format:"PDF"}` → poll → GET file), rendered to PNG
-locally. All 4 pages verified: light `#F4F6FA` canvas, white hero header bands
-with navy Lato titles + the PMI-blue mark + wordmark, blue KPI hero numbers on
-white cards, light readable tables (blue headers, `#F4F6FA` banding, navy text),
+locally. All 4 pages verified: near-white `#F7F9FC` canvas, the white top nav-pill
+strip (active tab underlined in brand blue) + wordmark + `0N / 04` page indicator
++ big near-black Lato page title, **deep-blue KPI hero cards with white numbers**,
+light readable p16-style tables (near-black header on `#EAF3FB` tint + bottom rule,
+`#F4F6FA` banding, navy text; matrix left column solid brand-blue + white text),
 the per-visual action-palette map + bars, amber tax bars, the brand-blue timeline
 line/column, the Command Center **framing strip** and state-reactive **Pricing
 Decision** card (defaults to New Jersey + VEEV — rendered populated in the
@@ -196,12 +218,14 @@ VEEV flavored SKUs banned in New Jersey").
 >   quarter column are brand blue `#0074C2`. These render on-brand in the exported
 >   PDF — no monochrome base-blue.
 > - **Tables (per-visual light objects):** `tableEx`/`pivotTable` set explicit
->   light `values` / `columnHeaders` / `total` / `grid` (+ matrix `rowHeaders`):
->   brand-blue header row with white text, white/`#F4F6FA` alternating rows, navy
->   ink text, and `#E6EBF2` gridlines. On a **light** theme the ExportTo table
->   renderer's opaque light cell fill is a non-issue — tables render clean and
->   consistent in both the service and the PDF export (the white-primary-row
->   artifact that fought the previous dark design no longer applies).
+>   p16-style light `values` / `columnHeaders` / `total` / `grid` (+ matrix
+>   `rowHeaders`): near-black bold header on a light `#EAF3FB` tint with a bottom
+>   rule, white/`#F4F6FA` alternating rows, navy ink text, `#E6EBF2` gridlines, and
+>   (on the matrix) a solid brand-blue left category column with white text. On a
+>   **light** theme the ExportTo table renderer's opaque light cell fill is a
+>   non-issue — tables render clean and consistent in both the service and the PDF
+>   export (the white-primary-row artifact that fought the previous dark design no
+>   longer applies).
 >
 > **Why per-visual (not theme):** the ExportTo renderer drops the entire custom
 > theme (its `dataColors` never reach the export), and this ring silently discards
@@ -211,5 +235,6 @@ VEEV flavored SKUs banned in New Jersey").
 >
 > **Minor export glyph:** the ExportTo `card`-visual renderer draws a small grey
 > placeholder glyph in each KPI / decision card that `visualHeader:{show:false}`
-> does not suppress in the export path. It is **export-only** — the interactive
-> Power BI service (where the demo is shown) renders the cards clean.
+> does not suppress in the export path (more visible on the deep-blue hero cards).
+> It is **export-only** — the interactive Power BI service (where the demo is shown)
+> renders the cards clean.
