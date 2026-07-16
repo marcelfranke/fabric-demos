@@ -11,9 +11,9 @@ const MODEL_ID = process.env.PMI_MODEL_ID || '6be9e165-fc81-4990-a479-a0cab93520
 const SCHEMA = {
   vc: 'https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json',
   page: 'https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.1.0/schema.json',
-  pages: 'https://developer.microsoft.com/json-schemas/fabric/item/report/definition/pagesMetadata/2.0.0/schema.json',
-  report: 'https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/2.0.0/schema.json',
-  version: 'https://developer.microsoft.com/json-schemas/fabric/item/report/definition/version/1.0.0/schema.json',
+  pages: 'https://developer.microsoft.com/json-schemas/fabric/item/report/definition/pagesMetadata/1.0.0/schema.json',
+  report: 'https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/3.3.0/schema.json',
+  version: 'https://developer.microsoft.com/json-schemas/fabric/item/report/definition/versionMetadata/1.0.0/schema.json',
   pbir: 'https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/2.0.0/schema.json',
 };
 
@@ -283,6 +283,13 @@ mkdirSync(resDir, { recursive: true });
 
 const w = (p, obj) => writeFileSync(p, JSON.stringify(obj, null, 2), 'utf8');
 
+// .platform (Fabric git-integration item identity — stable logicalId)
+w(join(OUT, '.platform'), {
+  $schema: 'https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json',
+  metadata: { displayName: 'PMI Dynamic Pricing', type: 'Report' },
+  config: { logicalId: 'f61ef637-3851-40b5-b1a1-059768c9a7b7', version: '2.0' },
+});
+
 // definition.pbir (root) — thin/live report bound to the published model
 w(join(OUT, 'definition.pbir'), {
   $schema: SCHEMA.pbir,
@@ -290,7 +297,7 @@ w(join(OUT, 'definition.pbir'), {
   datasetReference: { byConnection: { connectionString: `semanticmodelid=${MODEL_ID}` } },
 });
 // version.json
-w(join(defDir, 'version.json'), { $schema: SCHEMA.version, version: '1.0' });
+w(join(defDir, 'version.json'), { $schema: SCHEMA.version, version: '2.0.0' });
 
 // custom theme mapping pricing_action -> colours
 const themeFile = 'PMIPricing.json';
@@ -303,11 +310,12 @@ w(join(resDir, themeFile), {
 });
 
 // report.json (base shared theme + registered custom theme)
+const RVI = { visual: '1.8.97', report: '2.0.97', page: '1.3.97' };
 w(join(defDir, 'report.json'), {
   $schema: SCHEMA.report,
   themeCollection: {
-    baseTheme: { name: 'CY24SU10', reportVersionAtImport: '5.61', type: 'SharedResources' },
-    customTheme: { name: 'PMIPricing', type: 'RegisteredResources' },
+    baseTheme: { name: 'CY24SU10', reportVersionAtImport: RVI, type: 'SharedResources' },
+    customTheme: { name: 'PMIPricing', reportVersionAtImport: RVI, type: 'RegisteredResources' },
   },
   resourcePackages: [
     {

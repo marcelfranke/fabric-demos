@@ -9,9 +9,10 @@
 //
 //   node powerbi/deploy_report.mjs
 //
-// NOTE: this Fabric tenant's Power BI ring may reject a PBIR **API** import when
-// the definition schema is newer than the ring supports. If the create/update
-// returns an "unsupported/invalid definition" error, publish from Power BI
+// NOTE: PBIR API import requires schema versions this Fabric ring accepts and a
+// required `reportVersionAtImport` object on each theme (report/3.3.0). This
+// definition matches a known-good report exported from the tenant, so the API
+// import succeeds. If a future ring rejects a newer schema, publish from Power BI
 // Desktop instead (open the .pbip and Home -> Publish). See powerbi/README.md.
 //
 // Requires Node 18+ (global fetch) and an authenticated `az login`.
@@ -59,8 +60,8 @@ async function poll(res, H) {
     await new Promise((r) => setTimeout(r, 3000));
     const s = await fetch(opUrl, { headers: H });
     const st = await s.json().catch(() => ({}));
-    if (st.status === "Succeeded" || s.status === 200) {
-      const rr = await fetch(opUrl + "/result", { headers: H }).catch(() => null);
+    if (st.status === "Succeeded") {
+      const rr = await fetch(opUrl.replace(/\/$/, "") + "/result", { headers: H }).catch(() => null);
       const rj = rr ? await rr.json().catch(() => ({})) : {};
       return rj.id || null;
     }

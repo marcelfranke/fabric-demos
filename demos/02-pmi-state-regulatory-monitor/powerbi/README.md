@@ -13,8 +13,8 @@ states of tobacco/vapor law into a per-state **Pricing Signal**.
 - `pmi_report_gen.mjs` — deterministic generator that produces the `.Report`
   folder. Re-run with `node pmi_report_gen.mjs` to regenerate after edits.
 - `deploy_report.mjs` — Fabric REST UPSERT deploy (auth via `az` at runtime; no
-  stored secrets). See the publish note below — this tenant's ring currently
-  rejects PBIR **API** import, so Desktop publish is the working path.
+  stored secrets). This publishes the report to the workspace via the API — see
+  the deploy note below.
 
 ## Pages
 
@@ -54,20 +54,43 @@ action gets its intended colour):
   Pending Risk States, Signals Needing Price Change (all defined on the model — no
   new measures were added for this report).
 
-## How to publish (Power BI Desktop)
+## How to publish (Fabric REST API — deployed)
 
-> The report is validated (all definition JSON parses, binds to the live model),
-> but this Fabric tenant's Power BI ring currently rejects PBIR **API** import
-> with:
->
-> ```
-> Report_Import_FailedToImportReport: Can't resolve schema '1.0.0' in
-> 'version.json'. This report was edited in a newer version of Power BI that
-> isn't compatible with your current version.
-> ```
->
-> This is the same ring limitation documented for the European Patents report.
-> Publishing from Power BI Desktop negotiates the version client-side and works.
+The report is **published to the workspace via the Fabric REST API** by
+`deploy_report.mjs` (UPSERT: update-if-exists else create; auth via `az` at
+runtime). It is live in **Dynamic Pricing**:
+
+- Report item id: **`424faa25-2e39-4830-8725-09c77684d11a`**
+- URL: <https://app.powerbi.com/groups/aa0aa5fa-e638-4e4a-a0a2-a6da3e515f05/reports/424faa25-2e39-4830-8725-09c77684d11a>
+- Bound to dataset `6be9e165-fc81-4990-a479-a0cab935201c` (PMI Dynamic Pricing,
+  Direct Lake). All 3 pages render.
+
+```
+node powerbi/deploy_report.mjs
+```
+
+### PBIR schema note (what makes the API import succeed)
+
+An earlier attempt failed with
+`Report_Import_FailedToImportReport: Can't resolve schema '1.0.0' in
+'version.json'`. The fix was to match the exact PBIR schema versions this Fabric
+ring accepts (verified by exporting a known-good report already in the tenant via
+`GET .../reports/{id}/getDefinition?format=PBIR`):
+
+| file | accepted `$schema` / value |
+|---|---|
+| `definition/version.json` | `versionMetadata/1.0.0`, `version: "2.0.0"` (was `version/1.0.0` + `"1.0"`) |
+| `definition/report.json` | `report/3.3.0` (was `report/2.0.0`); **requires** a `reportVersionAtImport` object on every theme |
+| `definition/pages/pages.json` | `pagesMetadata/1.0.0` (was `pagesMetadata/2.0.0`) |
+| `definition.pbir` | `definitionProperties/2.0.0`, `version: "4.0"` (unchanged) |
+| `page.json` / `visual.json` | `page/2.1.0` / `visualContainer/2.9.0` (already accepted) |
+
+These versions are baked into `pmi_report_gen.mjs`, so `node pmi_report_gen.mjs`
+regenerates a definition the API accepts.
+
+### Alternative: publish from Power BI Desktop
+
+The `.pbip` also opens and publishes cleanly from Desktop:
 
 1. Install / open the latest **Power BI Desktop**.
 2. Enable the PBIP format: **File → Options and settings → Options → Preview
@@ -77,8 +100,8 @@ action gets its intended colour):
    thin/live report bound to the published semantic model.
 4. Verify the visuals render, then **Home → Publish → Dynamic Pricing** workspace.
 
-Once published from Desktop, the report can be committed back to Git from the
-workspace (this ring is Commit-only; never run Git → workspace Update/Sync).
+> This ring is Commit-only for Git integration; never run Git → workspace
+> Update/Sync.
 
 ## Key insights (live model — reconciled with the app)
 

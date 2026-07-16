@@ -1,0 +1,37 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "950aaf22aa5772b7e531",
+  "position": {
+    "z": 1000,
+    "tabOrder": 1000,
+    "x": 24,
+    "y": 210,
+    "width": 280,
+    "height": 118
+  },
+  "visual": {
+    "visualType": "cardVisual",
+    "query": {
+      "queryState": {
+        "Data": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "PricingSignal"
+                    }
+                  },
+                  "Property": "Avg Tax Burden"
+                }
+              },
+              "queryRef": "PricingSignal.Avg Tax Burden",
+              "nativeQueryRef": "Avg Tax Burden"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
