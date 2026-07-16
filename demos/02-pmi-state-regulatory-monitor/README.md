@@ -66,6 +66,7 @@ Fabric only for auth/hosting (a mock auth service is used for offline
 | [`src/app/components/us-choropleth.ts`](./src/app/components/us-choropleth.ts) + [`src/app/data/us-states-paths.ts`](./src/app/data/us-states-paths.ts) | Inline-SVG US states choropleth colored by `pricing_action` (zero runtime map deps). |
 | [`rayfin/`](./rayfin) | Rayfin service config + data schema (`Program` / `RegulatoryItem` / `PricingSignal` / `AppConfig`). |
 | [`fabric/`](./fabric) | Microsoft Fabric medallion backend — Lakehouse + notebook + pipeline + Direct Lake semantic model (see [`fabric/README.md`](./fabric/README.md)). |
+| [`powerbi/`](./powerbi) | Power BI report (PBIP/PBIR) — 3-page pricing dashboard over the Direct Lake model (see [`powerbi/README.md`](./powerbi/README.md)). |
 | [`workspace-sync/`](./workspace-sync) | Git-synced exports of the deployed Fabric items (Lakehouse, Notebook, DataPipeline, SemanticModel). |
 | `manifest.json`, `angular.json`, `package.json` | App + Rayfin template configuration. |
 
@@ -85,6 +86,21 @@ Reconciles with the app: **3,941** normalized CDC rows, **57** pricing signals (
 ZYN 6) across **51** states, avg tax burden ~**24.2%**. See
 [`fabric/README.md`](./fabric/README.md) for the full architecture, table lists, and
 build/deploy steps.
+
+## Power BI report
+
+A 3-page Power BI report (PBIP/PBIR) sits over the **PMI Dynamic Pricing** Direct
+Lake model as a pricing-decision dashboard: **Pricing Overview** (KPI cards + a US
+filled map coloured by `pricing_action`), **Tax & Margin** (states by excise
+burden; CO 62%), and **Compliance & Assortment** (State × Program matrix + gated
+states). Bound `byConnection` to the model
+(`semanticmodelid=6be9e165-…`), regenerated deterministically via
+`node powerbi/pmi_report_gen.mjs`.
+
+> Publish from **Power BI Desktop** (`PMI Dynamic Pricing.pbip` → Publish →
+> Dynamic Pricing). This tenant's ring rejects PBIR **API** import (version-schema
+> too new) — same limitation as the European Patents report. See
+> [`powerbi/README.md`](./powerbi/README.md).
 
 ## Schema
 
