@@ -33,6 +33,12 @@ table PricingSignal
 		displayFolder: Pricing
 		lineageTag: a1b2c3d4-0006-4a5b-9c7d-100000000006
 
+	/// Count of signals carrying a CDC-sourced effective date (i.e. date-connected signals).
+	measure 'Signals with Effective Date' = COUNTROWS(FILTER(PricingSignal, NOT ISBLANK(PricingSignal[Effective Date])))
+		formatString: #,##0
+		displayFolder: Pricing
+		lineageTag: a1b2c3d4-0022-4a5b-9c7d-100000000022
+
 	column State
 		dataType: string
 		lineageTag: a1b2c3d4-0007-4a5b-9c7d-100000000007
@@ -89,6 +95,26 @@ table PricingSignal
 		dataType: boolean
 		lineageTag: a1b2c3d4-0016-4a5b-9c7d-100000000016
 		sourceColumn: has_pending
+
+	/// CDC reporting-period effective date. Blank for seed-driven signals (flavor-ban / PMTA).
+	column 'Effective Date'
+		dataType: dateTime
+		lineageTag: a1b2c3d4-0019-4a5b-9c7d-100000000019
+		sourceColumn: effective_date
+
+	/// CDC reporting year. Blank for seed-driven signals.
+	column 'Reporting Year'
+		dataType: int64
+		lineageTag: a1b2c3d4-0020-4a5b-9c7d-100000000020
+		summarizeBy: none
+		sourceColumn: reporting_year
+
+	/// CDC reporting quarter (1-4). Blank for seed-driven signals.
+	column 'Reporting Quarter'
+		dataType: int64
+		lineageTag: a1b2c3d4-0021-4a5b-9c7d-100000000021
+		summarizeBy: none
+		sourceColumn: reporting_quarter
 
 	column Id
 		dataType: int64
