@@ -1,0 +1,93 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "e05bd95d98f2d5ee63f7",
+  "position": {
+    "z": 1000,
+    "tabOrder": 1000,
+    "x": 24,
+    "y": 80,
+    "width": 1232,
+    "height": 118
+  },
+  "visual": {
+    "visualType": "cardVisual",
+    "query": {
+      "queryState": {
+        "Data": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "PricingSignal"
+                    }
+                  },
+                  "Property": "Total Signals"
+                }
+              },
+              "queryRef": "PricingSignal.Total Signals",
+              "nativeQueryRef": "Total Signals"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "PricingSignal"
+                    }
+                  },
+                  "Property": "Restricted or Banned States"
+                }
+              },
+              "queryRef": "PricingSignal.Restricted or Banned States",
+              "nativeQueryRef": "Restricted or Banned States"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "PricingSignal"
+                    }
+                  },
+                  "Property": "Avg Tax Burden"
+                }
+              },
+              "queryRef": "PricingSignal.Avg Tax Burden",
+              "nativeQueryRef": "Avg Tax Burden"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "PricingSignal"
+                    }
+                  },
+                  "Property": "Pending Risk States"
+                }
+              },
+              "queryRef": "PricingSignal.Pending Risk States",
+              "nativeQueryRef": "Pending Risk States"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "PricingSignal"
+                    }
+                  },
+                  "Property": "Signals Needing Price Change"
+                }
+              },
+              "queryRef": "PricingSignal.Signals Needing Price Change",
+              "nativeQueryRef": "Signals Needing Price Change"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

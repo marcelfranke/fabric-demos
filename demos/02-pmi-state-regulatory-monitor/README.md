@@ -97,10 +97,11 @@ states). Bound `byConnection` to the model
 (`semanticmodelid=6be9e165-…`), regenerated deterministically via
 `node powerbi/pmi_report_gen.mjs`.
 
-> Publish from **Power BI Desktop** (`PMI Dynamic Pricing.pbip` → Publish →
-> Dynamic Pricing). This tenant's ring rejects PBIR **API** import (version-schema
-> too new) — same limitation as the European Patents report. See
-> [`powerbi/README.md`](./powerbi/README.md).
+> Published to the **Dynamic Pricing** workspace via the Fabric REST API
+> (`node powerbi/deploy_report.mjs`) — report id `424faa25-…`, bound to the Direct
+> Lake model. The `.pbip` also opens/publishes from Power BI Desktop. See
+> [`powerbi/README.md`](./powerbi/README.md) for the PBIR schema versions the
+> Fabric ring requires.
 
 ## Schema
 
