@@ -17,7 +17,7 @@ interface HoverInfo {
 }
 
 // Fill for a state with no signal for the selected program (no monitored rule).
-const NO_SIGNAL_FILL = '#241f2e';
+const NO_SIGNAL_FILL = '#e6ebf2';
 
 /**
  * Self-contained US-states choropleth (zero runtime deps, no topojson fetch).

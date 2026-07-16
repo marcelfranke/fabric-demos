@@ -105,7 +105,7 @@ import { getRayfinClient } from '../../../services/rayfinClient';
             Material
           </a>
           . Typeset in
-          <span class="serif">Fraunces</span> and DM Sans.
+          <span class="serif">Lato</span> and Roboto.
         </p>
       </footer>
     </div>
@@ -275,7 +275,7 @@ import { getRayfinClient } from '../../../services/rayfinClient';
 
     .primary-btn:hover:not([disabled]) {
       transform: translateY(-1px);
-      box-shadow: 0 10px 26px -10px rgba(212, 255, 58, 0.5);
+      box-shadow: 0 10px 26px -10px rgba(0, 116, 194, 0.5);
     }
 
     .primary-btn[disabled] {

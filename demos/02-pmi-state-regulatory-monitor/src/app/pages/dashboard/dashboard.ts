@@ -285,18 +285,21 @@ import {
       padding: 1.5rem;
       min-width: 0;
       background: linear-gradient(
-          180deg,
-          rgba(255, 255, 255, 0.02),
-          rgba(255, 255, 255, 0)
-        ),
-        var(--ink-surface);
-      border: 1px solid var(--ink-border);
+          160deg,
+          var(--hero-bg-2),
+          var(--hero-bg) 65%
+        );
+      border: 1px solid var(--hero-border);
       border-radius: var(--radius-lg);
-      transition: border-color var(--d-2) var(--ease-out);
+      color: var(--hero-on);
+      box-shadow: 0 16px 34px -20px rgba(10, 90, 181, 0.55);
+      transition: transform var(--d-2) var(--ease-out),
+        box-shadow var(--d-2) var(--ease-out);
     }
 
     .kpi:hover {
-      border-color: var(--accent-border);
+      transform: translateY(-2px);
+      box-shadow: 0 22px 44px -20px rgba(10, 90, 181, 0.6);
     }
 
     .kpi__label {
@@ -305,10 +308,10 @@ import {
       gap: 0.5rem;
       font-family: var(--font-mono);
       font-size: var(--text-caption);
-      font-weight: 500;
-      letter-spacing: 0.12em;
+      font-weight: 600;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--cream-dim);
+      color: var(--hero-on-muted);
     }
 
     .kpi__value {
@@ -319,26 +322,26 @@ import {
 
     .kpi__num {
       font-family: var(--font-display);
-      font-variation-settings: 'opsz' 144, 'SOFT' 30, 'wght' 400;
+      font-weight: 800;
       font-size: clamp(2.75rem, 5vw, 4rem);
       line-height: 0.95;
-      letter-spacing: -0.04em;
-      color: var(--cream);
+      letter-spacing: -0.03em;
+      color: var(--hero-on);
     }
 
     .kpi__suffix {
       font-family: var(--font-mono);
       font-size: var(--text-caption);
       font-weight: 500;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--cream-dim);
+      color: var(--hero-on-muted);
     }
 
     .kpi__delta {
       font-family: var(--font-mono);
       font-size: var(--text-small);
-      color: var(--cream-muted);
+      color: var(--hero-on-muted);
       margin-top: auto;
     }
 
@@ -355,7 +358,7 @@ import {
       height: 0.375rem;
       border-radius: var(--radius-pill);
       overflow: hidden;
-      background: var(--ink-elevated);
+      background: rgba(255, 255, 255, 0.22);
       margin-top: auto;
     }
 
@@ -718,35 +721,35 @@ export class Dashboard implements OnInit {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#1d1a26',
-        borderColor: '#2a2532',
+        backgroundColor: '#14213d',
+        borderColor: '#0074c2',
         borderWidth: 1,
-        titleColor: '#f4ecdf',
-        bodyColor: '#a39db1',
-        titleFont: { family: 'JetBrains Mono', size: 11 },
-        bodyFont: { family: 'JetBrains Mono', size: 11 },
+        titleColor: '#ffffff',
+        bodyColor: '#dbe6f4',
+        titleFont: { family: 'Roboto', size: 11 },
+        bodyFont: { family: 'Roboto', size: 11 },
         padding: 10,
         displayColors: false,
       },
     },
     scales: {
       x: {
-        grid: { color: 'rgba(255,255,255,0.03)' },
+        grid: { color: 'rgba(20,33,61,0.06)' },
         ticks: {
-          color: '#a39db1',
-          font: { family: 'JetBrains Mono', size: 10 },
+          color: '#7a869c',
+          font: { family: 'Roboto', size: 10 },
         },
-        border: { color: '#2a2532' },
+        border: { color: '#e6ebf2' },
       },
       y: {
         beginAtZero: true,
         ticks: {
           precision: 0,
-          color: '#a39db1',
-          font: { family: 'JetBrains Mono', size: 10 },
+          color: '#7a869c',
+          font: { family: 'Roboto', size: 10 },
         },
-        grid: { color: 'rgba(255,255,255,0.03)' },
-        border: { color: '#2a2532' },
+        grid: { color: 'rgba(20,33,61,0.06)' },
+        border: { color: '#e6ebf2' },
       },
     },
   };

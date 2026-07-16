@@ -3,73 +3,83 @@
 /* ─────────────────────────────────────────────────────────────────────
  * Material 3 base theme. We keep the engine but override every visible
  * token in the :root block below so the result looks nothing like
- * "default Material". The base palette is yellow only because it's the
- * closest hue to our acid-lime accent — it never actually shows.
+ * "default Material". The base palette is azure/blue to match the PMI
+ * brand-blue accent — the raw palette itself never actually shows.
  * ─────────────────────────────────────────────────────────────────── */
 html {
   /* Browser-native colour-scheme syncs scrollbars / form controls.
-   * Default to dark; the light-theme variant flips it via the
-   * [data-theme='light'] selector above. */
-  color-scheme: dark;
+   * Default to the light PMI identity; the dark-mode toggle flips it via
+   * the [data-theme='dark'] selector below. */
+  color-scheme: light;
   @include mat.theme(
     (
       color: (
-        primary: mat.$yellow-palette,
-        tertiary: mat.$green-palette,
-        theme-type: dark,
+        primary: mat.$azure-palette,
+        tertiary: mat.$blue-palette,
+        theme-type: light,
       ),
-      typography: 'DM Sans',
+      typography: 'Roboto',
       density: -1,
     )
   );
 }
 
 /* ─────────────────────────────────────────────────────────────────────
- * Design tokens — Editorial Ink.
+ * Design tokens — PMI "Value Report 2025" corporate identity.
  *
- * Two themes, one set of semantic tokens. Components should reference
- * --accent for text/border accents (legible on either theme) and --lime
- * only for solid fills that have dark text overlaid (which are punchy on
- * both themes).
+ * Light is the default brand. Two themes share one set of semantic
+ * tokens. Components reference --accent for text/border accents and
+ * --lime for solid brand-blue fills that carry white text/icons on top.
+ * The deep-blue hero tokens (--hero-*) drive the KPI tiles.
  * ─────────────────────────────────────────────────────────────────── */
 :root {
-  /* Surfaces (dark default) */
-  --ink-bg: #0a0911;
-  --ink-surface: #15131c;
-  --ink-elevated: #1d1a26;
-  --ink-elevated-2: #25212f;
-  --ink-border: #2a2532;
-  --ink-border-soft: #1f1b27;
+  /* Surfaces (light PMI default) */
+  --ink-bg: #f7f9fc;         /* canvas */
+  --ink-surface: #ffffff;    /* cards */
+  --ink-elevated: #eaf3fb;   /* light-blue tint */
+  --ink-elevated-2: #dcebf8; /* deeper tint */
+  --ink-border: #e6ebf2;     /* hairline */
+  --ink-border-soft: #eef2f7;
 
-  /* Text */
-  --cream: #f4ecdf;
-  --cream-muted: #a39db1;
-  --cream-dim: #6b6677;
+  /* Text — navy headline ink */
+  --cream: #14213d;
+  --cream-muted: #44506a;
+  --cream-dim: #7a869c;
 
-  /* Lime — solid fill only. Same in both themes (always dark text on top). */
-  --lime: #d4ff3a;
-  --lime-bright: #e8ff66;
-  --lime-on: #0a0911; /* Foreground for text/icons over solid lime fills. */
+  /* Brand blue — solid fill token (always white text/icons on top). */
+  --lime: #0074c2;
+  --lime-bright: #0a5ab5;
+  --lime-on: #ffffff; /* Foreground for text/icons over solid brand fills. */
 
-  /* Accent — for text, hover-text, borders. Flips per theme. */
-  --accent: var(--lime);
-  --accent-soft: rgba(212, 255, 58, 0.12);
-  --accent-border: rgba(212, 255, 58, 0.25);
-  --accent-glow: rgba(212, 255, 58, 0.35);
-  --accent-shadow: 0 14px 36px -10px rgba(212, 255, 58, 0.45);
+  /* Accent — for text, hover-text, borders. */
+  --accent: #0074c2;
+  --accent-soft: rgba(0, 116, 194, 0.1);
+  --accent-border: rgba(0, 116, 194, 0.28);
+  --accent-glow: rgba(0, 116, 194, 0.3);
+  --accent-shadow: 0 14px 36px -10px rgba(0, 116, 194, 0.35);
 
-  /* Semantic */
-  --rose: #fb7185;
-  --rose-soft: rgba(251, 113, 133, 0.14);
-  --amber: #fbbf24;
-  --amber-soft: rgba(251, 191, 36, 0.14);
-  --emerald: #34d399;
-  --emerald-soft: rgba(52, 211, 153, 0.14);
+  /* Deep-blue hero — KPI tiles (#0A5AB5 with white numbers/captions). */
+  --hero-bg: #0a5ab5;
+  --hero-bg-2: #0074c2;
+  --hero-on: #ffffff;
+  --hero-on-muted: rgba(255, 255, 255, 0.74);
+  --hero-border: rgba(255, 255, 255, 0.18);
 
-  /* Type */
-  --font-display: 'Fraunces', ui-serif, Georgia, serif;
-  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+  /* Deep navy headline ink (secondary display ink). */
+  --navy: #00335c;
+
+  /* Semantic — aligned to the report's pricing-action palette. */
+  --rose: #e0523e;
+  --rose-soft: rgba(224, 82, 62, 0.12);
+  --amber: #e8a23d;
+  --amber-soft: rgba(232, 162, 61, 0.14);
+  --emerald: #2e9e6b;
+  --emerald-soft: rgba(46, 158, 107, 0.14);
+
+  /* Type — Lato (display / headlines / KPI numbers) + Roboto (body / labels). */
+  --font-display: 'Lato', 'Segoe UI', system-ui, sans-serif;
+  --font-sans: 'Roboto', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Roboto', 'Segoe UI', system-ui, sans-serif;
 
   --text-display: clamp(2.5rem, 5vw, 4rem);
   --text-headline: clamp(1.5rem, 2.5vw, 2rem);
@@ -99,24 +109,21 @@ html {
   --d-2: 160ms;
   --d-3: 280ms;
 
-  /* Ambient glows for the body background — slightly different per theme. */
-  --bg-glow-1: radial-gradient(ellipse at top, rgba(212, 255, 58, 0.04), transparent 60%);
-  --bg-glow-2: radial-gradient(ellipse at bottom right, rgba(124, 90, 255, 0.05), transparent 50%);
+  /* Ambient glows for the body background — subtle blue tints on light. */
+  --bg-glow-1: radial-gradient(ellipse at top, rgba(0, 116, 194, 0.05), transparent 60%);
+  --bg-glow-2: radial-gradient(ellipse at bottom right, rgba(10, 90, 181, 0.04), transparent 55%);
 
-  /* Material 3 token overrides (dark). */
+  /* Material 3 token overrides. */
   --mat-sys-primary: var(--accent);
-  /* --ink-bg flips with theme (dark ink in dark mode → cream paper in
-   * light mode), which gives the right contrast on top of --accent
-   * regardless of theme. */
-  --mat-sys-on-primary: var(--ink-bg);
+  --mat-sys-on-primary: #ffffff; /* white text on brand-blue fills */
   --mat-sys-primary-container: var(--accent-soft);
   --mat-sys-on-primary-container: var(--accent);
   --mat-sys-secondary: var(--cream);
-  --mat-sys-on-secondary: var(--ink-bg);
+  --mat-sys-on-secondary: #ffffff;
   --mat-sys-secondary-container: var(--ink-elevated);
   --mat-sys-on-secondary-container: var(--cream);
   --mat-sys-tertiary: var(--emerald);
-  --mat-sys-on-tertiary: var(--ink-bg);
+  --mat-sys-on-tertiary: #ffffff;
   --mat-sys-surface: var(--ink-bg);
   --mat-sys-on-surface: var(--cream);
   --mat-sys-surface-variant: var(--ink-surface);
@@ -129,64 +136,66 @@ html {
   --mat-sys-outline: var(--ink-border);
   --mat-sys-outline-variant: var(--ink-border-soft);
   --mat-sys-error: var(--rose);
-  --mat-sys-on-error: var(--ink-bg);
+  --mat-sys-on-error: #ffffff;
   --mat-sys-background: var(--ink-bg);
   --mat-sys-on-background: var(--cream);
   --mat-sys-inverse-surface: var(--cream);
-  --mat-sys-inverse-on-surface: var(--ink-bg);
-  --mat-sys-shadow: rgba(0, 0, 0, 0.5);
+  --mat-sys-inverse-on-surface: #ffffff;
+  --mat-sys-shadow: rgba(20, 33, 61, 0.14);
 }
 
 /* ─────────────────────────────────────────────────────────────────────
- * Light theme — "Editorial Paper".
- * Warm paper background, deep-ink text, olive accent (lime in solid
- * fills only). All component CSS keeps working as-is.
+ * Dark theme — PMI blue on deep navy (optional toggle).
+ * Keeps the brand-blue accent so the identity stays consistent; only the
+ * surfaces + ink invert. All component CSS keeps working as-is.
  * ─────────────────────────────────────────────────────────────────── */
-:root[data-theme='light'] {
-  color-scheme: light;
+:root[data-theme='dark'] {
+  color-scheme: dark;
 
-  --ink-bg: #faf6ef;
-  --ink-surface: #ffffff;
-  --ink-elevated: #f4eee0;
-  --ink-elevated-2: #ebe4d2;
-  --ink-border: #e0d8c5;
-  --ink-border-soft: #ede8d8;
+  --ink-bg: #0b1220;
+  --ink-surface: #131c2e;
+  --ink-elevated: #1b2740;
+  --ink-elevated-2: #22314f;
+  --ink-border: #2a3a57;
+  --ink-border-soft: #1e2b42;
 
-  --cream: #1a1726;
-  --cream-muted: #5a5562;
-  --cream-dim: #8a8593;
+  --cream: #eaf1fb;
+  --cream-muted: #a9b6cc;
+  --cream-dim: #6e7c95;
 
-  /* Lime stays as the fill (still punchy over paper); accent is olive. */
-  --accent: #587a00;
-  --accent-soft: rgba(88, 122, 0, 0.1);
-  --accent-border: rgba(88, 122, 0, 0.3);
-  --accent-glow: rgba(212, 255, 58, 0.55);
-  --accent-shadow: 0 14px 36px -10px rgba(0, 0, 0, 0.12);
+  /* Brand blue, brightened for legibility on dark. */
+  --lime: #2e90de;
+  --lime-bright: #4aa6ec;
+  --lime-on: #06121f;
 
-  /* Slightly different semantic shades for better legibility on light. */
-  --rose: #d63864;
-  --rose-soft: rgba(214, 56, 100, 0.12);
-  --amber: #b58200;
-  --amber-soft: rgba(181, 130, 0, 0.12);
-  --emerald: #0e8552;
-  --emerald-soft: rgba(14, 133, 82, 0.12);
+  --accent: #2e90de;
+  --accent-soft: rgba(46, 144, 222, 0.14);
+  --accent-border: rgba(46, 144, 222, 0.32);
+  --accent-glow: rgba(46, 144, 222, 0.4);
+  --accent-shadow: 0 14px 36px -10px rgba(46, 144, 222, 0.45);
 
-  --bg-glow-1: radial-gradient(
-    ellipse at top,
-    rgba(212, 255, 58, 0.25),
-    transparent 60%
-  );
-  --bg-glow-2: radial-gradient(
-    ellipse at bottom right,
-    rgba(124, 90, 255, 0.06),
-    transparent 50%
-  );
+  /* Deep-blue hero tiles stay blue with white text on dark too. */
+  --hero-bg: #0a5ab5;
+  --hero-bg-2: #0074c2;
+  --hero-on: #ffffff;
+  --hero-on-muted: rgba(255, 255, 255, 0.74);
+  --hero-border: rgba(255, 255, 255, 0.16);
 
-  /* Material 3 re-bindings under light (most tokens pull from --ink-* /
-   * --cream-* which already flipped). Only the inverse pair changes. */
+  --navy: #9cc4e8;
+
+  --rose: #f0806f;
+  --rose-soft: rgba(240, 128, 111, 0.16);
+  --amber: #eeb968;
+  --amber-soft: rgba(238, 185, 104, 0.16);
+  --emerald: #4fbc8b;
+  --emerald-soft: rgba(79, 188, 139, 0.16);
+
+  --bg-glow-1: radial-gradient(ellipse at top, rgba(46, 144, 222, 0.08), transparent 60%);
+  --bg-glow-2: radial-gradient(ellipse at bottom right, rgba(10, 90, 181, 0.1), transparent 50%);
+
   --mat-sys-inverse-surface: var(--ink-elevated-2);
   --mat-sys-inverse-on-surface: var(--cream);
-  --mat-sys-shadow: rgba(20, 18, 26, 0.18);
+  --mat-sys-shadow: rgba(0, 0, 0, 0.5);
 }
 
 /* ─────────────────────────────────────────────────────────────────────

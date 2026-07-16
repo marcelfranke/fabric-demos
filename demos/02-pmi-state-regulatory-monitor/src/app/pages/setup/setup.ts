@@ -13,6 +13,27 @@ import { SeedService } from '../../services/seed.service';
   template: `
     <div class="page">
       <header class="header page-enter">
+        <span class="brand-mark" aria-hidden="true">
+          <svg
+            viewBox="0 0 40 40"
+            xmlns="http://www.w3.org/2000/svg"
+            role="img"
+            aria-label="PMI"
+          >
+            <rect x="0" y="0" width="40" height="40" rx="9" fill="#0074c2" />
+            <text
+              x="20"
+              y="21"
+              text-anchor="middle"
+              dominant-baseline="central"
+              font-family="'Lato', 'Segoe UI', system-ui, sans-serif"
+              font-size="15"
+              font-weight="900"
+              letter-spacing="0.4"
+              fill="#ffffff"
+            >PMI</text>
+          </svg>
+        </span>
         <p class="eyebrow">Step 01 — set up your workspace</p>
         <h1 class="title">
           Two ways<br />
@@ -132,7 +153,7 @@ import { SeedService } from '../../services/seed.service';
       height: 40rem;
       background: radial-gradient(
         circle,
-        rgba(212, 255, 58, 0.1),
+        rgba(0, 116, 194, 0.1),
         transparent 60%
       );
       filter: blur(20px);
@@ -146,6 +167,21 @@ import { SeedService } from '../../services/seed.service';
       flex-direction: column;
       gap: 1.25rem;
       max-width: 48rem;
+    }
+
+    .brand-mark {
+      display: inline-flex;
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 10px;
+      box-shadow: 0 8px 20px -8px var(--accent-glow);
+    }
+
+    .brand-mark svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 10px;
     }
 
     .title {
@@ -205,8 +241,8 @@ import { SeedService } from '../../services/seed.service';
     .card--accent {
       background: linear-gradient(
           180deg,
-          rgba(212, 255, 58, 0.04),
-          rgba(212, 255, 58, 0)
+          rgba(0, 116, 194, 0.05),
+          rgba(0, 116, 194, 0)
         ),
         var(--ink-surface);
     }
@@ -404,16 +440,16 @@ import { SeedService } from '../../services/seed.service';
 
     .card__cta--accent {
       background: var(--accent);
-      color: var(--ink-bg);
+      color: #ffffff;
       border-color: var(--accent);
-      box-shadow: 0 10px 30px -10px rgba(212, 255, 58, 0.3);
+      box-shadow: 0 10px 30px -10px rgba(0, 116, 194, 0.35);
     }
 
     .card__cta--accent:hover:not([disabled]) {
       background: var(--accent);
-      color: var(--ink-bg);
+      color: #ffffff;
       transform: translateY(-1px);
-      box-shadow: 0 14px 36px -10px rgba(212, 255, 58, 0.5);
+      box-shadow: 0 14px 36px -10px rgba(0, 116, 194, 0.5);
     }
 
     .card__cta[disabled] {

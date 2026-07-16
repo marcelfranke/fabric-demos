@@ -5,6 +5,7 @@ import { getRayfinClient } from '../../services/rayfinClient';
 
 import {
   FDA_MILESTONES,
+  SEED_BASELINE_ITEMS,
   SEED_ITEMS,
   SEED_NAMESPACE_UUID,
   SEED_TAX_ITEMS,
@@ -54,7 +55,7 @@ export class SeedService {
     let items = 0;
 
     const stateSeeds: readonly SeedItem[] = opts.includeTaxSample
-      ? [...SEED_ITEMS, ...SEED_TAX_ITEMS]
+      ? [...SEED_ITEMS, ...SEED_TAX_ITEMS, ...SEED_BASELINE_ITEMS]
       : SEED_ITEMS;
 
     // Curated state provisions (flavor bans, PMTA registry laws, tax sample).
