@@ -1,505 +1,505 @@
 {
-  "generatedAt": "2026-07-13T14:36:59.315Z",
+  "generatedAt": "2026-07-16T07:19:39.489Z",
   "leaderboard": [
-    {
-      "name": "HUAWEI TECHNOLOGIES CO., LTD.",
-      "country": "CN",
-      "patents": 191
-    },
-    {
-      "name": "Samsung Electronics Co., Ltd.",
-      "country": "KR",
-      "patents": 148
-    },
-    {
-      "name": "LG Energy Solution, Ltd.",
-      "country": "KR",
-      "patents": 113
-    },
-    {
-      "name": "QUALCOMM INCORPORATED",
-      "country": "US",
-      "patents": 104
-    },
-    {
-      "name": "LG Electronics Inc.",
-      "country": "KR",
-      "patents": 66
-    },
-    {
-      "name": "Microsoft Technology Licensing, LLC",
-      "country": "US",
-      "patents": 60
-    },
-    {
-      "name": "Telefonaktiebolaget LM Ericsson (publ)",
-      "country": "SE",
-      "patents": 52
-    },
-    {
-      "name": "Nokia Technologies Oy",
-      "country": "FI",
-      "patents": 51
-    },
     {
       "name": "Robert Bosch GmbH",
       "country": "DE",
-      "patents": 51
-    },
-    {
-      "name": "Tata Consultancy Services Limited",
-      "country": "IN",
-      "patents": 49
-    },
-    {
-      "name": "ZTE Corporation",
-      "country": "CN",
-      "patents": 48
-    },
-    {
-      "name": "Apple Inc.",
-      "country": "US",
-      "patents": 38
-    },
-    {
-      "name": "Koninklijke Philips N.V.",
-      "country": "NL",
-      "patents": 35
-    },
-    {
-      "name": "LG Chem, Ltd.",
-      "country": "KR",
-      "patents": 35
-    },
-    {
-      "name": "GUANGDONG OPPO MOBILE TELECOMMUNICATIONS\nCORP., LTD.",
-      "country": "CN",
-      "patents": 34
-    },
-    {
-      "name": "Vivo Mobile Communication Co., Ltd.",
-      "country": "CN",
-      "patents": 34
-    },
-    {
-      "name": "Google LLC",
-      "country": "US",
-      "patents": 32
-    },
-    {
-      "name": "INTEL Corporation",
-      "country": "US",
-      "patents": 32
-    },
-    {
-      "name": "Stellantis Auto SAS",
-      "country": "FR",
-      "patents": 31
-    },
-    {
-      "name": "Samsung Display Co., Ltd.",
-      "country": "KR",
-      "patents": 30
-    },
-    {
-      "name": "Beijing Xiaomi Mobile Software Co., Ltd.",
-      "country": "CN",
-      "patents": 29
-    },
-    {
-      "name": "Hamilton Sundstrand Corporation",
-      "country": "US",
-      "patents": 29
-    },
-    {
-      "name": "Samsung SDI Co., Ltd.",
-      "country": "KR",
-      "patents": 29
-    },
-    {
-      "name": "MITSUBISHI ELECTRIC CORPORATION",
-      "country": "JP",
-      "patents": 28
-    },
-    {
-      "name": "BOE Technology Group Co., Ltd.",
-      "country": "CN",
-      "patents": 27
-    },
-    {
-      "name": "Ricoh Company, Ltd.",
-      "country": "JP",
-      "patents": 27
-    },
-    {
-      "name": "CANON KABUSHIKI KAISHA",
-      "country": "JP",
-      "patents": 26
-    },
-    {
-      "name": "BSH Hausgeräte GmbH",
-      "country": "DE",
-      "patents": 25
-    },
-    {
-      "name": "NXP B.V.",
-      "country": "NL",
-      "patents": 24
-    },
-    {
-      "name": "The Boeing Company",
-      "country": "US",
-      "patents": 24
-    },
-    {
-      "name": "Panasonic Intellectual Property\nManagement Co., Ltd.",
-      "country": "JP",
-      "patents": 23
-    },
-    {
-      "name": "RTX Corporation",
-      "country": "US",
-      "patents": 23
-    },
-    {
-      "name": "FUJIFILM Corporation",
-      "country": "JP",
-      "patents": 22
-    },
-    {
-      "name": "Telefonaktiebolaget LM Ericsson  (publ)",
-      "country": "SE",
-      "patents": 22
-    },
-    {
-      "name": "The Procter & Gamble Company",
-      "country": "US",
-      "patents": 22
-    },
-    {
-      "name": "TOYOTA JIDOSHA KABUSHIKI KAISHA",
-      "country": "JP",
-      "patents": 22
-    },
-    {
-      "name": "Commissariat à l'Energie Atomique et aux Energies\nAlternatives",
-      "country": "FR",
-      "patents": 21
-    },
-    {
-      "name": "DAIKIN INDUSTRIES, LTD.",
-      "country": "JP",
-      "patents": 21
-    },
-    {
-      "name": "Henkel AG & Co. KGaA",
-      "country": "DE",
-      "patents": 21
-    },
-    {
-      "name": "Cisco Technology, Inc.",
-      "country": "US",
-      "patents": 19
-    },
-    {
-      "name": "Dolby Laboratories Licensing Corporation",
-      "country": "US",
-      "patents": 19
-    },
-    {
-      "name": "Honeywell International Inc.",
-      "country": "US",
-      "patents": 19
-    },
-    {
-      "name": "Siemens Mobility GmbH",
-      "country": "DE",
-      "patents": 19
-    },
-    {
-      "name": "3M Innovative Properties Company",
-      "country": "US",
-      "patents": 18
-    },
-    {
-      "name": "Contemporary Amperex Technology\n(Hong Kong) Limited",
-      "country": "HK",
-      "patents": 18
-    },
-    {
-      "name": "Honor Device Co., Ltd.",
-      "country": "CN",
-      "patents": 18
+      "patents": 1817
     },
     {
       "name": "Siemens Aktiengesellschaft",
       "country": "DE",
-      "patents": 18
+      "patents": 1194
     },
     {
-      "name": "Huawei Digital Power Technologies Co., Ltd.",
-      "country": "CN",
-      "patents": 17
+      "name": "Panasonic Corporation",
+      "country": "JP",
+      "patents": 1141
     },
     {
-      "name": "Nike Innovate C.V.",
-      "country": "US",
-      "patents": 17
+      "name": "Toyota Jidosha Kabushiki Kaisha",
+      "country": "JP",
+      "patents": 1082
     },
     {
-      "name": "Volvo Truck Corporation",
-      "country": "SE",
-      "patents": 17
+      "name": "Koninklijke Philips Electronics N.V.",
+      "country": "NL",
+      "patents": 1034
     },
     {
-      "name": "Dow Global Technologies LLC",
-      "country": "US",
-      "patents": 16
-    },
-    {
-      "name": "Fraunhofer-Gesellschaft zur Förderung\nder angewandten Forschung e.V.",
-      "country": "DE",
-      "patents": 16
-    },
-    {
-      "name": "Schaeffler Technologies AG & Co. KG",
-      "country": "DE",
-      "patents": 16
-    },
-    {
-      "name": "ABB SCHWEIZ AG",
-      "country": "CH",
-      "patents": 15
+      "name": "HONDA MOTOR CO., LTD.",
+      "country": "JP",
+      "patents": 991
     },
     {
       "name": "BASF SE",
       "country": "DE",
-      "patents": 15
+      "patents": 913
     },
     {
-      "name": "Biosense Webster (Israel) Ltd.",
-      "country": "IL",
-      "patents": 15
-    },
-    {
-      "name": "Boston Scientific Scimed, Inc.",
-      "country": "US",
-      "patents": 15
-    },
-    {
-      "name": "BRIDGESTONE CORPORATION",
-      "country": "JP",
-      "patents": 15
-    },
-    {
-      "name": "CLAAS Selbstfahrende Erntemaschinen GmbH",
-      "country": "DE",
-      "patents": 15
-    },
-    {
-      "name": "Eaton Intelligent Power Limited",
-      "country": "IE",
-      "patents": 15
-    },
-    {
-      "name": "SAFRAN AIRCRAFT ENGINES",
-      "country": "FR",
-      "patents": 15
-    },
-    {
-      "name": "LG Display Co., Ltd.",
+      "name": "SAMSUNG ELECTRONICS CO., LTD.",
       "country": "KR",
-      "patents": 14
+      "patents": 865
     },
     {
-      "name": "Magic Leap, Inc.",
+      "name": "CANON KABUSHIKI KAISHA",
+      "country": "JP",
+      "patents": 826
+    },
+    {
+      "name": "Telefonaktiebolaget LM Ericsson (publ)",
+      "country": "SE",
+      "patents": 739
+    },
+    {
+      "name": "Sony Corporation",
+      "country": "JP",
+      "patents": 724
+    },
+    {
+      "name": "QUALCOMM INCORPORATED",
       "country": "US",
-      "patents": 14
+      "patents": 672
     },
     {
-      "name": "Shenzhen Yinwang Intelligent\nTechnologies Co., Ltd.",
-      "country": "CN",
-      "patents": 14
+      "name": "Research In Motion Limited",
+      "country": "CA",
+      "patents": 650
     },
     {
-      "name": "Signify Holding B.V.",
+      "name": "Alcatel Lucent",
+      "country": "FR",
+      "patents": 593
+    },
+    {
+      "name": "LG Electronics Inc.",
+      "country": "KR",
+      "patents": 522
+    },
+    {
+      "name": "Fujifilm Corporation",
+      "country": "JP",
+      "patents": 520
+    },
+    {
+      "name": "NXP B.V.",
       "country": "NL",
-      "patents": 14
+      "patents": 510
     },
     {
-      "name": "Sony Group Corporation",
+      "name": "Huawei Technologies Co., Ltd.",
+      "country": "CN",
+      "patents": 496
+    },
+    {
+      "name": "Nokia Corporation",
+      "country": "FI",
+      "patents": 476
+    },
+    {
+      "name": "BSH Bosch und Siemens Hausgeräte GmbH",
+      "country": "DE",
+      "patents": 444
+    },
+    {
+      "name": "ZF Friedrichshafen AG",
+      "country": "DE",
+      "patents": 443
+    },
+    {
+      "name": "Ricoh Company, Ltd.",
       "country": "JP",
-      "patents": 14
+      "patents": 431
     },
     {
-      "name": "Aptiv Technologies AG",
-      "country": "CH",
-      "patents": 13
-    },
-    {
-      "name": "Centre National de la Recherche Scientifique",
-      "country": "FR",
-      "patents": 13
-    },
-    {
-      "name": "Deutsche Telekom AG",
-      "country": "DE",
-      "patents": 13
-    },
-    {
-      "name": "Renault s.a.s",
-      "country": "FR",
-      "patents": 13
-    },
-    {
-      "name": "Société des Produits Nestlé S.A.",
-      "country": "CH",
-      "patents": 13
-    },
-    {
-      "name": "THALES",
-      "country": "FR",
-      "patents": 13
-    },
-    {
-      "name": "Airbus Operations GmbH",
-      "country": "DE",
-      "patents": 12
-    },
-    {
-      "name": "Continental Reifen Deutschland GmbH",
-      "country": "DE",
-      "patents": 12
-    },
-    {
-      "name": "Deere & Company",
+      "name": "3M Innovative Properties Company",
       "country": "US",
-      "patents": 12
+      "patents": 419
     },
     {
-      "name": "KT&G Corporation",
+      "name": "Hitachi, Ltd.",
+      "country": "JP",
+      "patents": 416
+    },
+    {
+      "name": "Honeywell International Inc.",
+      "country": "US",
+      "patents": 415
+    },
+    {
+      "name": "General Electric Company",
+      "country": "US",
+      "patents": 400
+    },
+    {
+      "name": "Commissariat à l'Énergie Atomique \net aux Énergies Alternatives",
+      "country": "FR",
+      "patents": 395
+    },
+    {
+      "name": "The Procter & Gamble Company",
+      "country": "US",
+      "patents": 379
+    },
+    {
+      "name": "Seiko Epson Corporation",
+      "country": "JP",
+      "patents": 369
+    },
+    {
+      "name": "International Business Machines Corporation",
+      "country": "US",
+      "patents": 366
+    },
+    {
+      "name": "FUJITSU LIMITED",
+      "country": "JP",
+      "patents": 363
+    },
+    {
+      "name": "Brother Kogyo Kabushiki Kaisha",
+      "country": "JP",
+      "patents": 358
+    },
+    {
+      "name": "Thomson Licensing",
+      "country": "FR",
+      "patents": 350
+    },
+    {
+      "name": "Fraunhofer-Gesellschaft zur Förderung der \nangewandten Forschung e.V.",
+      "country": "DE",
+      "patents": 349
+    },
+    {
+      "name": "Schaeffler Technologies GmbH & Co. KG",
+      "country": "DE",
+      "patents": 331
+    },
+    {
+      "name": "LG Electronics, Inc.",
       "country": "KR",
-      "patents": 12
+      "patents": 329
     },
     {
-      "name": "MAZDA MOTOR CORPORATION",
-      "country": "JP",
-      "patents": 12
-    },
-    {
-      "name": "Orange",
-      "country": "FR",
-      "patents": 12
-    },
-    {
-      "name": "Raytheon Company",
-      "country": "US",
-      "patents": 12
-    },
-    {
-      "name": "Sumitomo Rubber Industries, Ltd.",
-      "country": "JP",
-      "patents": 12
-    },
-    {
-      "name": "Wobben Properties GmbH",
-      "country": "DE",
-      "patents": 12
-    },
-    {
-      "name": "AGCO International GmbH",
-      "country": "CH",
-      "patents": 11
-    },
-    {
-      "name": "Becton, Dickinson and Company",
-      "country": "US",
-      "patents": 11
-    },
-    {
-      "name": "Dolby International AB",
-      "country": "IE",
-      "patents": 11
+      "name": "Unilever N.V.",
+      "country": "NL",
+      "patents": 327
     },
     {
       "name": "F. Hoffmann-La Roche AG",
       "country": "CH",
-      "patents": 11
-    },
-    {
-      "name": "Hyundai Mobis Co., Ltd.",
-      "country": "KR",
-      "patents": 11
+      "patents": 322
     },
     {
       "name": "NTT DOCOMO, INC.",
       "country": "JP",
-      "patents": 11
+      "patents": 312
     },
     {
-      "name": "Philip Morris Products S.A.",
-      "country": "CH",
-      "patents": 11
-    },
-    {
-      "name": "Rockwell Collins, Inc.",
-      "country": "US",
-      "patents": 11
-    },
-    {
-      "name": "Tetra Laval Holdings & Finance S.A.",
-      "country": "CH",
-      "patents": 11
-    },
-    {
-      "name": "VOLKSWAGEN AG",
+      "name": "Voith Patent GmbH",
       "country": "DE",
-      "patents": 11
+      "patents": 311
     },
     {
-      "name": "ALSTOM Holdings",
+      "name": "Renault S.A.S.",
       "country": "FR",
-      "patents": 10
+      "patents": 310
+    },
+    {
+      "name": "Novartis AG",
+      "country": "CH",
+      "patents": 308
+    },
+    {
+      "name": "Boston Scientific Limited",
+      "country": "BB",
+      "patents": 306
+    },
+    {
+      "name": "E.I. DU PONT DE NEMOURS AND COMPANY",
+      "country": "US",
+      "patents": 303
+    },
+    {
+      "name": "Continental Automotive GmbH",
+      "country": "DE",
+      "patents": 302
+    },
+    {
+      "name": "L'Oréal",
+      "country": "FR",
+      "patents": 302
+    },
+    {
+      "name": "MITSUBISHI DENKI KABUSHIKI KAISHA",
+      "country": "JP",
+      "patents": 300
+    },
+    {
+      "name": "Unilever PLC",
+      "country": "GB",
+      "patents": 297
+    },
+    {
+      "name": "KIMBERLY-CLARK WORLDWIDE, INC.",
+      "country": "US",
+      "patents": 285
+    },
+    {
+      "name": "JTEKT CORPORATION",
+      "country": "JP",
+      "patents": 282
+    },
+    {
+      "name": "Kabushiki Kaisha Toshiba",
+      "country": "JP",
+      "patents": 268
+    },
+    {
+      "name": "NISSAN MOTOR CO., LTD.",
+      "country": "JP",
+      "patents": 268
+    },
+    {
+      "name": "Merck Patent GmbH",
+      "country": "DE",
+      "patents": 260
+    },
+    {
+      "name": "Intel Corporation",
+      "country": "US",
+      "patents": 259
+    },
+    {
+      "name": "Philips Intellectual Property & Standards GmbH",
+      "country": "DE",
+      "patents": 257
+    },
+    {
+      "name": "Yamaha Hatsudoki Kabushiki Kaisha",
+      "country": "JP",
+      "patents": 256
     },
     {
       "name": "Bayerische Motoren Werke Aktiengesellschaft",
       "country": "DE",
-      "patents": 10
+      "patents": 253
     },
     {
-      "name": "Corning Incorporated",
+      "name": "The Boeing Company",
       "country": "US",
-      "patents": 10
+      "patents": 250
     },
     {
-      "name": "Datang Mobile Communications Equipment Co., Ltd.",
-      "country": "CN",
-      "patents": 10
+      "name": "Deere & Company",
+      "country": "US",
+      "patents": 247
     },
     {
-      "name": "Essilor International",
+      "name": "Delphi Technologies, Inc.",
+      "country": "US",
+      "patents": 243
+    },
+    {
+      "name": "HEWLETT-PACKARD DEVELOPMENT COMPANY, L.P.",
+      "country": "US",
+      "patents": 243
+    },
+    {
+      "name": "MEDTRONIC, INC.",
+      "country": "US",
+      "patents": 243
+    },
+    {
+      "name": "MICROSOFT CORPORATION",
+      "country": "US",
+      "patents": 243
+    },
+    {
+      "name": "Roche Diagnostics GmbH",
+      "country": "DE",
+      "patents": 243
+    },
+    {
+      "name": "United Technologies Corporation",
+      "country": "US",
+      "patents": 239
+    },
+    {
+      "name": "THALES",
       "country": "FR",
-      "patents": 10
+      "patents": 237
     },
     {
-      "name": "GE Vernova Technology GmbH",
-      "country": "CH",
-      "patents": 10
+      "name": "Airbus Operations GmbH",
+      "country": "DE",
+      "patents": 226
     },
     {
-      "name": "Goodrich Corporation",
+      "name": "Xerox Corporation",
       "country": "US",
-      "patents": 10
+      "patents": 224
     },
     {
-      "name": "HYUNDAI MOTOR COMPANY",
-      "country": "KR",
-      "patents": 10
+      "name": "NEC CORPORATION",
+      "country": "JP",
+      "patents": 223
     },
     {
-      "name": "Imec VZW",
+      "name": "Sony Ericsson Mobile Communications AB",
+      "country": "SE",
+      "patents": 220
+    },
+    {
+      "name": "Peugeot Citroën Automobiles SA",
+      "country": "FR",
+      "patents": 218
+    },
+    {
+      "name": "Henkel AG & Co. KGaA",
+      "country": "DE",
+      "patents": 216
+    },
+    {
+      "name": "Broadcom Corporation",
+      "country": "US",
+      "patents": 211
+    },
+    {
+      "name": "DENSO CORPORATION",
+      "country": "JP",
+      "patents": 209
+    },
+    {
+      "name": "Sharp Kabushiki Kaisha",
+      "country": "JP",
+      "patents": 208
+    },
+    {
+      "name": "Bayer MaterialScience AG",
+      "country": "DE",
+      "patents": 204
+    },
+    {
+      "name": "Bridgestone Corporation",
+      "country": "JP",
+      "patents": 203
+    },
+    {
+      "name": "Michelin Recherche et Technique S.A.",
+      "country": "CH",
+      "patents": 200
+    },
+    {
+      "name": "SNECMA",
+      "country": "FR",
+      "patents": 199
+    },
+    {
+      "name": "Infineon Technologies AG",
+      "country": "DE",
+      "patents": 198
+    },
+    {
+      "name": "Shin-Etsu Chemical Co., Ltd.",
+      "country": "JP",
+      "patents": 197
+    },
+    {
+      "name": "Telefonaktiebolaget L M Ericsson (PUBL)",
+      "country": "SE",
+      "patents": 196
+    },
+    {
+      "name": "Ford Global Technologies, LLC",
+      "country": "US",
+      "patents": 189
+    },
+    {
+      "name": "Continental Teves AG & Co. oHG",
+      "country": "DE",
+      "patents": 187
+    },
+    {
+      "name": "Evonik Degussa GmbH",
+      "country": "DE",
+      "patents": 187
+    },
+    {
+      "name": "Société de Technologie Michelin",
+      "country": "FR",
+      "patents": 187
+    },
+    {
+      "name": "HONDA GIKEN KOGYO KABUSHIKI KAISHA",
+      "country": "JP",
+      "patents": 185
+    },
+    {
+      "name": "DSM IP Assets B.V.",
+      "country": "NL",
+      "patents": 184
+    },
+    {
+      "name": "Tyco Healthcare Group LP",
+      "country": "US",
+      "patents": 184
+    },
+    {
+      "name": "Eastman Kodak Company",
+      "country": "US",
+      "patents": 182
+    },
+    {
+      "name": "F.Hoffmann-La Roche AG",
+      "country": "CH",
+      "patents": 179
+    },
+    {
+      "name": "Nestec S.A.",
+      "country": "CH",
+      "patents": 178
+    },
+    {
+      "name": "Electrolux Home Products Corporation N.V.",
       "country": "BE",
-      "patents": 10
+      "patents": 176
+    },
+    {
+      "name": "Samsung SDI Co., Ltd.",
+      "country": "KR",
+      "patents": 175
+    },
+    {
+      "name": "Panasonic Electric Works Co., Ltd.",
+      "country": "JP",
+      "patents": 168
+    },
+    {
+      "name": "Ethicon Endo-Surgery, Inc.",
+      "country": "US",
+      "patents": 166
+    },
+    {
+      "name": "AUDI AG",
+      "country": "DE",
+      "patents": 163
+    },
+    {
+      "name": "NGK Insulators, Ltd.",
+      "country": "JP",
+      "patents": 161
+    },
+    {
+      "name": "FRANCE TELECOM",
+      "country": "FR",
+      "patents": 160
+    },
+    {
+      "name": "Nitto Denko Corporation",
+      "country": "JP",
+      "patents": 160
     }
   ]
 }

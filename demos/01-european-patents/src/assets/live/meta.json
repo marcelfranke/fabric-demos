@@ -1,10 +1,21 @@
 {
-  "generatedAt": "2026-07-13T14:36:59.315Z",
+  "generatedAt": "2026-07-16T07:19:39.489Z",
   "datasetId": "4ff3efcc-8540-4349-9d2e-0dcf149e3332",
   "workspaceId": "5e0747bf-be6c-449b-b0cc-1911bd54577f",
   "source": "semantic-model:executeQueries",
   "readOnly": true,
   "patentSlice": 1500,
   "applicantTop": 100,
-  "trendPeriods": 215
+  "trendPeriods": 269,
+  "model": "application-grain-kimball-2010-2011",
+  "notes": [
+    "totalPatents is sourced from the [Total Publications] measure — the app's notion of a \"patent\" is a published EP document (publication).",
+    "distinctApplicants / distinctInventors are dim-table row counts (COUNTROWS(Applicant) / COUNTROWS(Inventor)).",
+    "avgInventors = [Total Inventor Links] / [Total Applications] (inventor links are recorded at application grain).",
+    "The per-row patents slice is bounded to 1500 most-recent publications by publication date; baking all ~420k publications as a static asset is impractical. KPIs, IPC rollup, leaderboard and trends are full server-side aggregates over all 2010–2011 data.",
+    "Applicant links exist only for granted applications, so the recent publication slice (mostly ungranted 2011 filings) generally has no applicant children and null first_applicant / applicant_country.",
+    "The applicant bridge has no sequence column, so applicant.sequence is null.",
+    "The rebuilt model carries only IPC classifications (no CPC); classification.scheme and trend scheme facts are the constant \"IPC\".",
+    "Trend facts use a single PRIMARY IPC section and PRIMARY applicant country per publication to avoid multi-valued bridge fan-out; app_country is null for ungranted publications."
+  ]
 }

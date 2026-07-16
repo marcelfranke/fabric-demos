@@ -14,11 +14,21 @@
  *
  * The script pulls:
  *   - KPI totals from the model's own measures (server-side aggregation, so we
- *     never pull 23k rows to count them client-side),
+ *     never pull 420k rows to count them client-side),
  *   - the IPC-section rollup for the dashboard chart,
- *   - a bounded, most-recent slice of Patent rows with their Applicant /
+ *   - a bounded, most-recent slice of Publication rows with their Applicant /
  *     Inventor / Classification children for the list + detail views,
  *   - a Top-N applicant leaderboard.
+ *
+ * MODEL NOTE (2026 rewire): the semantic model was rebuilt from the old
+ * publication-grain `Patent[...]` star to an application-grain Kimball star
+ * (fact `Facts`, dims `Publication`/`Application`/`Applicant`/`Inventor`/`IPC`/
+ * `Country`/`Tech Area`, link bridges `bridge_application_*`, `Date` import).
+ * The app's notion of a "patent" maps to a *publication*, so `totalPatents` is
+ * sourced from `[Total Publications]`. Applicant links exist only for granted
+ * applications, so the most-recent publication slice (mostly ungranted 2011
+ * filings) usually has no applicant children — this is a source characteristic,
+ * not a bug. See meta.json `notes` for the full mapping decisions.
  *
  * Cross-platform: pure Node (ESM), no shell scripts. Auth token comes from
  * `FABRIC_PBI_TOKEN` when set (CI), otherwise from the Azure CLI (`az`).
@@ -85,11 +95,6 @@ function getToken() {
   }
 }
 
-/** Escape a value for use inside a DAX double-quoted string literal. */
-function daxStr(value) {
-  return `"${String(value).replace(/"/g, '""')}"`;
-}
-
 /**
  * Run a DAX query via the executeQueries REST endpoint and return plain row
  * objects with the surrounding `[Column]` brackets stripped from the keys.
@@ -133,13 +138,6 @@ async function dax(token, query, attempt = 0) {
   });
 }
 
-/** Chunk an array into batches of at most `size`. */
-function chunk(arr, size) {
-  const out = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
-}
-
 const toNum = (v) => (v == null ? null : Number(v));
 const toStr = (v) => (v == null ? null : String(v));
 // Normalise DAX dateTime (ISO) to a plain YYYY-MM-DD date string.
@@ -150,14 +148,18 @@ async function main() {
   console.log(`  dataset ${DATASET_ID}`);
   const token = getToken();
 
-  // ── KPI totals (from the model's own measures) ──────────────────────────
+  // ── KPI totals (from the model's own measures + inline distincts) ───────
+  // Old→new: [Total Patents]→[Total Publications] (app "patent" = publication).
+  // No Distinct Applicants/Inventors or Avg measures exist in the rebuilt
+  // model, so distinct entity counts come from the dim tables and the average
+  // is derived inline as inventor-links ÷ applications.
   const [kpi] = await dax(
     token,
     'EVALUATE ROW(' +
-      '"total", [Total Patents], ' +
-      '"applicants", [Distinct Applicants], ' +
-      '"inventors", [Distinct Inventors], ' +
-      '"avg", [Avg Inventors per Patent])'
+      '"total", [Total Publications], ' +
+      '"applicants", COUNTROWS(Applicant), ' +
+      '"inventors", COUNTROWS(Inventor), ' +
+      '"avg", DIVIDE([Total Inventor Links], [Total Applications]))'
   );
   const stats = {
     totalPatents: toNum(kpi?.total) ?? 0,
@@ -172,107 +174,118 @@ async function main() {
   const sectionRows = await dax(
     token,
     'EVALUATE SELECTCOLUMNS(' +
-      'SUMMARIZECOLUMNS(Patent[IPC Section], "c", [Total Patents]), ' +
-      '"section", Patent[IPC Section], "count", [c])'
+      'SUMMARIZECOLUMNS(IPC[IPC Section], "c", [Total Publications]), ' +
+      '"section", IPC[IPC Section], "count", [c])'
   );
   for (const r of sectionRows) {
     const s = toStr(r.section)?.trim().charAt(0).toUpperCase();
     if (s) stats.sectionCounts[s] = toNum(r.count) ?? 0;
   }
 
-  // ── Bounded, most-recent slice of patents ───────────────────────────────
+  // ── Bounded, most-recent slice of publications ──────────────────────────
+  // Publication grain, most-recent by publication date. Primary applicant /
+  // main IPC come from the fact's Primary *SK columns via LOOKUPVALUE (no
+  // relationship exists for those SKs); application_number / filing_date /
+  // inventor_count via RELATED. `app_sk` is the join key to the child bridges
+  // and is emitted as a STRING because the surrogate keys are 19-digit hashes
+  // that exceed JS's safe-integer range (they must never round-trip as Number).
   const patentRows = await dax(
     token,
-    `EVALUATE SELECTCOLUMNS(TOPN(${PATENT_SLICE}, Patent, Patent[Publication Date], DESC, Patent[Patent Number], DESC), ` +
-      '"patent_number", Patent[Patent Number], ' +
-      '"kind_code", Patent[Kind Code], ' +
-      '"publication_country", Patent[Publication Country], ' +
-      '"publication_date", Patent[Publication Date], ' +
-      '"application_number", Patent[Application Number], ' +
-      '"filing_date", Patent[Filing Date], ' +
-      '"language", Patent[Language], ' +
-      '"title_en", Patent[Title (English)], ' +
-      '"main_ipc", Patent[Main IPC], ' +
-      '"ipc_section", Patent[IPC Section], ' +
-      '"first_applicant", Patent[First Applicant], ' +
-      '"applicant_country", Patent[Applicant Country], ' +
-      '"inventor_count", Patent[Inventor Count])'
+    `EVALUATE SELECTCOLUMNS(TOPN(${PATENT_SLICE}, Publication, Publication[Publication Date], DESC, Publication[Patent Number], DESC), ` +
+      '"app_sk", Publication[Application SK] & "", ' +
+      '"patent_number", Publication[Patent Number], ' +
+      '"kind_code", Publication[Kind Code], ' +
+      '"publication_country", Publication[Publication Country], ' +
+      '"publication_date", Publication[Publication Date], ' +
+      "\"application_number\", RELATED('Application'[Application Number]), " +
+      "\"filing_date\", RELATED('Application'[Filing Date]), " +
+      '"language", Publication[Language], ' +
+      '"title_en", Publication[Title (English)], ' +
+      '"main_ipc", LOOKUPVALUE(IPC[IPC Symbol], IPC[IPC SK], RELATED(Facts[Primary IPC SK])), ' +
+      '"ipc_section", LOOKUPVALUE(IPC[IPC Section], IPC[IPC SK], RELATED(Facts[Primary IPC SK])), ' +
+      '"first_applicant", LOOKUPVALUE(Applicant[Applicant Name], Applicant[Applicant SK], RELATED(Facts[Primary Applicant SK])), ' +
+      '"applicant_country", LOOKUPVALUE(Applicant[Applicant Country], Applicant[Applicant SK], RELATED(Facts[Primary Applicant SK])), ' +
+      '"inventor_count", RELATED(Facts[Inventor Count]))'
   );
 
-  const patentNumbers = patentRows
-    .map((p) => toStr(p.patent_number))
-    .filter((n) => n);
+  // ── Children for exactly the sliced publications ────────────────────────
+  // Keyed by Application SK (a publication belongs to one application; several
+  // publications can share an application). The TOPN set is recomputed inside
+  // each child query as a DAX table variable and matched with CONTAINSROW, so
+  // the hash surrogate keys stay server-side (never marshalled through JS).
+  const TOP_APPS_DEF =
+    `DEFINE VAR TopApps = SELECTCOLUMNS(TOPN(${PATENT_SLICE}, Publication, ` +
+    'Publication[Publication Date], DESC, Publication[Patent Number], DESC), ' +
+    '"ask", Publication[Application SK])';
 
-  // ── Children for exactly the sliced patents (batched IN filters) ────────
   /** @type {Record<string, {name: string|null; country: string|null; sequence: number|null}[]>} */
-  const applicantsByPatent = {};
+  const applicantsByApp = {};
   /** @type {Record<string, {name: string|null; country: string|null; sequence: number|null}[]>} */
-  const inventorsByPatent = {};
+  const inventorsByApp = {};
   /** @type {Record<string, {symbol: string|null; scheme: string|null; section: string|null}[]>} */
-  const classificationsByPatent = {};
+  const classificationsByApp = {};
 
-  // DAX IN-lists can get long; batch to keep each query comfortably sized.
-  const batches = chunk(patentNumbers, 150);
-  for (const batch of batches) {
-    const list = batch.map(daxStr).join(', ');
-    const [apps, invs, cls] = await Promise.all([
-      dax(
-        token,
-        `EVALUATE SELECTCOLUMNS(FILTER(Applicant, Applicant[Patent Number] IN {${list}}), ` +
-          '"patent_number", Applicant[Patent Number], ' +
-          '"name", Applicant[Applicant Name], ' +
-          '"country", Applicant[Applicant Country], ' +
-          '"sequence", Applicant[Applicant Sequence])'
-      ),
-      dax(
-        token,
-        `EVALUATE SELECTCOLUMNS(FILTER(Inventor, Inventor[Patent Number] IN {${list}}), ` +
-          '"patent_number", Inventor[Patent Number], ' +
-          '"name", Inventor[Inventor Name], ' +
-          '"country", Inventor[Inventor Country], ' +
-          '"sequence", Inventor[Inventor Sequence])'
-      ),
-      dax(
-        token,
-        `EVALUATE SELECTCOLUMNS(FILTER(Classification, Classification[Patent Number] IN {${list}}), ` +
-          '"patent_number", Classification[Patent Number], ' +
-          '"symbol", Classification[Symbol], ' +
-          '"scheme", Classification[Scheme], ' +
-          '"section", Classification[Section])'
-      ),
-    ]);
-    for (const a of apps) {
-      const pn = toStr(a.patent_number);
-      if (!pn) continue;
-      (applicantsByPatent[pn] ??= []).push({
-        name: toStr(a.name),
-        country: toStr(a.country),
-        sequence: toNum(a.sequence),
-      });
-    }
-    for (const i of invs) {
-      const pn = toStr(i.patent_number);
-      if (!pn) continue;
-      (inventorsByPatent[pn] ??= []).push({
-        name: toStr(i.name),
-        country: toStr(i.country),
-        sequence: toNum(i.sequence),
-      });
-    }
-    for (const c of cls) {
-      const pn = toStr(c.patent_number);
-      if (!pn) continue;
-      (classificationsByPatent[pn] ??= []).push({
-        symbol: toStr(c.symbol),
-        scheme: toStr(c.scheme),
-        section: toStr(c.section),
-      });
-    }
+  const [apps, invs, cls] = await Promise.all([
+    dax(
+      token,
+      `${TOP_APPS_DEF}\nEVALUATE SELECTCOLUMNS(` +
+        'FILTER(bridge_application_applicant, CONTAINSROW(TopApps, bridge_application_applicant[Application SK])), ' +
+        '"app_sk", bridge_application_applicant[Application SK] & "", ' +
+        '"name", RELATED(Applicant[Applicant Name]), ' +
+        '"country", RELATED(Applicant[Applicant Country]))'
+    ),
+    dax(
+      token,
+      `${TOP_APPS_DEF}\nEVALUATE SELECTCOLUMNS(` +
+        'FILTER(bridge_application_inventor, CONTAINSROW(TopApps, bridge_application_inventor[Application SK])), ' +
+        '"app_sk", bridge_application_inventor[Application SK] & "", ' +
+        '"name", RELATED(Inventor[Inventor Name]), ' +
+        '"country", RELATED(Inventor[Inventor Country]), ' +
+        '"sequence", bridge_application_inventor[Inventor Sequence])'
+    ),
+    dax(
+      token,
+      `${TOP_APPS_DEF}\nEVALUATE SELECTCOLUMNS(` +
+        'FILTER(bridge_application_ipc, CONTAINSROW(TopApps, bridge_application_ipc[Application SK])), ' +
+        '"app_sk", bridge_application_ipc[Application SK] & "", ' +
+        '"symbol", RELATED(IPC[IPC Symbol]), ' +
+        '"section", RELATED(IPC[IPC Section]))'
+    ),
+  ]);
+  for (const a of apps) {
+    const sk = toStr(a.app_sk);
+    if (!sk) continue;
+    // The applicant bridge has no sequence column in the rebuilt model.
+    (applicantsByApp[sk] ??= []).push({
+      name: toStr(a.name),
+      country: toStr(a.country),
+      sequence: null,
+    });
+  }
+  for (const i of invs) {
+    const sk = toStr(i.app_sk);
+    if (!sk) continue;
+    (inventorsByApp[sk] ??= []).push({
+      name: toStr(i.name),
+      country: toStr(i.country),
+      sequence: toNum(i.sequence),
+    });
+  }
+  for (const c of cls) {
+    const sk = toStr(c.app_sk);
+    if (!sk) continue;
+    // Only IPC is present in the rebuilt model; scheme is a constant label.
+    (classificationsByApp[sk] ??= []).push({
+      symbol: toStr(c.symbol),
+      scheme: 'IPC',
+      section: toStr(c.section),
+    });
   }
 
   const bySeq = (a, b) => (a.sequence ?? 0) - (b.sequence ?? 0);
   const patents = patentRows.map((p, idx) => {
     const pn = toStr(p.patent_number) ?? `row-${idx}`;
+    const sk = toStr(p.app_sk) ?? '';
     return {
       id: pn, // stable client id = business key
       patent_number: pn,
@@ -288,18 +301,20 @@ async function main() {
       first_applicant: toStr(p.first_applicant),
       applicant_country: toStr(p.applicant_country),
       inventor_count: toNum(p.inventor_count),
-      applicants: (applicantsByPatent[pn] ?? []).slice().sort(bySeq),
-      inventors: (inventorsByPatent[pn] ?? []).slice().sort(bySeq),
-      classifications: classificationsByPatent[pn] ?? [],
+      applicants: (applicantsByApp[sk] ?? []).slice().sort(bySeq),
+      inventors: (inventorsByApp[sk] ?? []).slice().sort(bySeq),
+      classifications: classificationsByApp[sk] ?? [],
     };
   });
 
-  // ── Applicant leaderboard (Top-N by distinct patents) ───────────────────
+  // ── Applicant leaderboard (Top-N by publications) ───────────────────────
+  // Old [Patents per Applicant] → [Total Publications] evaluated per applicant
+  // (via the applicant link bridge). Consistent with totalPatents=publications.
   const leaderRows = await dax(
     token,
     `EVALUATE TOPN(${APPLICANT_TOP}, SELECTCOLUMNS(` +
       'SUMMARIZECOLUMNS(Applicant[Applicant Name], Applicant[Applicant Country], ' +
-      '"p", [Patents per Applicant]), ' +
+      '"p", [Total Publications]), ' +
       '"name", Applicant[Applicant Name], ' +
       '"country", Applicant[Applicant Country], ' +
       '"patents", [p]), [patents], DESC, [name], ASC)'
@@ -313,56 +328,40 @@ async function main() {
     .filter((r) => r.name)
     .sort((a, b) => b.patents - a.patents || a.name.localeCompare(b.name));
 
-  // ── Trends: applications / publications over time ───────────────────────
+  // ── Trends: publications over time (single-valued, fan-out-free) ────────
+  // The old star exposed one denormalised IPC section + applicant country per
+  // Patent row. The rebuilt star reaches those via multi-valued link bridges,
+  // so grouping on them directly would multiply (fan out) the counts. To keep
+  // each publication contributing exactly one fact row — and totals summing to
+  // publication counts, as the app's aggregation logic assumes — we resolve a
+  // single PRIMARY IPC section and PRIMARY applicant country per publication
+  // from the fact's Primary *SK columns (LOOKUPVALUE), while publication
+  // country is naturally single-valued. Counts come from COUNTX over the group.
+  // Primary applicant SK is populated only for granted applications, so
+  // app_country is null for ungranted publications (the page skips those).
   const generatedAt = new Date().toISOString();
-  // The Date dimension joins Patent on Publication Date, so publication-basis
-  // buckets come straight from Date[Year Month]. Filing Date has no
-  // relationship, so we group by the raw day and roll up to month in-script.
   const monthOf = (v) => {
     const s = toStr(v);
     if (!s) return null;
-    // "YYYY-MM" already, or an ISO dateTime we truncate to month.
     return /^\d{4}-\d{2}$/.test(s) ? s : s.slice(0, 7);
   };
 
-  const factsPublication = (
-    await dax(
-      token,
-      'EVALUATE SELECTCOLUMNS(SUMMARIZECOLUMNS(' +
-        '\'Date\'[Year Month], Patent[IPC Section], ' +
-        'Patent[Publication Country], Patent[Applicant Country], ' +
-        '"c", [Total Patents]), ' +
-        '"period", \'Date\'[Year Month], ' +
-        '"section", Patent[IPC Section], ' +
-        '"pub_country", Patent[Publication Country], ' +
-        '"app_country", Patent[Applicant Country], ' +
-        '"count", [c])'
-    )
-  )
-    .map((r) => ({
-      period: monthOf(r.period),
-      section: toStr(r.section),
-      pubCountry: toStr(r.pub_country),
-      appCountry: toStr(r.app_country),
-      count: toNum(r.count) ?? 0,
-    }))
-    .filter((r) => r.period && r.count > 0);
+  /**
+   * Build a fan-out-free trends fact query keyed on a per-publication month
+   * expression (publication month vs. filing month).
+   */
+  const trendFactsQuery = (periodExpr) =>
+    'EVALUATE SELECTCOLUMNS(GROUPBY(ADDCOLUMNS(Publication, ' +
+    `"period", ${periodExpr}, ` +
+    '"pubC", Publication[Publication Country], ' +
+    '"sec", LOOKUPVALUE(IPC[IPC Section], IPC[IPC SK], RELATED(Facts[Primary IPC SK])), ' +
+    '"appC", LOOKUPVALUE(Applicant[Applicant Country], Applicant[Applicant SK], RELATED(Facts[Primary Applicant SK]))), ' +
+    '[period], [pubC], [sec], [appC], "c", COUNTX(CURRENTGROUP(), 1)), ' +
+    '"period", [period], "section", [sec], "pub_country", [pubC], ' +
+    '"app_country", [appC], "count", [c])';
 
-  const factsFiling = rollupByMonth(
-    (
-      await dax(
-        token,
-        'EVALUATE SELECTCOLUMNS(SUMMARIZECOLUMNS(' +
-          'Patent[Filing Date], Patent[IPC Section], ' +
-          'Patent[Publication Country], Patent[Applicant Country], ' +
-          '"c", [Total Patents]), ' +
-          '"period", Patent[Filing Date], ' +
-          '"section", Patent[IPC Section], ' +
-          '"pub_country", Patent[Publication Country], ' +
-          '"app_country", Patent[Applicant Country], ' +
-          '"count", [c])'
-      )
-    )
+  const mapFacts = (rows) =>
+    rows
       .map((r) => ({
         period: monthOf(r.period),
         section: toStr(r.section),
@@ -370,50 +369,41 @@ async function main() {
         appCountry: toStr(r.app_country),
         count: toNum(r.count) ?? 0,
       }))
-      .filter((r) => r.period && r.count > 0)
-  );
+      .filter((r) => r.period && r.count > 0);
 
-  const schemePublication = (
+  const factsPublication = mapFacts(
+    await dax(token, trendFactsQuery("RELATED('Date'[Year Month])"))
+  );
+  const factsFiling = mapFacts(
     await dax(
       token,
-      'EVALUATE SELECTCOLUMNS(SUMMARIZECOLUMNS(' +
-        '\'Date\'[Year Month], Classification[Scheme], ' +
-        'Classification[Section], "c", [Total Patents]), ' +
-        '"period", \'Date\'[Year Month], ' +
-        '"scheme", Classification[Scheme], ' +
-        '"section", Classification[Section], ' +
-        '"count", [c])'
+      trendFactsQuery("FORMAT(RELATED('Application'[Filing Date]), \"YYYY-MM\")")
     )
-  )
-    .map((r) => ({
-      period: monthOf(r.period),
-      scheme: toStr(r.scheme),
-      section: toStr(r.section),
-      count: toNum(r.count) ?? 0,
-    }))
-    .filter((r) => r.period && r.scheme && r.count > 0);
-
-  const schemeFiling = rollupScheme(
-    (
-      await dax(
-        token,
-        'EVALUATE SELECTCOLUMNS(SUMMARIZECOLUMNS(' +
-          'Patent[Filing Date], Classification[Scheme], ' +
-          'Classification[Section], "c", [Total Patents]), ' +
-          '"period", Patent[Filing Date], ' +
-          '"scheme", Classification[Scheme], ' +
-          '"section", Classification[Section], ' +
-          '"count", [c])'
-      )
-    )
-      .map((r) => ({
-        period: monthOf(r.period),
-        scheme: toStr(r.scheme),
-        section: toStr(r.section),
-        count: toNum(r.count) ?? 0,
-      }))
-      .filter((r) => r.period && r.scheme && r.count > 0)
   );
+
+  // Scheme facts: the rebuilt model has only IPC (no CPC), so the scheme
+  // dimension is degenerate. Derive the section-over-time breakdown from the
+  // primary-section facts above (scheme = constant "IPC"), preserving the
+  // {period, scheme, section, count} shape the trends page consumes.
+  const deriveScheme = (facts) => {
+    const map = new Map();
+    for (const r of facts) {
+      if (!r.section) continue;
+      const key = `${r.period}|${r.section}`;
+      const existing = map.get(key);
+      if (existing) existing.count += r.count;
+      else
+        map.set(key, {
+          period: r.period,
+          scheme: 'IPC',
+          section: r.section,
+          count: r.count,
+        });
+    }
+    return [...map.values()];
+  };
+  const schemePublication = deriveScheme(factsPublication);
+  const schemeFiling = deriveScheme(factsFiling);
 
   const periods = [
     ...new Set(
@@ -439,6 +429,28 @@ async function main() {
     patentSlice: patents.length,
     applicantTop: leaderboard.length,
     trendPeriods: periods.length,
+    model: 'application-grain-kimball-2010-2011',
+    notes: [
+      'totalPatents is sourced from the [Total Publications] measure — the ' +
+        "app's notion of a \"patent\" is a published EP document (publication).",
+      'distinctApplicants / distinctInventors are dim-table row counts ' +
+        '(COUNTROWS(Applicant) / COUNTROWS(Inventor)).',
+      'avgInventors = [Total Inventor Links] / [Total Applications] ' +
+        '(inventor links are recorded at application grain).',
+      `The per-row patents slice is bounded to ${patents.length} most-recent ` +
+        'publications by publication date; baking all ~420k publications as a ' +
+        'static asset is impractical. KPIs, IPC rollup, leaderboard and trends ' +
+        'are full server-side aggregates over all 2010–2011 data.',
+      'Applicant links exist only for granted applications, so the recent ' +
+        'publication slice (mostly ungranted 2011 filings) generally has no ' +
+        'applicant children and null first_applicant / applicant_country.',
+      'The applicant bridge has no sequence column, so applicant.sequence is null.',
+      'The rebuilt model carries only IPC classifications (no CPC); ' +
+        'classification.scheme and trend scheme facts are the constant "IPC".',
+      'Trend facts use a single PRIMARY IPC section and PRIMARY applicant ' +
+        'country per publication to avoid multi-valued bridge fan-out; ' +
+        'app_country is null for ungranted publications.',
+    ],
   };
   const write = (name, data) =>
     writeFileSync(join(OUT_DIR, name), JSON.stringify(data, null, 2) + '\n', 'utf8');
@@ -461,30 +473,6 @@ async function main() {
     `  trends: ${periods.length} periods · ${factsPublication.length}+${factsFiling.length} facts · ` +
       `${schemePublication.length}+${schemeFiling.length} scheme rows`
   );
-}
-
-/** Roll day-grain patent facts up to month, summing counts per dim combo. */
-function rollupByMonth(rows) {
-  const map = new Map();
-  for (const r of rows) {
-    const key = `${r.period}|${r.section ?? ''}|${r.pubCountry ?? ''}|${r.appCountry ?? ''}`;
-    const existing = map.get(key);
-    if (existing) existing.count += r.count;
-    else map.set(key, { ...r });
-  }
-  return [...map.values()];
-}
-
-/** Roll day-grain scheme facts up to month. */
-function rollupScheme(rows) {
-  const map = new Map();
-  for (const r of rows) {
-    const key = `${r.period}|${r.scheme ?? ''}|${r.section ?? ''}`;
-    const existing = map.get(key);
-    if (existing) existing.count += r.count;
-    else map.set(key, { ...r });
-  }
-  return [...map.values()];
 }
 
 main().catch((err) => {

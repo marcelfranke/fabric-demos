@@ -1,16 +1,16 @@
 {
-  "totalPatents": 23343,
-  "distinctApplicants": 4571,
-  "distinctInventors": 61240,
-  "avgInventors": 3.2,
+  "totalPatents": 420844,
+  "distinctApplicants": 52165,
+  "distinctInventors": 666284,
+  "avgInventors": 2.7,
   "sectionCounts": {
-    "H": 5596,
-    "G": 4951,
-    "F": 1609,
-    "E": 577,
-    "D": 213,
-    "C": 2457,
-    "B": 3583,
-    "A": 4357
+    "G": 89050,
+    "A": 90972,
+    "B": 90294,
+    "C": 76539,
+    "H": 99669,
+    "F": 50858,
+    "E": 15935,
+    "D": 8005
   }
 }
