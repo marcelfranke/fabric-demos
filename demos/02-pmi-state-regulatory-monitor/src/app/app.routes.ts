@@ -46,6 +46,33 @@ export const routes: Routes = [
           import('./pages/regulatory/regulatory-detail').then((m) => m.RegulatoryDetail),
       },
       {
+        path: 'states',
+        loadComponent: () =>
+          import('./pages/states/states-list').then((m) => m.StatesList),
+      },
+      {
+        path: 'states/:code',
+        loadComponent: () =>
+          import('./pages/states/state-detail').then((m) => m.StateDetail),
+      },
+      {
+        path: 'alerts',
+        loadComponent: () => import('./pages/alerts/alerts').then((m) => m.Alerts),
+      },
+      {
+        path: 'revenue',
+        loadComponent: () => import('./pages/revenue/revenue').then((m) => m.Revenue),
+      },
+      {
+        path: 'timeline',
+        loadComponent: () =>
+          import('./pages/timeline/timeline').then((m) => m.Timeline),
+      },
+      {
+        path: 'ask',
+        loadComponent: () => import('./pages/ask/ask').then((m) => m.Ask),
+      },
+      {
         path: 'settings',
         loadComponent: () =>
           import('./pages/settings/settings').then((m) => m.Settings),
