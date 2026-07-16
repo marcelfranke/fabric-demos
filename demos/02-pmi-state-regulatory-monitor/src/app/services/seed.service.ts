@@ -72,6 +72,9 @@ export class SeedService {
           category: seed.category,
           status: seed.status,
           provision_value: seed.provision_value,
+          effective_date: seed.effective_date
+            ? new Date(seed.effective_date)
+            : undefined,
           source_url: seed.source_url,
           labels_json: JSON.stringify(['Curated', program]),
           created_at: new Date(),

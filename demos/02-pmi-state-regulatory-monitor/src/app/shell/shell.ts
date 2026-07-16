@@ -26,6 +26,11 @@ const ROUTE_LABELS: Record<string, string> = {
   '/': 'Dashboard',
   '/programs': 'Programs',
   '/regulatory': 'Pricing signals',
+  '/states': 'States',
+  '/alerts': 'Alerts',
+  '/revenue': 'Revenue at risk',
+  '/timeline': 'Timeline',
+  '/ask': 'Ask the data',
   '/settings': 'Settings',
 };
 
@@ -100,6 +105,56 @@ const ROUTE_LABELS: Record<string, string> = {
           >
             <mat-icon class="nav__icon">insights</mat-icon>
             <span class="nav__label">Pricing signals</span>
+          </a>
+          <a
+            routerLink="/states"
+            routerLinkActive="active"
+            class="nav__item"
+            [matTooltip]="collapsed() ? 'States' : ''"
+            matTooltipPosition="right"
+          >
+            <mat-icon class="nav__icon">map</mat-icon>
+            <span class="nav__label">States</span>
+          </a>
+          <a
+            routerLink="/alerts"
+            routerLinkActive="active"
+            class="nav__item"
+            [matTooltip]="collapsed() ? 'Alerts' : ''"
+            matTooltipPosition="right"
+          >
+            <mat-icon class="nav__icon">notifications_active</mat-icon>
+            <span class="nav__label">Alerts</span>
+          </a>
+          <a
+            routerLink="/revenue"
+            routerLinkActive="active"
+            class="nav__item"
+            [matTooltip]="collapsed() ? 'Revenue at risk' : ''"
+            matTooltipPosition="right"
+          >
+            <mat-icon class="nav__icon">payments</mat-icon>
+            <span class="nav__label">Revenue</span>
+          </a>
+          <a
+            routerLink="/timeline"
+            routerLinkActive="active"
+            class="nav__item"
+            [matTooltip]="collapsed() ? 'Timeline' : ''"
+            matTooltipPosition="right"
+          >
+            <mat-icon class="nav__icon">timeline</mat-icon>
+            <span class="nav__label">Timeline</span>
+          </a>
+          <a
+            routerLink="/ask"
+            routerLinkActive="active"
+            class="nav__item"
+            [matTooltip]="collapsed() ? 'Ask the data' : ''"
+            matTooltipPosition="right"
+          >
+            <mat-icon class="nav__icon">forum</mat-icon>
+            <span class="nav__label">Ask</span>
           </a>
         </nav>
 

@@ -29,6 +29,7 @@ export interface ComputedSignal {
   flavor_banned: boolean;
   registry_gated: boolean;
   has_pending: boolean;
+  effective_date?: Date;
 }
 
 export interface PricingResult {
@@ -141,11 +142,13 @@ export function computeSignals(items: RegulatoryItem[]): ComputedSignal[] {
 
     // First parseable tax row wins.
     let tax_burden: number | undefined;
+    let effective_date: Date | undefined;
     for (const i of group) {
       if (i.category !== 'tax') continue;
       const parsed = parseTaxBurden(i.provision_value);
       if (parsed != null) {
         tax_burden = parsed;
+        effective_date = i.effective_date ?? undefined;
         break;
       }
     }
@@ -175,6 +178,7 @@ export function computeSignals(items: RegulatoryItem[]): ComputedSignal[] {
       flavor_banned,
       registry_gated,
       has_pending,
+      effective_date,
     });
   }
 
@@ -224,6 +228,7 @@ export class PricingService {
         flavor_banned: s.flavor_banned,
         registry_gated: s.registry_gated,
         has_pending: s.has_pending,
+        effective_date: s.effective_date,
         updated_at: now,
         program: { id: programId(s.product_code) },
       };

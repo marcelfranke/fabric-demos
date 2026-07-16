@@ -4,33 +4,28 @@ export type Theme = 'dark' | 'light';
 
 const STORAGE_KEY = 'dashboard.theme';
 const ATTR = 'data-theme';
+const DEFAULT_THEME: Theme = 'light';
 
 /**
  * Signal-based theme store.
  *
  * Resolution order:
- *   1. Manual override stored in `localStorage[dashboard.theme]`
- *   2. `prefers-color-scheme` media query (system default)
- *   3. Light (PMI brand) as a final fallback
+ *   1. Attribute already set on `<html>` by the inline boot script.
+ *   2. Manual override stored in `localStorage[dashboard.theme]`.
+ *   3. Light (PMI brand) as the unconditional default.
  *
- * The matching attribute is also set on `<html>` by an inline script in
- * `index.html` before Angular boots, so the first paint already uses the
- * right palette (no flash). When no manual choice is stored, the service
- * subscribes to OS theme changes and updates live.
+ * Light PMI is the brand identity, so the app ALWAYS opens light unless the
+ * user has explicitly stored a manual preference. The OS `prefers-color-scheme`
+ * is intentionally NOT consulted — a dark-mode machine still opens in light
+ * PMI branding. The manual dark toggle still works and persists to
+ * `localStorage`; there is no automatic OS follow.
  */
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
   private readonly _theme = signal<Theme>(readInitial());
   readonly theme = this._theme.asReadonly();
 
-  private mql: MediaQueryList | null = null;
-
-  constructor() {
-    this.startWatchingSystem();
-  }
-
-  /** Flip dark ↔ light. Marks the choice as "manual" — system changes
-   * are ignored from then on until the user clears `localStorage`. */
+  /** Flip dark ↔ light. The choice persists to `localStorage`. */
   toggle(): void {
     this.set(this._theme() === 'dark' ? 'light' : 'dark');
   }
@@ -45,40 +40,15 @@ export class ThemeService {
     }
   }
 
-  /** Forget the manual preference and snap back to the system theme. */
-  resetToSystem(): void {
+  /** Forget the manual preference and snap back to the light PMI default. */
+  resetToDefault(): void {
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch {
       // Ignore.
     }
-    const next = systemTheme();
-    this._theme.set(next);
-    applyAttr(next);
-  }
-
-  /** Listen to OS theme changes, but only honor them if the user
-   * hasn't picked one manually. */
-  private startWatchingSystem(): void {
-    if (
-      typeof window === 'undefined' ||
-      typeof window.matchMedia !== 'function'
-    ) {
-      return;
-    }
-    this.mql = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = (e: MediaQueryListEvent) => {
-      if (hasManualOverride()) return;
-      const next: Theme = e.matches ? 'dark' : 'light';
-      this._theme.set(next);
-      applyAttr(next);
-    };
-    // Modern browsers — addEventListener; fall back to deprecated API.
-    if (typeof this.mql.addEventListener === 'function') {
-      this.mql.addEventListener('change', onChange);
-    } else if (typeof this.mql.addListener === 'function') {
-      this.mql.addListener(onChange);
-    }
+    this._theme.set(DEFAULT_THEME);
+    applyAttr(DEFAULT_THEME);
   }
 }
 
@@ -89,7 +59,7 @@ function readInitial(): Theme {
   }
   const stored = manualOverride();
   if (stored) return stored;
-  return systemTheme();
+  return DEFAULT_THEME;
 }
 
 function manualOverride(): Theme | null {
@@ -100,21 +70,6 @@ function manualOverride(): Theme | null {
     // Ignore.
   }
   return null;
-}
-
-function hasManualOverride(): boolean {
-  return manualOverride() !== null;
-}
-
-function systemTheme(): Theme {
-  if (
-    typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-color-scheme: dark)').matches
-  ) {
-    return 'dark';
-  }
-  return 'light';
 }
 
 function applyAttr(theme: Theme): void {

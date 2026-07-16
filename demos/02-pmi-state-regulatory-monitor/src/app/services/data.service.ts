@@ -60,6 +60,7 @@ const SIGNAL_FIELDS = [
   'flavor_banned',
   'registry_gated',
   'has_pending',
+  'effective_date',
   'updated_at',
   'program.id',
 ] as const;

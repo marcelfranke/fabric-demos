@@ -780,9 +780,7 @@ export class Dashboard implements OnInit {
   }
 
   protected onStateSelect(state: string): void {
-    void this.router.navigate(['/regulatory'], {
-      queryParams: { state, program: this.program() },
-    });
+    void this.router.navigate(['/states', state]);
   }
 
   protected actionPill(action: PricingAction): string {
