@@ -3,10 +3,14 @@
 // semantic model. Re-run with: node pmi_report_gen.mjs
 //
 // Design: a LIGHT, premium corporate identity matching Philip Morris
-// International's real brand — PMI blue #0074C2 dominant + blue tints, navy
-// headlines, Lato (display) + Roboto (body), white cards on a light canvas.
-// Four pages, each with a light hero header band. Page 4 (Regulatory Timeline)
-// showcases the Date dimension added in PR #18. Sample-inspired KPI hero cards.
+// International's real brand (Value Report 2025) — PMI blue #0074C2 dominant +
+// blue tints, near-black navy headlines, Lato (display) + Roboto (body), white
+// cards on a light canvas, deep-blue KPI hero cards with white numbers (p6),
+// and p16-style light tables (white header + bottom rule, blue category cells).
+// Five pages: Command Center, Tax & Margin, Compliance, Revenue at Risk, Forecast.
+// NOTE: display textStyle families always carry a ", sans-serif" fallback so the
+// ExportTo-PDF renderer (which does not embed Lato) resolves to a clean sans
+// rather than substituting a serif face.
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import crypto from 'node:crypto';
@@ -305,7 +309,7 @@ function ruleBlock(x, y, w, h, dot, title, sub) {
     textbox({ x, y, width: w, height: h }, [], { fill: CARD }),
     textbox({ x: x + 14, y: y + Math.round(h / 2) - 7, width: 14, height: 14 }, [], { fill: dot }),
     textbox({ x: x + 38, y: y + 10, width: w - 50, height: h - 18 }, [
-      { value: title, textStyle: { fontFamily: 'Lato', fontSize: '13px', color: NAVY, fontWeight: 'bold' } },
+      { value: title, textStyle: { fontFamily: 'Lato, sans-serif', fontSize: '13px', color: NAVY, fontWeight: 'bold' } },
       { value: '   ' + sub, textStyle: { fontFamily: 'Roboto', fontSize: '11px', color: MUTED } },
     ]),
   ];
@@ -438,7 +442,8 @@ function filledMap(pos, locE, locP, legendE, legendP, opts = {}) {
 // like the p16 "Category" column. On a light theme the ExportTo-PDF renderer's
 // opaque light cell fill is a non-issue — clean in both service and PDF export.
 function tableLightObjects({ pivot = false } = {}) {
-  const hdr = { fontColor: solid(INK), backColor: solid(TINT), fontFamily: L("'Lato, sans-serif'"), bold: L('true') };
+  // p16 header: bold near-black on WHITE with a thin bottom rule (via grid outline).
+  const hdr = { fontColor: solid(INK), backColor: solid(CARD), fontFamily: L("'Lato, sans-serif'"), bold: L('true') };
   const vals = {
     fontColor: solid(INK), backColor: solid(CARD),
     backColorSecondary: solid(ALT), fontColorSecondary: solid(INK),
@@ -507,9 +512,9 @@ function matrix(pos, rows, columns, values) {
 }
 
 
-const titleRun = (t) => [{ value: t, textStyle: { fontFamily: 'Lato', fontSize: '26px', color: INK, fontWeight: 'bold' } }];
+const titleRun = (t) => [{ value: t, textStyle: { fontFamily: 'Lato, sans-serif', fontSize: '26px', color: INK, fontWeight: 'bold' } }];
 const wordmarkRun = (t) => [{ value: t, textStyle: { fontFamily: 'Roboto', fontSize: '11px', color: MUTED, letterSpacing: '2px' } }];
-const sectionRun = (t) => [{ value: t, textStyle: { fontFamily: 'Lato', fontSize: '14px', color: NAVY, fontWeight: 'bold' } }];
+const sectionRun = (t) => [{ value: t, textStyle: { fontFamily: 'Lato, sans-serif', fontSize: '14px', color: NAVY, fontWeight: 'bold' } }];
 const noteRun = (t) => [{ value: t, textStyle: { fontFamily: 'Roboto', fontSize: '12px', color: MUTED } }];
 const accentRun = (t) => [{ value: t, textStyle: { fontFamily: 'Roboto', fontSize: '12px', color: BRAND } }];
 
