@@ -163,11 +163,30 @@ rules, chartreuse KPI heroes on dark cards, dark slicers/notes/charts, and the
 date-trend line/column charts on the Regulatory Timeline page.
 
 > **ExportTo caveat:** the PDF/image export path on this capacity renders with
-> the **base theme**, so theme-driven styling (chart series `dataColors`, table
-> row fills) is under-represented in the exported PNGs — those appear in the base
-> palette / with white primary table rows in the export. Per-visual styling
-> (canvas, headers, KPI cards, slicers, notes, table headers/grid/bands, chart
-> surfaces) is driven directly on each visual and renders in **both** the export
-> and the interactive service. The custom theme (verified present and correctly
-> linked in the live report definition via `getDefinition`) applies the full
-> `dataColors` palette + table theming in the **interactive Power BI service**.
+> the **base theme** (the custom theme is dropped in export), so anything driven
+> only by the theme is under-represented in the exported PNGs. To make the CI
+> robust, **series colours and table surfaces are set per-visual** (not via the
+> theme) so they survive both paths:
+>
+> - **Chart series (verified in export):** each `pricing_action` bar/map segment
+>   is coloured by the status palette via per-category `dataPoint` fills
+>   (adjust_for_tax amber `#FFB020`, delist_banned rose `#FF5C6A`, price_freely
+>   green `#5FD08B`, restricted_assortment sky `#5AA9FF`, watch_pending purple
+>   `#8A7CFF`); tax bars are single-fill amber; the timeline line is chartreuse
+>   `#D4FF3A` (3px) and the quarter column is sky. These render on-brand in the
+>   exported PDF — no more monochrome base-blue.
+> - **Tables (per-visual dark objects):** `tableEx`/`pivotTable` set explicit dark
+>   `values` / `columnHeaders` / `total` / `grid` (+ matrix `rowHeaders`) so they
+>   are dark in the interactive service.
+>
+> **Known ExportTo limitation (table primary rows):** on this ring the export
+> renderer **ignores `values.backColor` (primary/odd rows)** and defaults them to
+> opaque white, while honouring `backColorSecondary` (alternate rows), `total`,
+> `columnHeaders`, and matrix `rowHeaders`. This was proven with a 4-cycle
+> diagnostic (vivid-colour + transparent-cell + stripped-theme tests): the custom
+> theme is dropped **and** primary-row `backColor` is not applied in export, so
+> exported table primary rows appear white regardless of theme or per-visual
+> setting. Every other surface (headers, total, alternate rows, grid, all charts,
+> KPI cards, canvas) renders dark/on-brand in the export. The interactive Power BI
+> service applies the full custom theme + per-visual dark table objects, so tables
+> display fully dark in-service.
