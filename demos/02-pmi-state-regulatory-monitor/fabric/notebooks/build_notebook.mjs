@@ -45,7 +45,7 @@ cells.push([`# PMI State Regulatory Monitor — dynamic-pricing medallion (Bronz
 # Faithfully ports the Angular app's cdc-state-sync.service.ts (normalize) and
 # pricing.service.ts (computeSignals) so the Lakehouse numbers MATCH the app.
 import json, re, time, traceback, urllib.request
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from pyspark.sql import Row
 from pyspark.sql import functions as F
 from pyspark.sql.types import (StructType, StructField, StringType, IntegerType,
@@ -243,6 +243,8 @@ SIG_SCHEMA = StructType([
     StructField("tax_burden", DoubleType()), StructField("pricing_action", StringType()),
     StructField("recommendation", StringType()), StructField("flavor_banned", BooleanType()),
     StructField("registry_gated", BooleanType()), StructField("has_pending", BooleanType()),
+    StructField("reporting_year", IntegerType()), StructField("reporting_quarter", IntegerType()),
+    StructField("effective_date", DateType()),
 ])
 BRONZE_SCHEMA = StructType([StructField("dataset_id", StringType()),
     StructField("category", StringType()), StructField("raw_json", StringType())])
@@ -363,17 +365,29 @@ def run_pipeline():
         registry_gated = any(i["category"] == "pmta_registry" and i["status"] == "enacted" for i in g)
         has_pending = any(i["status"] == "pending" for i in g)
         tax_burden = None
+        tax_prov = None
         for i in g:
             if i["category"] != "tax": continue
             t = parse_tax_burden(i.get("provision_value"))
             if t is not None:
-                tax_burden = t; break
+                tax_burden = t; tax_prov = i; break
+        # CDC-ONLY date connection: carry the reporting period + effective date from the
+        # tax provision that supplied tax_burden — but ONLY when it is a real CDC row
+        # (dataset_id != "seed"). Seed-driven flavor-ban / PMTA signals stay NULL by design,
+        # so only CDC-sourced signals join the Date dimension in the semantic model.
+        reporting_year = None; reporting_quarter = None; eff_date = None
+        if tax_prov is not None and tax_prov.get("dataset_id") != "seed":
+            ry = tax_prov.get("year"); rq = tax_prov.get("quarter")
+            reporting_year = int(ry) if ry is not None else None
+            reporting_quarter = int(rq) if (rq is not None and rq != 0) else None
+            eff_date = tax_prov.get("effective_date")  # a datetime.date or None
         action = derive_action(flavor_banned, registry_gated, has_pending, tax_burden)
         sellable = not (flavor_banned or registry_gated)
         signals.append(dict(state=state, state_name=state_name, product_code=product,
             sellable=sellable, tax_burden=(float(tax_burden) if tax_burden is not None else None),
             pricing_action=action, recommendation=recommend(action, product, state_name, tax_burden),
-            flavor_banned=flavor_banned, registry_gated=registry_gated, has_pending=has_pending))
+            flavor_banned=flavor_banned, registry_gated=registry_gated, has_pending=has_pending,
+            reporting_year=reporting_year, reporting_quarter=reporting_quarter, effective_date=eff_date))
     signals.sort(key=lambda s: (s["product_code"], s["state"]))
     print("pricing signals computed:", len(signals))
 
@@ -404,6 +418,40 @@ def run_pipeline():
             StructType([StructField("product_code", StringType()), StructField("name", StringType()), StructField("description", StringType())])) \\
         .withColumn("id", F.xxhash64(F.col("product_code"))) \\
         .write.format("delta").mode(WRITE_MODE).option("overwriteSchema", "true").saveAsTable("gold_dim_program")
+
+    # ---- GOLD: calendar date dimension over the REAL dates present in the CDC data
+    # (effective/enacted dates + reporting-period quarter starts; quarter 0/annual -> Jan 1).
+    # Daily grain. Only CDC-sourced signals carry an Effective Date, so only they join it.
+    _QMONTH = {1: 1, 2: 4, 3: 7, 4: 10}
+    real_dates = set()
+    for r in cdc_rows:
+        for dk in ("effective_date", "enacted_date"):
+            d = r.get(dk)
+            if d is not None:
+                real_dates.add(d)
+        y = r.get("year")
+        if y:
+            q = r.get("quarter") or 0
+            real_dates.add(date(int(y), _QMONTH.get(q, 1), 1))
+    real_dates = {d for d in real_dates if 2000 <= d.year <= 2035}  # guard vs pathological outliers
+    dmin, dmax = min(real_dates), max(real_dates)
+    cal, n = [], 0
+    while True:
+        d = dmin + timedelta(days=n)
+        if d > dmax: break
+        q = (d.month - 1) // 3 + 1
+        cal.append((d, d.year, q, f"{d.year}-Q{q}", d.month, d.strftime("%B"),
+                    date(d.year, (q - 1) * 3 + 1, 1)))
+        n += 1
+    DATE_SCHEMA = StructType([
+        StructField("date", DateType()), StructField("year", IntegerType()),
+        StructField("quarter", IntegerType()), StructField("quarter_label", StringType()),
+        StructField("month", IntegerType()), StructField("month_name", StringType()),
+        StructField("month_start", DateType())])
+    (spark.createDataFrame(cal, DATE_SCHEMA)
+        .withColumn("id", F.xxhash64(F.col("date").cast("string")))
+        .write.format("delta").mode(WRITE_MODE).option("overwriteSchema", "true").saveAsTable("gold_dim_date"))
+    print(f"gold_dim_date rows: {len(cal)} ({dmin} -> {dmax})")
     print("Gold tables written.")
 
     # ---- VALIDATION GATE: row counts + reconciliation with the app's live numbers
@@ -411,11 +459,12 @@ def run_pipeline():
         "bronze_cdc_piju_vf3p","bronze_cdc_wan8_w4er","silver_regulatory_item","silver_program",
         "silver_flavor_ban","silver_pmta_registry","silver_tax_sample","silver_fda_milestones",
         "gold_pricing_signal","gold_signals_by_action","gold_signals_by_program",
-        "gold_state_tax_burden","gold_dim_state","gold_dim_program"]
+        "gold_state_tax_burden","gold_dim_state","gold_dim_program","gold_dim_date"]
     counts = {}
     for t in tables:
         counts[t] = spark.table(t).count()
     sig = spark.table("gold_pricing_signal")
+    dd = spark.table("gold_dim_date")
     dist = {r["pricing_action"]: r["count"] for r in sig.groupBy("pricing_action").count().collect()}
     per_prog = {r["product_code"]: r["count"] for r in sig.groupBy("product_code").count().collect()}
     taxed = sig.filter("tax_burden is not null")
@@ -433,6 +482,22 @@ def run_pipeline():
         "taxed_states": taxed.select("state").distinct().count(),
         "avg_tax_burden": taxed.agg(F.round(F.avg("tax_burden"), 1)).first()[0],
         "key_integrity": integrity,
+        "date_dim": {
+            "rows": dd.count(),
+            "min": dd.agg(F.min("date")).first()[0],
+            "max": dd.agg(F.max("date")).first()[0],
+            "distinct_years": dd.select("year").distinct().count(),
+        },
+        "signals_with_reporting_year": sig.filter(F.col("reporting_year").isNotNull()).count(),
+        "signals_with_effective_date": sig.filter(F.col("effective_date").isNotNull()).count(),
+        "reporting_year_by_action": {r["pricing_action"]: r["c"] for r in
+            sig.filter(F.col("reporting_year").isNotNull())
+               .groupBy("pricing_action").agg(F.count("*").alias("c")).collect()},
+        "effective_date_by_action": {r["pricing_action"]: r["c"] for r in
+            sig.filter(F.col("effective_date").isNotNull())
+               .groupBy("pricing_action").agg(F.count("*").alias("c")).collect()},
+        "seed_signals_null_date": sig.filter(
+            F.col("reporting_year").isNull() & F.col("effective_date").isNull()).count(),
     }
     return summary
 print("run_pipeline defined")

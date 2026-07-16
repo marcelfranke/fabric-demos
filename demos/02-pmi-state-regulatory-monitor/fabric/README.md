@@ -109,6 +109,13 @@ the app's `pricing.service.ts` `computeSignals()`.
 | `gold_signals_by_action` | 5 | Rollup: signals per `pricing_action` |
 | `gold_signals_by_program` | 2 | Rollup: signals per product line |
 | `gold_state_tax_burden` | 34 | Rollup: taxed states with tax burden % |
+| `gold_dim_date` | 6,381 | Calendar date dimension (daily grain, 2010-01-11 → 2027-07-01, 18 years) over the real dates in the CDC data |
+
+`gold_pricing_signal` also carries three **CDC-sourced date columns** —
+`reporting_year`, `reporting_quarter`, `effective_date` — populated **only** for
+signals whose tax provision is a real CDC row (`dataset_id != "seed"`). Seed-driven
+flavor-ban / PMTA signals leave all three NULL by design (see "CDC-only date
+connection" below).
 
 ## Pricing Signal computation
 
@@ -154,6 +161,12 @@ Lake DAX):
 | `watch_pending` | 1 |
 | Taxed states | 34 |
 | Avg tax burden | ~24.2% |
+| `gold_dim_date` rows | 6,381 (2010-01-11 → 2027-07-01, 18 years) |
+| Signals with a CDC reporting year / effective date | 34 / 34 |
+| — by action (`delist_banned` / `restricted_assortment` / `adjust_for_tax` / `price_freely`) | 9 / 5 / 7 / 13 |
+| Seed-driven signals with NULL dates | 26 |
+
+The 34 date-connected signals are exactly the CDC tax-carrying rows (= `gold_state_tax_burden`); the 26 NULL-date signals are the seed-driven flavor-ban / PMTA and ZYN rows. `34 + 26 = 60`, and the `pricing_action` distribution is unchanged — this change is additive columns only.
 
 Key integrity: `count == distinct(id)` and 0 null ids on every keyed Silver/Gold
 table.
@@ -161,7 +174,8 @@ table.
 ## Semantic model
 
 Direct Lake star over the Gold tables: fact `PricingSignal` (`gold_pricing_signal`)
-+ `State` (`gold_dim_state`) + `Program` (`gold_dim_program`) dimensions. Measures:
++ `State` (`gold_dim_state`) + `Program` (`gold_dim_program`) + `Date`
+(`gold_dim_date`) dimensions. Measures:
 
 | Measure | Value |
 |---|---:|
@@ -170,6 +184,23 @@ Direct Lake star over the Gold tables: fact `PricingSignal` (`gold_pricing_signa
 | Avg Tax Burden | 24.2 |
 | Pending Risk States | 2 |
 | Signals Needing Price Change | 35 |
+| Signals with Effective Date | 34 |
+
+### Date dimension — CDC-only connection (design decision)
+
+`Date` is a Direct Lake table over `gold_dim_date`, marked as the model date table
+(`dataCategory: Time` on the table, `Date` column keyed). It is joined to the fact
+by **one** relationship — `PricingSignal.'Effective Date'` → `Date.Date`
+(single-direction, many-to-one). The fact also exposes `Reporting Year` /
+`Reporting Quarter`.
+
+Because only CDC-sourced signals carry a non-null `Effective Date`, **only they
+participate in date slicing** — this is the deliberate "connect only for CDC
+sources" rule. The honest consequence: the seed-driven flavor-ban / PMTA signals
+(the `delist_banned` / `restricted_assortment` hero rows) are **not date-sliceable
+by design** — we do not fabricate dates for curated seeds. Verified live via
+`executeQueries`: slicing `[Total Signals]` by `Date[Year]` returns 34 signals
+across 2013-2027 plus a blank-year bucket of 26 (the seed rows).
 
 Reframed (refreshed) after each load so Direct Lake picks up the latest Delta tables.
 The committed TMDL under [`semantic-model/`](./semantic-model) is the source of truth;
