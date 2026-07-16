@@ -1,0 +1,7 @@
+relationship 'PricingSignal_state_State_state'
+	fromColumn: PricingSignal.State
+	toColumn: State.State
+
+relationship 'PricingSignal_product_code_Program_product_code'
+	fromColumn: PricingSignal.'Product Code'
+	toColumn: Program.'Product Code'

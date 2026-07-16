@@ -1,0 +1,32 @@
+/// PMI smoke-free product line dimension (IQOS / ZYN / VEEV). Sourced from gold_dim_program.
+table Program
+	lineageTag: c1b2c3d4-0001-4a5b-9c7d-300000000001
+
+	/// Product line code (grain key): IQOS, ZYN, VEEV.
+	column 'Product Code'
+		dataType: string
+		lineageTag: c1b2c3d4-0002-4a5b-9c7d-300000000002
+		sourceColumn: product_code
+
+	column Name
+		dataType: string
+		lineageTag: c1b2c3d4-0003-4a5b-9c7d-300000000003
+		sourceColumn: name
+
+	column Description
+		dataType: string
+		lineageTag: c1b2c3d4-0004-4a5b-9c7d-300000000004
+		sourceColumn: description
+
+	column Id
+		dataType: int64
+		isHidden
+		lineageTag: c1b2c3d4-0005-4a5b-9c7d-300000000005
+		summarizeBy: none
+		sourceColumn: id
+
+	partition Program = entity
+		mode: directLake
+		source
+			entityName: gold_dim_program
+			expressionSource: 'DirectLake - PMI Dynamic Pricing'

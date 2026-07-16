@@ -1,0 +1,13 @@
+model 'PMI Dynamic Pricing'
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-US
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation PBI_ProTooling = ["MCP-PBIModeling"]
+
+ref table PricingSignal
+ref table State
+ref table Program
