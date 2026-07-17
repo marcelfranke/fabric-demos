@@ -1,0 +1,96 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/dataBinding/1.0.0/schema.json",
+  "id": "0cec48ac-488d-43b0-9f7d-95ca1e181a28",
+  "dataBindingConfiguration": {
+    "dataBindingType": "NonTimeSeries",
+    "propertyBindings": [
+      {
+        "sourceColumnName": "channel",
+        "targetPropertyId": "272957411661494903"
+      },
+      {
+        "sourceColumnName": "city",
+        "targetPropertyId": "272957412237899006"
+      },
+      {
+        "sourceColumnName": "date",
+        "targetPropertyId": "272957411753181096"
+      },
+      {
+        "sourceColumnName": "date_key",
+        "targetPropertyId": "272957409668868101"
+      },
+      {
+        "sourceColumnName": "flavor",
+        "targetPropertyId": "272957409889754030"
+      },
+      {
+        "sourceColumnName": "id",
+        "targetPropertyId": "272957408221967911"
+      },
+      {
+        "sourceColumnName": "pack",
+        "targetPropertyId": "272957411876425685"
+      },
+      {
+        "sourceColumnName": "pricing_action",
+        "targetPropertyId": "272957411959324006"
+      },
+      {
+        "sourceColumnName": "program",
+        "targetPropertyId": "272957412098847076"
+      },
+      {
+        "sourceColumnName": "program_id",
+        "targetPropertyId": "272957411163399970"
+      },
+      {
+        "sourceColumnName": "revenue",
+        "targetPropertyId": "272957410549571410"
+      },
+      {
+        "sourceColumnName": "shop_id",
+        "targetPropertyId": "272957410350130740"
+      },
+      {
+        "sourceColumnName": "shop_name",
+        "targetPropertyId": "272957408481669438"
+      },
+      {
+        "sourceColumnName": "sku_code",
+        "targetPropertyId": "272957408671866815"
+      },
+      {
+        "sourceColumnName": "sku_id",
+        "targetPropertyId": "272957411952998756"
+      },
+      {
+        "sourceColumnName": "state",
+        "targetPropertyId": "272957411830222063"
+      },
+      {
+        "sourceColumnName": "state_id",
+        "targetPropertyId": "272957410279725872"
+      },
+      {
+        "sourceColumnName": "unit_price",
+        "targetPropertyId": "272957409012944634"
+      },
+      {
+        "sourceColumnName": "units",
+        "targetPropertyId": "272957409306377698"
+      },
+      {
+        "sourceColumnName": "year",
+        "targetPropertyId": "272957408812389679"
+      }
+    ],
+    "sourceTableProperties": {
+      "sourceType": "LakehouseTable",
+      "workspaceId": "00000000-0000-0000-0000-000000000000",
+      "itemId": "f76bf81a-26c5-890d-4963-9200e3c9f128",
+      "sourceTableName": "fact_sales_daily_2",
+      "sourceSchema": null
+    }
+  }
+}

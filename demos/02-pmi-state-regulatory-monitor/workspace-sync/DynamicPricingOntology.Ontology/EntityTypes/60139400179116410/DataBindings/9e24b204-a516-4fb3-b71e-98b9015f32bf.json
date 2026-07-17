@@ -1,0 +1,88 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/dataBinding/1.0.0/schema.json",
+  "id": "9e24b204-a516-4fb3-b71e-98b9015f32bf",
+  "dataBindingConfiguration": {
+    "dataBindingType": "NonTimeSeries",
+    "propertyBindings": [
+      {
+        "sourceColumnName": "state",
+        "targetPropertyId": "8579417639337247796"
+      },
+      {
+        "sourceColumnName": "effective_date",
+        "targetPropertyId": "8579417642407754588"
+      },
+      {
+        "sourceColumnName": "effective_date_id",
+        "targetPropertyId": "8733026688511198070"
+      },
+      {
+        "sourceColumnName": "flavor_banned",
+        "targetPropertyId": "8579417639800655908"
+      },
+      {
+        "sourceColumnName": "has_pending",
+        "targetPropertyId": "8579417639642387669"
+      },
+      {
+        "sourceColumnName": "id",
+        "targetPropertyId": "8733026687660791909"
+      },
+      {
+        "sourceColumnName": "pricing_action",
+        "targetPropertyId": "8579417641250412141"
+      },
+      {
+        "sourceColumnName": "product_code",
+        "targetPropertyId": "8579417642652367279"
+      },
+      {
+        "sourceColumnName": "program_id",
+        "targetPropertyId": "8733026687893803099"
+      },
+      {
+        "sourceColumnName": "recommendation",
+        "targetPropertyId": "49312738824245040"
+      },
+      {
+        "sourceColumnName": "registry_gated",
+        "targetPropertyId": "8579417639409669086"
+      },
+      {
+        "sourceColumnName": "reporting_quarter",
+        "targetPropertyId": "8579417639644140871"
+      },
+      {
+        "sourceColumnName": "reporting_year",
+        "targetPropertyId": "8579417643007244103"
+      },
+      {
+        "sourceColumnName": "sellable",
+        "targetPropertyId": "26056070241235896"
+      },
+      {
+        "sourceColumnName": "state_id",
+        "targetPropertyId": "8733026686130997418"
+      },
+      {
+        "sourceColumnName": "state_name",
+        "targetPropertyId": "8579417640759952142"
+      },
+      {
+        "sourceColumnName": "tax_burden",
+        "targetPropertyId": "8579417640721874437"
+      },
+      {
+        "sourceColumnName": "updated_at",
+        "targetPropertyId": "8579417641015239351"
+      }
+    ],
+    "sourceTableProperties": {
+      "sourceType": "LakehouseTable",
+      "workspaceId": "00000000-0000-0000-0000-000000000000",
+      "itemId": "f76bf81a-26c5-890d-4963-9200e3c9f128",
+      "sourceTableName": "gold_pricing_signal_2",
+      "sourceSchema": null
+    }
+  }
+}

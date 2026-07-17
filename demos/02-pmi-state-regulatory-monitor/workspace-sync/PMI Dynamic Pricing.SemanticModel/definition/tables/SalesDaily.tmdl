@@ -1,0 +1,149 @@
+/// Synthetic daily transaction-style sales fact (date × state × city × shop × sku,
+/// rows with units > 0 only). The POS-feel detail grain. Sourced from
+/// fact_sales_daily (~1.24M rows).
+table SalesDaily
+	lineageTag: e2b2c3d4-0001-4a5b-9c7d-600000000001
+
+	/// Number of daily sales rows (transaction lines) in the current filter.
+	measure Transactions = COUNTROWS(SalesDaily)
+		formatString: #,##0
+		displayFolder: Sales
+		lineageTag: e2b2c3d4-0101-4a5b-9c7d-600000000101
+
+	/// Units sold at the daily grain.
+	measure 'Daily Units' = SUM(SalesDaily[Units])
+		formatString: #,##0
+		displayFolder: Sales
+		lineageTag: e2b2c3d4-0102-4a5b-9c7d-600000000102
+
+	/// Revenue ($) at the daily grain.
+	measure 'Daily Revenue' = SUM(SalesDaily[Revenue])
+		formatString: \$#,##0
+		displayFolder: Sales
+		lineageTag: e2b2c3d4-0103-4a5b-9c7d-600000000103
+
+	column Id
+		dataType: int64
+		isHidden
+		lineageTag: e2b2c3d4-0011-4a5b-9c7d-600000000011
+		summarizeBy: none
+		sourceColumn: id
+
+	/// Transaction date (join key to the Date dimension).
+	column Date
+		dataType: dateTime
+		lineageTag: e2b2c3d4-0012-4a5b-9c7d-600000000012
+		summarizeBy: none
+		sourceColumn: date
+
+	column Year
+		dataType: int64
+		lineageTag: e2b2c3d4-0013-4a5b-9c7d-600000000013
+		summarizeBy: none
+		sourceColumn: year
+
+	column 'Date Key'
+		dataType: int64
+		isHidden
+		lineageTag: e2b2c3d4-0014-4a5b-9c7d-600000000014
+		summarizeBy: none
+		sourceColumn: date_key
+
+	column State
+		dataType: string
+		lineageTag: e2b2c3d4-0015-4a5b-9c7d-600000000015
+		dataCategory: StateOrProvince
+		summarizeBy: none
+		sourceColumn: state
+
+	column City
+		dataType: string
+		lineageTag: e2b2c3d4-0016-4a5b-9c7d-600000000016
+		dataCategory: City
+		summarizeBy: none
+		sourceColumn: city
+
+	column 'Shop Id'
+		dataType: int64
+		isHidden
+		lineageTag: e2b2c3d4-0017-4a5b-9c7d-600000000017
+		summarizeBy: none
+		sourceColumn: shop_id
+
+	column 'Shop Name'
+		dataType: string
+		lineageTag: e2b2c3d4-0018-4a5b-9c7d-600000000018
+		summarizeBy: none
+		sourceColumn: shop_name
+
+	column Channel
+		dataType: string
+		lineageTag: e2b2c3d4-0019-4a5b-9c7d-600000000019
+		summarizeBy: none
+		sourceColumn: channel
+
+	column 'Sku Id'
+		dataType: int64
+		isHidden
+		lineageTag: e2b2c3d4-0020-4a5b-9c7d-600000000020
+		summarizeBy: none
+		sourceColumn: sku_id
+
+	column 'Sku Code'
+		dataType: string
+		lineageTag: e2b2c3d4-0021-4a5b-9c7d-600000000021
+		summarizeBy: none
+		sourceColumn: sku_code
+
+	column Program
+		dataType: string
+		lineageTag: e2b2c3d4-0022-4a5b-9c7d-600000000022
+		summarizeBy: none
+		sourceColumn: program
+
+	column Flavor
+		dataType: string
+		lineageTag: e2b2c3d4-0023-4a5b-9c7d-600000000023
+		summarizeBy: none
+		sourceColumn: flavor
+
+	column Pack
+		dataType: string
+		lineageTag: e2b2c3d4-0024-4a5b-9c7d-600000000024
+		summarizeBy: none
+		sourceColumn: pack
+
+	column Units
+		dataType: int64
+		isHidden
+		lineageTag: e2b2c3d4-0025-4a5b-9c7d-600000000025
+		summarizeBy: sum
+		sourceColumn: units
+
+	/// Unit price ($) at the transaction.
+	column 'Unit Price'
+		dataType: double
+		lineageTag: e2b2c3d4-0026-4a5b-9c7d-600000000026
+		summarizeBy: none
+		sourceColumn: unit_price
+
+	column Revenue
+		dataType: double
+		isHidden
+		lineageTag: e2b2c3d4-0027-4a5b-9c7d-600000000027
+		summarizeBy: sum
+		sourceColumn: revenue
+
+	/// Regulatory pricing action in effect for this state × program.
+	column 'Pricing Action'
+		dataType: string
+		lineageTag: e2b2c3d4-0028-4a5b-9c7d-600000000028
+		summarizeBy: none
+		sourceColumn: pricing_action
+
+	partition SalesDaily = entity
+		mode: directLake
+		source
+			entityName: fact_sales_daily
+			expressionSource: 'DirectLake - PMI Dynamic Pricing'
+

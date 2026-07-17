@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "PMI Dynamic Pricing"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "7684d11a-09c7-8725-4830-2e39424faa25"
+  }
+}

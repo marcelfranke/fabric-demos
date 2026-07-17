@@ -1,0 +1,20 @@
+{
+  "properties": {
+    "activities": [
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "1051a175-64d1-9362-4b36-dd9c904e669e",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.02:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "name": "Run PMI medallion",
+        "dependsOn": []
+      }
+    ]
+  }
+}

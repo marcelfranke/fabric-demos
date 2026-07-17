@@ -1,0 +1,44 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/dataAgent/definition/dataSource/1.0.0/schema.json",
+  "artifactId": "1ca73dd5-cf8e-83a1-4bab-8921f5a91c30",
+  "workspaceId": "00000000-0000-0000-0000-000000000000",
+  "dataSourceInstructions": null,
+  "displayName": "DynamicPricingOntology",
+  "type": "ontology",
+  "userDescription": null,
+  "metadata": {},
+  "elements": [
+    {
+      "id": "PricingSignal",
+      "is_selected": true,
+      "display_name": "PricingSignal",
+      "type": "ontology.entity",
+      "description": "state,effective_date,effective_date_id,flavor_banned,has_pending,id,pricing_action,product_code,program_id,Recommendation,registry_gated,reporting_quarter,reporting_year,Sellable,state_id,state_name,tax_burden,updated_at",
+      "children": []
+    },
+    {
+      "id": "State",
+      "is_selected": true,
+      "display_name": "State",
+      "type": "ontology.entity",
+      "description": "latitude,longitude,state,state_name,id",
+      "children": []
+    },
+    {
+      "id": "Program",
+      "is_selected": true,
+      "display_name": "Program",
+      "type": "ontology.entity",
+      "description": "description,id,name,product_code",
+      "children": []
+    },
+    {
+      "id": "Date",
+      "is_selected": true,
+      "display_name": "Date",
+      "type": "ontology.entity",
+      "description": "date,id,month,month_name,month_start,quarter,quarter_label,year",
+      "children": []
+    }
+  ]
+}

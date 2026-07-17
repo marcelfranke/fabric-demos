@@ -1,0 +1,48 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/dataBinding/1.0.0/schema.json",
+  "id": "d7f192a0-b5ea-4837-aa49-14d933908042",
+  "dataBindingConfiguration": {
+    "dataBindingType": "NonTimeSeries",
+    "propertyBindings": [
+      {
+        "sourceColumnName": "date",
+        "targetPropertyId": "8742639316188210893"
+      },
+      {
+        "sourceColumnName": "id",
+        "targetPropertyId": "8742639315538247667"
+      },
+      {
+        "sourceColumnName": "month",
+        "targetPropertyId": "8742639316553198500"
+      },
+      {
+        "sourceColumnName": "month_name",
+        "targetPropertyId": "8742639316273624585"
+      },
+      {
+        "sourceColumnName": "month_start",
+        "targetPropertyId": "8742639317808639291"
+      },
+      {
+        "sourceColumnName": "quarter",
+        "targetPropertyId": "8742639316820271118"
+      },
+      {
+        "sourceColumnName": "quarter_label",
+        "targetPropertyId": "8742639316964507009"
+      },
+      {
+        "sourceColumnName": "year",
+        "targetPropertyId": "8742639319251248744"
+      }
+    ],
+    "sourceTableProperties": {
+      "sourceType": "LakehouseTable",
+      "workspaceId": "00000000-0000-0000-0000-000000000000",
+      "itemId": "f76bf81a-26c5-890d-4963-9200e3c9f128",
+      "sourceTableName": "gold_dim_date",
+      "sourceSchema": null
+    }
+  }
+}

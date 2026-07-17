@@ -1,0 +1,40 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/dataBinding/1.0.0/schema.json",
+  "id": "ca378d01-8911-4a58-a115-0baabbce167c",
+  "dataBindingConfiguration": {
+    "dataBindingType": "NonTimeSeries",
+    "propertyBindings": [
+      {
+        "sourceColumnName": "base_price",
+        "targetPropertyId": "274170697215131562"
+      },
+      {
+        "sourceColumnName": "flavor",
+        "targetPropertyId": "274170696164581871"
+      },
+      {
+        "sourceColumnName": "id",
+        "targetPropertyId": "274170697544764662"
+      },
+      {
+        "sourceColumnName": "pack",
+        "targetPropertyId": "274170695659001344"
+      },
+      {
+        "sourceColumnName": "program",
+        "targetPropertyId": "274170694055464640"
+      },
+      {
+        "sourceColumnName": "sku_code",
+        "targetPropertyId": "274170696024424917"
+      }
+    ],
+    "sourceTableProperties": {
+      "sourceType": "LakehouseTable",
+      "workspaceId": "00000000-0000-0000-0000-000000000000",
+      "itemId": "f76bf81a-26c5-890d-4963-9200e3c9f128",
+      "sourceTableName": "dim_sku",
+      "sourceSchema": null
+    }
+  }
+}

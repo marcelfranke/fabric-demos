@@ -1,0 +1,13 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/relationshipType/1.0.0/schema.json",
+  "namespace": "usertypes",
+  "id": "8740820992880150209",
+  "name": "PricingSignal_has_Program",
+  "namespaceType": "Custom",
+  "source": {
+    "entityTypeId": "60139400179116410"
+  },
+  "target": {
+    "entityTypeId": "207104452407968"
+  }
+}

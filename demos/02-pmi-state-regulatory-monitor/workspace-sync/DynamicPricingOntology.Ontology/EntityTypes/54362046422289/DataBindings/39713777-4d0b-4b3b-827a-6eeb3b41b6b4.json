@@ -1,0 +1,52 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/dataBinding/1.0.0/schema.json",
+  "id": "39713777-4d0b-4b3b-827a-6eeb3b41b6b4",
+  "dataBindingConfiguration": {
+    "dataBindingType": "NonTimeSeries",
+    "propertyBindings": [
+      {
+        "sourceColumnName": "channel",
+        "targetPropertyId": "275126326450335038"
+      },
+      {
+        "sourceColumnName": "city",
+        "targetPropertyId": "275126326942759863"
+      },
+      {
+        "sourceColumnName": "city_id",
+        "targetPropertyId": "275126325679822733"
+      },
+      {
+        "sourceColumnName": "demand_factor",
+        "targetPropertyId": "275126327184352734"
+      },
+      {
+        "sourceColumnName": "id",
+        "targetPropertyId": "275126326016998217"
+      },
+      {
+        "sourceColumnName": "population_weight",
+        "targetPropertyId": "275126326337699059"
+      },
+      {
+        "sourceColumnName": "shop_code",
+        "targetPropertyId": "275126326485645361"
+      },
+      {
+        "sourceColumnName": "shop_name",
+        "targetPropertyId": "275126325862332411"
+      },
+      {
+        "sourceColumnName": "state",
+        "targetPropertyId": "275126326826904884"
+      }
+    ],
+    "sourceTableProperties": {
+      "sourceType": "LakehouseTable",
+      "workspaceId": "00000000-0000-0000-0000-000000000000",
+      "itemId": "f76bf81a-26c5-890d-4963-9200e3c9f128",
+      "sourceTableName": "dim_shop",
+      "sourceSchema": null
+    }
+  }
+}

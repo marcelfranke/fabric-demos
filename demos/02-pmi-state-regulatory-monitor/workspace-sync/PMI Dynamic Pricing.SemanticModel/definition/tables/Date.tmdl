@@ -1,0 +1,63 @@
+/// Calendar date dimension over the real dates present in the CDC data (daily grain).
+/// Marked as the model date table. Only CDC-sourced pricing signals carry an Effective
+/// Date, so only they join this table — seed-driven flavor-ban / PMTA signals are not
+/// date-sliceable by design. Sourced from gold_dim_date.
+table Date
+	lineageTag: d1b2c3d4-0001-4a5b-9c7d-400000000001
+	dataCategory: Time
+
+	/// Calendar date (grain key).
+	column Date
+		dataType: dateTime
+		isKey
+		lineageTag: d1b2c3d4-0002-4a5b-9c7d-400000000002
+		summarizeBy: none
+		sourceColumn: date
+
+	column Year
+		dataType: int64
+		lineageTag: d1b2c3d4-0003-4a5b-9c7d-400000000003
+		summarizeBy: none
+		sourceColumn: year
+
+	column Quarter
+		dataType: int64
+		lineageTag: d1b2c3d4-0004-4a5b-9c7d-400000000004
+		summarizeBy: none
+		sourceColumn: quarter
+
+	column 'Quarter Label'
+		dataType: string
+		lineageTag: d1b2c3d4-0005-4a5b-9c7d-400000000005
+		sourceColumn: quarter_label
+
+	column Month
+		dataType: int64
+		lineageTag: d1b2c3d4-0006-4a5b-9c7d-400000000006
+		summarizeBy: none
+		sourceColumn: month
+
+	column 'Month Name'
+		dataType: string
+		lineageTag: d1b2c3d4-0007-4a5b-9c7d-400000000007
+		sourceColumn: month_name
+
+	column 'Month Start'
+		dataType: dateTime
+		lineageTag: d1b2c3d4-0008-4a5b-9c7d-400000000008
+		summarizeBy: none
+		sourceColumn: month_start
+
+	column Id
+		dataType: int64
+		isHidden
+		lineageTag: d1b2c3d4-0009-4a5b-9c7d-400000000009
+		summarizeBy: none
+		sourceColumn: id
+
+	partition Date = entity
+		mode: directLake
+		source
+			entityName: gold_dim_date
+			expressionSource: 'DirectLake - PMI Dynamic Pricing'
+

@@ -1,0 +1,7 @@
+expression 'DirectLake - PMI Dynamic Pricing' =
+		let
+		    Source = AzureStorage.DataLake("https://onelake.dfs.fabric.microsoft.com/aa0aa5fa-e638-4e4a-a0a2-a6da3e515f05/e3c9f128-9200-4963-890d-26c5f76bf81a", [HierarchicalNavigation=true])
+		in
+		    Source
+	lineageTag: 6b1d2f4a-1c3e-4a5b-9d7e-0f1a2b3c4d5e
+

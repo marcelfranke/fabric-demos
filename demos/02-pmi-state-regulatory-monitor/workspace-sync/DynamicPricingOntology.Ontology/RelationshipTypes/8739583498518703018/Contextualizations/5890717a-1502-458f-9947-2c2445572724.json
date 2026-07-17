@@ -1,0 +1,23 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/contextualization/1.0.0/schema.json",
+  "id": "5890717a-1502-458f-9947-2c2445572724",
+  "dataBindingTable": {
+    "workspaceId": "00000000-0000-0000-0000-000000000000",
+    "itemId": "f76bf81a-26c5-890d-4963-9200e3c9f128",
+    "sourceTableName": "gold_pricing_signal_2",
+    "sourceSchema": null,
+    "sourceType": "LakehouseTable"
+  },
+  "sourceKeyRefBindings": [
+    {
+      "sourceColumnName": "id",
+      "targetPropertyId": "8733026687660791909"
+    }
+  ],
+  "targetKeyRefBindings": [
+    {
+      "sourceColumnName": "state_id",
+      "targetPropertyId": "6819450310299177607"
+    }
+  ]
+}

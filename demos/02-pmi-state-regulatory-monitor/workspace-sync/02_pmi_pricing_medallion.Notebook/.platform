@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "02_pmi_pricing_medallion",
+    "description": "PMI dynamic-pricing medallion: CDC STATE System -> Bronze/Silver/Gold pricing signals"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "1051a175-64d1-9362-4b36-dd9c904e669e"
+  }
+}

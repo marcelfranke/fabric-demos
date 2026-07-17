@@ -1,0 +1,167 @@
+/// One row per state + product line (grain = state × program). The Gold serving
+/// table the pricing screen reads. Sourced from gold_pricing_signal.
+table PricingSignal
+	lineageTag: a1b2c3d4-0001-4a5b-9c7d-100000000001
+
+	/// Number of pricing signals in the current filter context.
+	measure 'Total Signals' = COUNTROWS(PricingSignal)
+		formatString: #,##0
+		displayFolder: Pricing
+		lineageTag: a1b2c3d4-0002-4a5b-9c7d-100000000002
+
+	/// Distinct states where at least one SKU is restricted or banned (sellable = FALSE).
+	measure 'Restricted or Banned States' = CALCULATE(DISTINCTCOUNT(PricingSignal[State]), PricingSignal[Sellable] = FALSE)
+		formatString: #,##0
+		displayFolder: Pricing
+		lineageTag: a1b2c3d4-0003-4a5b-9c7d-100000000003
+
+	/// Average state vapor excise tax burden (%) across signals that carry a tax rate.
+	measure 'Avg Tax Burden' = AVERAGE(PricingSignal[Tax Burden])
+		formatString: #,##0.0
+		displayFolder: Pricing
+		lineageTag: a1b2c3d4-0004-4a5b-9c7d-100000000004
+
+	/// Distinct states with a pending bill (pricing risk to watch).
+	measure 'Pending Risk States' = CALCULATE(DISTINCTCOUNT(PricingSignal[State]), PricingSignal[Has Pending] = TRUE)
+		formatString: #,##0
+		displayFolder: Pricing
+		lineageTag: a1b2c3d4-0005-4a5b-9c7d-100000000005
+
+	/// Signals needing a price change this quarter = any action other than price_freely.
+	measure 'Signals Needing Price Change' = CALCULATE(COUNTROWS(PricingSignal), PricingSignal[Pricing Action] <> "price_freely")
+		formatString: #,##0
+		displayFolder: Pricing
+		lineageTag: a1b2c3d4-0006-4a5b-9c7d-100000000006
+
+	/// Count of signals carrying a CDC-sourced effective date (i.e. date-connected signals).
+	measure 'Signals with Effective Date' = COUNTROWS(FILTER(PricingSignal, NOT ISBLANK(PricingSignal[Effective Date])))
+		formatString: #,##0
+		displayFolder: Pricing
+		lineageTag: a1b2c3d4-0022-4a5b-9c7d-100000000022
+
+	/// Selected state name for the Pricing Decision card; defaults to New Jersey (the flavor-ban delist aha) until the map cross-filters a state.
+	measure 'Selected State' = COALESCE(CALCULATE(SELECTEDVALUE(PricingSignal[State Name]), ALL(PricingSignal[Product Code])), "New Jersey")
+		displayFolder: Decision
+		lineageTag: a1b2c3d4-0023-4a5b-9c7d-100000000023
+
+	/// Sellable? verdict for the selected state + product line.
+	measure 'Selected Sellable' = VAR es = COALESCE(CALCULATE(SELECTEDVALUE(PricingSignal[State Name]), ALL(PricingSignal[Product Code])), "New Jersey") VAR ep = COALESCE(SELECTEDVALUE(PricingSignal[Product Code]), "VEEV") VAR v = CALCULATE(SELECTEDVALUE(PricingSignal[Sellable]), PricingSignal[State Name] = es, PricingSignal[Product Code] = ep) RETURN IF(ISBLANK(v), "No signal for this product", IF(v, "Yes - sellable", "No - delisted"))
+		displayFolder: Decision
+		lineageTag: a1b2c3d4-0024-4a5b-9c7d-100000000024
+
+	/// The pricing action (the decision) for the selected state + product line.
+	measure 'Selected Action' = VAR es = COALESCE(CALCULATE(SELECTEDVALUE(PricingSignal[State Name]), ALL(PricingSignal[Product Code])), "New Jersey") VAR ep = COALESCE(SELECTEDVALUE(PricingSignal[Product Code]), "VEEV") RETURN CALCULATE(SELECTEDVALUE(PricingSignal[Pricing Action], "No signal for this product"), PricingSignal[State Name] = es, PricingSignal[Product Code] = ep)
+		displayFolder: Decision
+		lineageTag: a1b2c3d4-0025-4a5b-9c7d-100000000025
+
+	/// The one-line pricing recommendation for the selected state + product line.
+	measure 'Selected Recommendation' = VAR es = COALESCE(CALCULATE(SELECTEDVALUE(PricingSignal[State Name]), ALL(PricingSignal[Product Code])), "New Jersey") VAR ep = COALESCE(SELECTEDVALUE(PricingSignal[Product Code]), "VEEV") RETURN CALCULATE(SELECTEDVALUE(PricingSignal[Recommendation], "No monitored signal for this product in the selected state."), PricingSignal[State Name] = es, PricingSignal[Product Code] = ep)
+		displayFolder: Decision
+		lineageTag: a1b2c3d4-0026-4a5b-9c7d-100000000026
+
+	/// Status-palette hex for the selected pricing action (field-value conditional formatting on the decision card).
+	measure 'Selected Action Color' = VAR es = COALESCE(CALCULATE(SELECTEDVALUE(PricingSignal[State Name]), ALL(PricingSignal[Product Code])), "New Jersey") VAR ep = COALESCE(SELECTEDVALUE(PricingSignal[Product Code]), "VEEV") VAR a = CALCULATE(SELECTEDVALUE(PricingSignal[Pricing Action]), PricingSignal[State Name] = es, PricingSignal[Product Code] = ep) RETURN SWITCH(a, "adjust_for_tax", "#FFB020", "delist_banned", "#FF5C6A", "price_freely", "#5FD08B", "restricted_assortment", "#5AA9FF", "watch_pending", "#8A7CFF", "#D4FF3A")
+		displayFolder: Decision
+		lineageTag: a1b2c3d4-0027-4a5b-9c7d-100000000027
+
+	/// Tax burden for the selected state + product line, as display text; defaults to the New Jersey + VEEV signal.
+	measure 'Selected Tax Burden' = VAR es = COALESCE(CALCULATE(SELECTEDVALUE(PricingSignal[State Name]), ALL(PricingSignal[Product Code])), "New Jersey") VAR ep = COALESCE(SELECTEDVALUE(PricingSignal[Product Code]), "VEEV") VAR t = CALCULATE(SELECTEDVALUE(PricingSignal[Tax Burden]), PricingSignal[State Name] = es, PricingSignal[Product Code] = ep) RETURN IF(ISBLANK(t), "No excise tax", FORMAT(t, "0.0") & "%")
+		displayFolder: Decision
+		lineageTag: a1b2c3d4-0028-4a5b-9c7d-100000000028
+
+	column State
+		dataType: string
+		lineageTag: a1b2c3d4-0007-4a5b-9c7d-100000000007
+		dataCategory: StateOrProvince
+		sourceColumn: state
+
+	column 'State Name'
+		dataType: string
+		lineageTag: a1b2c3d4-0008-4a5b-9c7d-100000000008
+		dataCategory: StateOrProvince
+		sourceColumn: state_name
+
+	/// Product line (IQOS / ZYN / VEEV).
+	column 'Product Code'
+		dataType: string
+		lineageTag: a1b2c3d4-0009-4a5b-9c7d-100000000009
+		sourceColumn: product_code
+
+	/// TRUE when the SKU can be sold in the state (no flavor ban / registry gate).
+	column Sellable
+		dataType: boolean
+		lineageTag: a1b2c3d4-0010-4a5b-9c7d-100000000010
+		sourceColumn: sellable
+
+	/// State vapor excise tax burden (%). Blank for programs with no e-cig excise (e.g. ZYN pouches).
+	column 'Tax Burden'
+		dataType: double
+		lineageTag: a1b2c3d4-0011-4a5b-9c7d-100000000011
+		sourceColumn: tax_burden
+
+	/// Pricing action: price_freely | adjust_for_tax | delist_banned | restricted_assortment | watch_pending.
+	column 'Pricing Action'
+		dataType: string
+		lineageTag: a1b2c3d4-0012-4a5b-9c7d-100000000012
+		sourceColumn: pricing_action
+
+	/// One-line pricing recommendation for the state + program.
+	column Recommendation
+		dataType: string
+		lineageTag: a1b2c3d4-0013-4a5b-9c7d-100000000013
+		sourceColumn: recommendation
+
+	column 'Flavor Banned'
+		dataType: boolean
+		lineageTag: a1b2c3d4-0014-4a5b-9c7d-100000000014
+		sourceColumn: flavor_banned
+
+	column 'Registry Gated'
+		dataType: boolean
+		lineageTag: a1b2c3d4-0015-4a5b-9c7d-100000000015
+		sourceColumn: registry_gated
+
+	column 'Has Pending'
+		dataType: boolean
+		lineageTag: a1b2c3d4-0016-4a5b-9c7d-100000000016
+		sourceColumn: has_pending
+
+	column Id
+		dataType: int64
+		isHidden
+		lineageTag: a1b2c3d4-0017-4a5b-9c7d-100000000017
+		summarizeBy: none
+		sourceColumn: id
+
+	column 'Updated At'
+		dataType: dateTime
+		isHidden
+		lineageTag: a1b2c3d4-0018-4a5b-9c7d-100000000018
+		sourceColumn: updated_at
+
+	/// CDC reporting-period effective date. Blank for seed-driven signals (flavor-ban / PMTA).
+	column 'Effective Date'
+		dataType: dateTime
+		lineageTag: a1b2c3d4-0019-4a5b-9c7d-100000000019
+		sourceColumn: effective_date
+
+	/// CDC reporting year. Blank for seed-driven signals.
+	column 'Reporting Year'
+		dataType: int64
+		lineageTag: a1b2c3d4-0020-4a5b-9c7d-100000000020
+		summarizeBy: none
+		sourceColumn: reporting_year
+
+	/// CDC reporting quarter (1-4). Blank for seed-driven signals.
+	column 'Reporting Quarter'
+		dataType: int64
+		lineageTag: a1b2c3d4-0021-4a5b-9c7d-100000000021
+		summarizeBy: none
+		sourceColumn: reporting_quarter
+
+	partition PricingSignal = entity
+		mode: directLake
+		source
+			entityName: gold_pricing_signal
+			expressionSource: 'DirectLake - PMI Dynamic Pricing'
+

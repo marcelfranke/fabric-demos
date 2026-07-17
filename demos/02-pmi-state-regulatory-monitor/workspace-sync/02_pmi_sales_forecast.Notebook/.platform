@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "02_pmi_sales_forecast",
+    "description": "PMI synthetic sales + demand forecast + revenue-at-risk, coupled to the regulatory pricing signal"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "d7e648e1-22a4-bf7c-4f4c-86784042f0e7"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/contextualization/1.0.0/schema.json",
+  "id": "5ba02ab5-6850-433b-928c-64e47cdcf21e",
+  "dataBindingTable": {
+    "workspaceId": "00000000-0000-0000-0000-000000000000",
+    "itemId": "f76bf81a-26c5-890d-4963-9200e3c9f128",
+    "sourceTableName": "fact_sales_daily_2",
+    "sourceSchema": null,
+    "sourceType": "LakehouseTable"
+  },
+  "sourceKeyRefBindings": [
+    {
+      "sourceColumnName": "id",
+      "targetPropertyId": "272957408221967911"
+    }
+  ],
+  "targetKeyRefBindings": [
+    {
+      "sourceColumnName": "sku_id",
+      "targetPropertyId": "274170697544764662"
+    }
+  ]
+}

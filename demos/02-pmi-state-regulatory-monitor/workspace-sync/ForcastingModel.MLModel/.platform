@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "MLModel",
+    "displayName": "ForcastingModel",
+    "description": ""
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "4cc70ddf-0dcd-9179-46fe-a63df2bc995a"
+  }
+}

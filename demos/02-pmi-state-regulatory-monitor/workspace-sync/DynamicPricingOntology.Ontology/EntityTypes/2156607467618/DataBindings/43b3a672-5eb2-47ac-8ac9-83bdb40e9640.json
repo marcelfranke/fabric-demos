@@ -1,0 +1,36 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/dataBinding/1.0.0/schema.json",
+  "id": "43b3a672-5eb2-47ac-8ac9-83bdb40e9640",
+  "dataBindingConfiguration": {
+    "dataBindingType": "NonTimeSeries",
+    "propertyBindings": [
+      {
+        "sourceColumnName": "latitude",
+        "targetPropertyId": "6819450313098136188"
+      },
+      {
+        "sourceColumnName": "longitude",
+        "targetPropertyId": "6819450313490254295"
+      },
+      {
+        "sourceColumnName": "state",
+        "targetPropertyId": "6819450311243276883"
+      },
+      {
+        "sourceColumnName": "state_name",
+        "targetPropertyId": "6819450310989167297"
+      },
+      {
+        "sourceColumnName": "id",
+        "targetPropertyId": "6819450310299177607"
+      }
+    ],
+    "sourceTableProperties": {
+      "sourceType": "LakehouseTable",
+      "workspaceId": "00000000-0000-0000-0000-000000000000",
+      "itemId": "f76bf81a-26c5-890d-4963-9200e3c9f128",
+      "sourceTableName": "gold_dim_state",
+      "sourceSchema": null
+    }
+  }
+}

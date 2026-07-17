@@ -1,0 +1,13 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/relationshipType/1.0.0/schema.json",
+  "namespace": "usertypes",
+  "id": "276127340100579045",
+  "name": "Sales_has_Sku",
+  "namespaceType": "Custom",
+  "source": {
+    "entityTypeId": "85666292439434"
+  },
+  "target": {
+    "entityTypeId": "261844841261425"
+  }
+}
