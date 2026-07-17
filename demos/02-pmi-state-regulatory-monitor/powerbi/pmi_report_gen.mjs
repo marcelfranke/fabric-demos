@@ -320,10 +320,10 @@ function ruleBlock(x, y, w, h, dot, title, sub) {
   ];
 }
 
-function slicer(pos, e, p, header, { mode = 'Dropdown', sync = null } = {}) {
+function slicer(pos, e, p, header, { mode = 'Dropdown', sync = null, showHeader = true, pad = 8 } = {}) {
   const vco = {
     ...cardVCO(),
-    padding: [{ properties: { top: L('8D'), bottom: L('8D'), left: L('8D'), right: L('8D') } }],
+    padding: [{ properties: { top: L(`${pad}D`), bottom: L(`${pad}D`), left: L(`${pad}D`), right: L(`${pad}D`) } }],
   };
   const visual = {
     visualType: 'slicer',
@@ -331,7 +331,7 @@ function slicer(pos, e, p, header, { mode = 'Dropdown', sync = null } = {}) {
     objects: {
       data: [{ properties: { mode: { expr: { Literal: { Value: `'${mode}'` } } } } }],
       header: [{ properties: {
-        show: { expr: { Literal: { Value: 'true' } } },
+        show: { expr: { Literal: { Value: showHeader ? 'true' : 'false' } } },
         text: { expr: { Literal: { Value: `'${header}'` } } },
         fontColor: solid(NAVY),
       } }],
@@ -586,7 +586,16 @@ function header(title, active = 0) {
   // in the title-row right gutter, above every page body (bodies start y>=96), so
   // no existing visual is relaid out. Sync = per-visual syncGroup 'StateSync' (same
   // group name on every page keeps the selection in lockstep across pages).
-  out.push(slicer({ x: 1030, y: 50, width: 226, height: 34 }, 'State', 'State Name', 'State', { sync: 'StateSync' }));
+  //
+  // The visual's built-in header is hidden: at 34px there is no vertical room for
+  // both a header title row AND the dropdown control, so a shown header collapses
+  // the visual to just the static 'State' label. Instead we render our own compact
+  // 'State' caption to the left and let the headerless Dropdown control fill the
+  // 34px band (reduced padding) so it renders as a real, clickable filter.
+  out.push(textbox({ x: 1030, y: 57, width: 42, height: 20 }, [
+    { value: 'State', textStyle: { fontFamily: 'Lato, sans-serif', fontSize: '13px', color: NAVY, fontWeight: 'bold' } },
+  ]));
+  out.push(slicer({ x: 1078, y: 50, width: 178, height: 34 }, 'State', 'State Name', 'State', { sync: 'StateSync', showHeader: false, pad: 2 }));
   return out;
 }
 
