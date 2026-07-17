@@ -1,0 +1,1 @@
+This is an auto-created file for demos/02-pmi-state-regulatory-monitor/workspace-sync
