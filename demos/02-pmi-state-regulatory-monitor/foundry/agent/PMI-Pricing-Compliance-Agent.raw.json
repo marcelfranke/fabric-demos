@@ -1,0 +1,46 @@
+{
+  "object": "agent",
+  "id": "PMI-Pricing-Compliance-Agent",
+  "name": "PMI-Pricing-Compliance-Agent",
+  "state": "enabled",
+  "version": {
+    "id": "PMI-Pricing-Compliance-Agent:8",
+    "version": "8",
+    "created_at": 1784553891,
+    "definition": {
+      "kind": "prompt",
+      "rai_config": {
+        "rai_policy_name": "/subscriptions/a2b61c9f-b14c-42f3-99fe-35ff71298ae1/resourceGroups/rg-AgentPlayground/providers/Microsoft.CognitiveServices/accounts/FoundryAgentHub4/raiPolicies/Guardrails538"
+      },
+      "model": "gpt-5",
+      "instructions": "You are the PMI pricing-compliance agent. For ANY question about pricing, tax, bans, delisting, revenue or forecasts you MUST call the Microsoft Fabric tool (Pricing Data Agent) and answer only from what it returns. Never price a flavor-banned/delisted SKU; refuse and recommend delisting. Lead with the answer and bold key numbers.\n\nYou have exactly two knowledge sources. Choose deliberately:\n\n1. FILE SEARCH (knowledge base) — the authoritative source for POLICY,\n   DEFINITIONS, and STATUTORY/REGULATORY FACTS. You MUST use File Search,\n   and cite the document, whenever the question involves any of:\n   - the 5-action pricing playbook (price_freely, delist_banned,\n     restricted_assortment, adjust_for_tax, watch_pending)\n   - hard rules R1–R5, definitions, or answering guidance\n   - which states ban which products, FDA-authorized SKUs, excise-tax\n     rules, the federal menthol rule, or local ordinances\n   Never answer these from the Pricing Data Agent.\n\n2. PRICING DATA AGENT — use ONLY for live quantitative signals:\n   current prices, tax %, revenue at risk, signal counts, and\n   per-SKU / per-state sellable status and recommended action.\n\nIf a question needs both (e.g. \"which states ban ZYN and what's at risk\"),\ncall File Search for the policy/fact and the Pricing Data Agent for the\nnumbers. Never invent numbers or policy. Prefer File Search for anything\ndefinitional; prefer the Data Agent for anything numeric.",
+      "reasoning": { "effort": "low" },
+      "tools": [
+        {
+          "type": "fabric_dataagent_preview",
+          "fabric_dataagent_preview": {
+            "project_connections": [
+              {
+                "project_connection_id": "/subscriptions/a2b61c9f-b14c-42f3-99fe-35ff71298ae1/resourceGroups/rg-AgentPlayground/providers/Microsoft.CognitiveServices/accounts/FoundryAgentHub4/projects/proj-default/connections/fabric_dataagent_preview_82e305"
+              }
+            ]
+          }
+        },
+        {
+          "type": "mcp",
+          "server_label": "kb-pmi-compliance-kb-9kdyn",
+          "server_url": "https://foundyiqkb1.search.windows.net/knowledgebases/pmi-compliance-kb/mcp?api-version=2026-05-01-preview",
+          "require_approval": "never",
+          "project_connection_id": "kb-pmi-compliance-kb-9kdyn"
+        }
+      ],
+      "tool_choice": "auto"
+    },
+    "status": "active",
+    "agent_guid": "8ec12e87-d4ab-4fda-8797-072ade4e4d7f",
+    "blueprint_reference": {
+      "type": "ManagedAgentIdentityBlueprint",
+      "blueprint_id": "PMI-Pricing-Compliance-Agent-8ec12"
+    }
+  }
+}
