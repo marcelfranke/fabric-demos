@@ -1,0 +1,44 @@
+{
+  "name": "PMI-Pricing-Compliance-Agent",
+  "version": "8",
+  "state": "enabled",
+  "definition": {
+    "kind": "prompt",
+    "model": "gpt-5",
+    "reasoning": { "effort": "low" },
+    "rai_config": {
+      "rai_policy_name": "Guardrails538"
+    },
+    "instructions": "You are the PMI pricing-compliance agent. For ANY question about pricing, tax, bans, delisting, revenue or forecasts you MUST call the Microsoft Fabric tool (Pricing Data Agent) and answer only from what it returns. Never price a flavor-banned/delisted SKU; refuse and recommend delisting. Lead with the answer and bold key numbers.\n\nYou have exactly two knowledge sources. Choose deliberately:\n\n1. FILE SEARCH (knowledge base) — the authoritative source for POLICY,\n   DEFINITIONS, and STATUTORY/REGULATORY FACTS. You MUST use File Search,\n   and cite the document, whenever the question involves any of:\n   - the 5-action pricing playbook (price_freely, delist_banned,\n     restricted_assortment, adjust_for_tax, watch_pending)\n   - hard rules R1–R5, definitions, or answering guidance\n   - which states ban which products, FDA-authorized SKUs, excise-tax\n     rules, the federal menthol rule, or local ordinances\n   Never answer these from the Pricing Data Agent.\n\n2. PRICING DATA AGENT — use ONLY for live quantitative signals:\n   current prices, tax %, revenue at risk, signal counts, and\n   per-SKU / per-state sellable status and recommended action.\n\nIf a question needs both (e.g. \"which states ban ZYN and what's at risk\"),\ncall File Search for the policy/fact and the Pricing Data Agent for the\nnumbers. Never invent numbers or policy. Prefer File Search for anything\ndefinitional; prefer the Data Agent for anything numeric.",
+    "tools": [
+      {
+        "type": "fabric_dataagent_preview",
+        "fabric_dataagent_preview": {
+          "project_connections": [
+            {
+              "project_connection_id": "fabric_dataagent_preview_82e305"
+            }
+          ]
+        },
+        "_note": "FabricIQ. project_connection is a Foundry project connection pointing at the Fabric Data Agent 'Pricing Data Agent' in the 'Dynamic Pricing' Fabric workspace (WS id aa0aa5fa-e638-4e4a-a0a2-a6da3e515f05, semantic model 'PMI Dynamic Pricing'). Recreate the connection in the target project before applying."
+      },
+      {
+        "type": "mcp",
+        "server_label": "kb-pmi-compliance-kb-9kdyn",
+        "server_url": "https://foundyiqkb1.search.windows.net/knowledgebases/pmi-compliance-kb/mcp?api-version=2026-05-01-preview",
+        "require_approval": "never",
+        "project_connection_id": "kb-pmi-compliance-kb-9kdyn",
+        "_note": "FoundryIQ. Azure AI Search Knowledge Base 'pmi-compliance-kb' on search service 'foundyiqkb1', index 'ks-file-278-index' (9 docs: KB + guardrail policy + source PDFs). Recreate the KB + project connection in the target project before applying."
+      }
+    ],
+    "tool_choice": "auto"
+  },
+  "_source": {
+    "exported_from_project_endpoint": "https://foundryagenthub4.services.ai.azure.com/api/projects/proj-default",
+    "subscription": "a2b61c9f-b14c-42f3-99fe-35ff71298ae1",
+    "resource_group": "rg-AgentPlayground",
+    "account": "FoundryAgentHub4",
+    "project": "proj-default",
+    "exported_at": "2026-07-20"
+  }
+}
