@@ -12,16 +12,16 @@ import {
 } from '@microsoft/rayfin-core';
 
 // A PMI smoke-free product line being monitored (renamed from the reference
-// demo's "Project"). Seeded programs: IQOS (heated tobacco), ZYN (nicotine
-// pouch), VEEV (vapor / e-cigarette).
+// demo's "Project"). Seeded programs: IQOS (heated tobacco) and ZYN (nicotine
+// pouch).
 @entity()
 @authenticated('*')
 export class Program {
   @uuid() id!: string;
   @text({ max: 200 }) name!: string;
   @text({ max: 1000, optional: true }) description?: string;
-  // IQOS | ZYN | VEEV — stable product code used for deterministic ids + lookups.
-  @set('IQOS', 'ZYN', 'VEEV') product_code!: 'IQOS' | 'ZYN' | 'VEEV';
+  // IQOS | ZYN — stable product code used for deterministic ids + lookups.
+  @set('IQOS', 'ZYN') product_code!: 'IQOS' | 'ZYN';
   @date({ optional: true }) created_at?: Date;
   @many(() => RegulatoryItem) items?: RegulatoryItem[];
 }
@@ -99,7 +99,7 @@ export class PricingSignal {
   // 2-letter USPS state code.
   @text({ max: 2 }) state!: string;
   @text({ max: 100 }) state_name!: string;
-  @set('IQOS', 'ZYN', 'VEEV') product_code!: 'IQOS' | 'ZYN' | 'VEEV';
+  @set('IQOS', 'ZYN') product_code!: 'IQOS' | 'ZYN';
   // true when the SKU can be sold as-is; false when a flavor ban or a PMTA
   // registry law blocks/gates it (sellable = !(flavor_banned || registry_gated)).
   @boolean() sellable!: boolean;

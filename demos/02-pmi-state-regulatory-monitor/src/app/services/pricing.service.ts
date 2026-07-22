@@ -44,7 +44,6 @@ export function signalId(state: string, product: ProductCode): string {
 const PRODUCT_BY_PROGRAM_ID: Record<string, ProductCode> = {
   [programId('IQOS')]: 'IQOS',
   [programId('ZYN')]: 'ZYN',
-  [programId('VEEV')]: 'VEEV',
 };
 
 /**
@@ -128,8 +127,7 @@ export function computeSignals(items: RegulatoryItem[]): ComputedSignal[] {
     const [state, product] = key.split('#') as [string, ProductCode];
     const state_name = US_STATE_NAMES[state] ?? state;
 
-    // Flavor bans only apply to flavored SKUs (the hero programs ZYN + VEEV),
-    // never to IQOS heated tobacco.
+    // Flavor bans only apply to flavored SKUs (the hero programs ZYN + IQOS).
     const flavor_banned =
       PRICING_HERO_PROGRAMS.includes(product) &&
       group.some((i) => i.category === 'flavor_ban' && i.status === 'enacted');

@@ -64,19 +64,19 @@ export const CDC_USER_AGENT =
   'fabric-demos/pmi-state-regulatory-monitor (+https://github.com/marcelfranke/fabric-demos)';
 
 // Category → default Program product code. Kept as a single lookup so the
-// program mapping is trivial to change. All CDC vapor legislation defaults to
-// VEEV; the curated seed layer additionally assigns flavor bans to ZYN.
+// program mapping is trivial to change. All CDC regulatory legislation defaults
+// to IQOS; the curated seed layer additionally assigns flavor bans to ZYN.
 export const CATEGORY_PROGRAM: Record<RegulatoryCategory, ProductCode> = {
-  tax: 'VEEV',
-  youth_access: 'VEEV',
-  licensure: 'VEEV',
-  smokefree_air: 'VEEV',
-  preemption: 'VEEV',
-  flavor_ban: 'VEEV',
-  pmta_registry: 'VEEV',
+  tax: 'IQOS',
+  youth_access: 'IQOS',
+  licensure: 'IQOS',
+  smokefree_air: 'IQOS',
+  preemption: 'IQOS',
+  flavor_ban: 'IQOS',
+  pmta_registry: 'IQOS',
 };
 
-// The three seeded programs (product lines).
+// The seeded programs (product lines).
 export interface ProgramSeed {
   product_code: ProductCode;
   name: string;
@@ -86,7 +86,6 @@ export interface ProgramSeed {
 export const PROGRAM_SEEDS: readonly ProgramSeed[] = [
   { product_code: 'IQOS', name: 'IQOS', description: 'Heated tobacco system (heat-not-burn).' },
   { product_code: 'ZYN', name: 'ZYN', description: 'Oral nicotine pouches.' },
-  { product_code: 'VEEV', name: 'VEEV', description: 'Vapor / e-cigarette product line.' },
 ] as const;
 
 // Human-readable labels for the RegulatoryItem category set.
@@ -152,9 +151,9 @@ export const ASSUMED_ML_PER_PACK = 5;
 export const ASSUMED_RETAIL_PRICE_USD = 20;
 
 // The pricing hero programs (hit by tax + flavor bans + registry laws). IQOS is
-// federal-milestone context and is not screened for flavor bans.
-export const PRICING_HERO_PROGRAMS: readonly ProductCode[] = ['ZYN', 'VEEV'];
-export const DEFAULT_PRICING_PROGRAM: ProductCode = 'VEEV';
+// the primary product line; ZYN is screened for flavor bans.
+export const PRICING_HERO_PROGRAMS: readonly ProductCode[] = ['ZYN', 'IQOS'];
+export const DEFAULT_PRICING_PROGRAM: ProductCode = 'IQOS';
 
 // ── Revenue-at-risk (synthetic) ───────────────────────────────────────────
 // The app has no real revenue basis, so the Revenue-at-risk what-if uses a
@@ -217,9 +216,9 @@ export interface SeedItem {
 }
 
 // Statewide flavor bans — nicotine pouches (ZYN) are often included, so these
-// attach to both ZYN and VEEV. Enacted statewide restrictions as of the
+// attach to both ZYN and IQOS. Enacted statewide restrictions as of the
 // snapshot date in the README. Nine jurisdictions with a statewide flavored
-// vapor/tobacco restriction — reconciles to ZYN 9 delist signals.
+// tobacco restriction — reconciles to ZYN 9 delist signals.
 const FLAVOR_BAN_STATES: readonly { state: string; note: string; url: string }[] = [
   { state: 'CA', note: 'Prop 31 flavored tobacco ban (upheld 2022)', url: 'https://oag.ca.gov/tobacco/flavored' },
   { state: 'DC', note: 'flavored tobacco product ban (2022)', url: 'https://dchealth.dc.gov/service/tobacco-control' },
@@ -234,7 +233,7 @@ const FLAVOR_BAN_STATES: readonly { state: string; note: string; url: string }[]
 
 // PMTA "registry" / directory laws: a product may only be sold if it holds an
 // FDA marketing order or has a timely-filed PMTA. IA and UT are court-challenged
-// → pending. Attach to VEEV.
+// → pending. Attach to IQOS.
 const PMTA_REGISTRY_ENACTED = ['AL', 'FL', 'KY', 'LA', 'NC', 'OK', 'VA', 'WI', 'MS'] as const;
 const PMTA_REGISTRY_PENDING = ['IA', 'UT'] as const;
 const PMTA_REGISTRY_URL =
@@ -294,7 +293,7 @@ const CURATED_TAX_SAMPLE: readonly { state: string; value: string; effective: st
 
 // Remaining jurisdictions with no tax/ban/registry/pending rule → a neutral
 // monitored baseline so every state resolves to a Pricing Signal (price_freely).
-// These 17 states complete VEEV's coverage of all 51 jurisdictions (50 + DC).
+// These 17 states complete IQOS's coverage of all 51 jurisdictions (50 + DC).
 const CURATED_BASELINE_STATES: readonly string[] = [
   'AK', 'AZ', 'AR', 'HI', 'ID', 'MI', 'MO', 'MT', 'NE', 'NH',
   'ND', 'OR', 'SC', 'SD', 'TN', 'TX', 'WY',
@@ -313,7 +312,7 @@ export const SEED_ITEMS: readonly SeedItem[] = [
     };
     return [
       { ...base, programs: ['ZYN'] as ProductCode[] },
-      { ...base, programs: ['VEEV'] as ProductCode[] },
+      { ...base, programs: ['IQOS'] as ProductCode[] },
     ];
   }),
   ...PMTA_REGISTRY_ENACTED.map<SeedItem>((state) => ({
@@ -324,7 +323,7 @@ export const SEED_ITEMS: readonly SeedItem[] = [
     title: 'PMTA registry / directory law — enacted',
     provision_value: 'FDA order or pending PMTA required',
     source_url: PMTA_REGISTRY_URL,
-    programs: ['VEEV'],
+    programs: ['IQOS'],
   })),
   ...PMTA_REGISTRY_PENDING.map<SeedItem>((state) => ({
     slug: 'pmta-registry',
@@ -334,7 +333,7 @@ export const SEED_ITEMS: readonly SeedItem[] = [
     title: 'PMTA registry / directory law — court-challenged (pending)',
     provision_value: 'FDA order or pending PMTA required',
     source_url: PMTA_REGISTRY_URL,
-    programs: ['VEEV'],
+    programs: ['IQOS'],
   })),
 ];
 
@@ -353,13 +352,13 @@ export const SEED_TAX_ITEMS: readonly SeedItem[] = CURATED_TAX_SAMPLE.map<SeedIt
     provision_value: t.value,
     effective_date: t.effective,
     source_url: 'https://www.cdc.gov/statesystem/factsheets/ecigarette/EcigTax.html',
-    programs: ['VEEV'],
+    programs: ['IQOS'],
   })
 );
 
 // Neutral monitored baseline for states with no tax/ban/registry rule — used
-// ONLY in seeded mode so every jurisdiction resolves to a VEEV Pricing Signal
-// (price_freely). Completes VEEV's 51-jurisdiction coverage. Illustrative.
+// ONLY in seeded mode so every jurisdiction resolves to an IQOS Pricing Signal
+// (price_freely). Completes IQOS's 51-jurisdiction coverage. Illustrative.
 export const SEED_BASELINE_ITEMS: readonly SeedItem[] = CURATED_BASELINE_STATES.map<SeedItem>(
   (state) => ({
     slug: 'baseline-monitored',
@@ -369,7 +368,7 @@ export const SEED_BASELINE_ITEMS: readonly SeedItem[] = CURATED_BASELINE_STATES.
     title: 'Monitored — no statewide pricing restriction',
     provision_value: 'Retail license only; no assortment or flavor restriction',
     source_url: 'https://www.cdc.gov/statesystem/factsheets/ecigarette/index.html',
-    programs: ['VEEV'],
+    programs: ['IQOS'],
   })
 );
 

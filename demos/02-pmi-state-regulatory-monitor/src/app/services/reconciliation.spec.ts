@@ -62,11 +62,10 @@ function distinctStates(signals: ComputedSignal[]): number {
 describe('PMI seed reconciliation (offline)', () => {
   const signals = computeSignals(buildSeedItems());
 
-  it('produces 60 pricing signals (VEEV 51 / ZYN 9 / IQOS 0)', () => {
+  it('produces 60 pricing signals (IQOS 51 / ZYN 9)', () => {
     expect(signals.length).toBe(60);
-    expect(byProduct(signals, 'VEEV')).toBe(51);
+    expect(byProduct(signals, 'IQOS')).toBe(51);
     expect(byProduct(signals, 'ZYN')).toBe(9);
-    expect(byProduct(signals, 'IQOS')).toBe(0);
   });
 
   it('reconciles the action split 18 / 9 / 25 / 7 / 1', () => {

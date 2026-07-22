@@ -32,9 +32,8 @@ import {
           <span class="field__label">Program</span>
           <select [ngModel]="program()" (ngModelChange)="setProgram($event)">
             <option value="">All programs</option>
-            <option value="VEEV">VEEV</option>
-            <option value="ZYN">ZYN</option>
             <option value="IQOS">IQOS</option>
+            <option value="ZYN">ZYN</option>
           </select>
         </label>
         <label class="field">

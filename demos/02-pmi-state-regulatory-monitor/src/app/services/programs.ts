@@ -11,7 +11,7 @@ export function programId(code: ProductCode): string {
 }
 
 /**
- * Ensure the three PMI Programs (IQOS / ZYN / VEEV) exist with deterministic
+ * Ensure the PMI Programs (IQOS / ZYN) exist with deterministic
  * ids. Idempotent and race-safe (deterministic ids converge). Bypasses the
  * DataService write-gate on purpose: both the seeded flow and the CDC sync flow
  * need the programs present regardless of sync mode.

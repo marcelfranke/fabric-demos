@@ -42,7 +42,7 @@ import { SeedService } from '../../services/seed.service';
         <p class="lead">
           Either load a curated snapshot of state pricing rules, or pull them
           live from the CDC STATE System. Every state resolves to a
-          <em>Pricing Signal</em> for ZYN &amp; VEEV. Switch later from Settings.
+          <em>Pricing Signal</em> for IQOS &amp; ZYN. Switch later from Settings.
         </p>
       </header>
 
@@ -60,7 +60,7 @@ import { SeedService } from '../../services/seed.service';
           </p>
           <ul class="card__notes">
             <li>Full read &amp; write access</li>
-            <li>IQOS, ZYN &amp; VEEV programs</li>
+            <li>IQOS &amp; ZYN programs</li>
             <li>Point-in-time curated dataset</li>
           </ul>
           <button
