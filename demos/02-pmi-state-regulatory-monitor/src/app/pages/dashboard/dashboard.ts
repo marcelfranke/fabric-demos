@@ -661,7 +661,7 @@ export class Dashboard implements OnInit {
 
   // Which program's signals color the map + drive the chart.
   protected readonly program = signal<ProductCode>(DEFAULT_PRICING_PROGRAM);
-  protected readonly programOptions: readonly ProductCode[] = ['ZYN', 'VEEV', 'IQOS'];
+  protected readonly programOptions: readonly ProductCode[] = ['ZYN', 'IQOS'];
 
   protected readonly actions = PRICING_ACTION_ORDER;
 

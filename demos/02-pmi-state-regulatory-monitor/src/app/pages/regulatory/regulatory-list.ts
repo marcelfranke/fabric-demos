@@ -43,7 +43,6 @@ import {
           <select [ngModel]="programFilter()" (ngModelChange)="programFilter.set($event)">
             <option value="">All programs</option>
             <option value="ZYN">ZYN</option>
-            <option value="VEEV">VEEV</option>
             <option value="IQOS">IQOS</option>
           </select>
         </label>

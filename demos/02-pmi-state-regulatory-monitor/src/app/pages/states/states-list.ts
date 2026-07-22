@@ -175,8 +175,8 @@ export class StatesList implements OnInit {
   protected readonly signals = signal<PricingSignal[]>([]);
   protected readonly loading = signal(true);
   protected readonly search = signal('');
-  protected readonly program = signal<ProductCode>('VEEV');
-  protected readonly programOptions: readonly ProductCode[] = ['VEEV', 'ZYN', 'IQOS'];
+  protected readonly program = signal<ProductCode>('IQOS');
+  protected readonly programOptions: readonly ProductCode[] = ['IQOS', 'ZYN'];
 
   protected readonly actionByState = computed(() => {
     const by: Record<string, PricingAction> = {};

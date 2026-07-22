@@ -34,7 +34,7 @@ interface Intent {
   topN?: number;
 }
 
-const PROGRAMS: ProductCode[] = ['VEEV', 'ZYN', 'IQOS'];
+const PROGRAMS: ProductCode[] = ['IQOS', 'ZYN'];
 
 // Keyword → action. First hit wins (checked in this order).
 const ACTION_HINTS: [RegExp, PricingAction][] = [
@@ -58,7 +58,7 @@ export class QueryAssistantService {
     'Where should I delist ZYN?',
     'Which states have pending bills?',
     'Top 5 states by excise tax',
-    'Total revenue at risk for VEEV',
+    'Total revenue at risk for IQOS',
   ];
 
   ask(query: string, signals: readonly PricingSignal[]): AskResult {

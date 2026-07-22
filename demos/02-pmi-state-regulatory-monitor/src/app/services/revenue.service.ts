@@ -64,11 +64,9 @@ export interface WhatIfResult {
 const MARGIN_RATE = 0.45;
 
 // Relative program size — only affects how baseline spreads across programs.
-// (IQOS has 0 signals so its weight is never exercised.)
 const PROGRAM_WEIGHT: Record<ProductCode, number> = {
-  VEEV: 1,
+  IQOS: 1,
   ZYN: 0.6,
-  IQOS: 0.4,
 };
 
 function isAtRisk(action: PricingAction): boolean {

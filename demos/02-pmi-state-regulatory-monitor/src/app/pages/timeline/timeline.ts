@@ -42,9 +42,8 @@ const DAY = 86_400_000;
           <span class="field__label">Program</span>
           <select [ngModel]="program()" (ngModelChange)="program.set($event)">
             <option value="">All programs</option>
-            <option value="VEEV">VEEV</option>
-            <option value="ZYN">ZYN</option>
             <option value="IQOS">IQOS</option>
+            <option value="ZYN">ZYN</option>
           </select>
         </label>
         <label class="field">
