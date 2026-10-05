@@ -1,6 +1,7 @@
 import { RayfinClient } from '@microsoft/rayfin-client';
 
 import type { DashboardSchema } from '../../rayfin/data/schema';
+import type { PatentsFunctionsSchema } from '../../rayfin/functions/src/types';
 
 export interface RayfinClientConfig {
   baseUrl: string;
@@ -19,17 +20,17 @@ export interface RayfinClientConfig {
   localDev: boolean;
 }
 
-let client: RayfinClient<DashboardSchema> | null = null;
+let client: RayfinClient<DashboardSchema, PatentsFunctionsSchema> | null = null;
 let localDev = false;
 
 export function initRayfinClient(
   config: RayfinClientConfig
-): RayfinClient<DashboardSchema> {
+): RayfinClient<DashboardSchema, PatentsFunctionsSchema> {
   if (client) {
     throw new Error('Rayfin client is already initialized.');
   }
   // TODO: Pass `functionsBaseUrl` directly once the published SDK includes it in the config type.
-  client = new RayfinClient<DashboardSchema>({
+  client = new RayfinClient<DashboardSchema, PatentsFunctionsSchema>({
     baseUrl: config.baseUrl,
     publishableKey: config.publishableKey,
     useProxy: false,
@@ -42,7 +43,10 @@ export function initRayfinClient(
   return client;
 }
 
-export function getRayfinClient(): RayfinClient<DashboardSchema> {
+export function getRayfinClient(): RayfinClient<
+  DashboardSchema,
+  PatentsFunctionsSchema
+> {
   if (!client) {
     throw new Error(
       'Rayfin client not initialized. Call bootstrapAuth() first.'

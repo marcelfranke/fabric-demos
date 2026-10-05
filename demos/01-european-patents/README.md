@@ -104,6 +104,46 @@ data — and is hosted on Fabric via Rayfin's Fabric auth provider.
 App caveats (UI-only read-only, public-repos-only sync, GitHub rate limits, on-load
 "daily" sync) are inline in the source; see `src/app/services/` and `rayfin/data/schema.ts`.
 
+### Live patents data (read-only lakehouse)
+
+The **Patents** page (`/patents`) surfaces the `eps_lakehouse` `gold_` Kimball star
+**live and read-only** — KPI tiles, a server-paged applications table, and top
+applicants/inventors. Nothing is copied into the Rayfin store; every number is queried on
+demand from the lakehouse **SQL analytics endpoint**.
+
+Because a browser can't query a Fabric SQL endpoint directly (AAD audience, CORS, no
+driver), the read runs **server-side** in a **Fabric User Data Function (UDF)** under
+`rayfin/functions/`. The frontend calls it via `client.functions.<name>.invoke(...)`.
+Four read-only, parameterized functions are exposed: `kpiSummary`, `listApplications`
+(paged + filtered), `topApplicants`, `topInventors`. All SQL is parameterized (no string
+concatenation), uses explicit column lists, and clamps page size / limit — never
+`SELECT *` unbounded, never any write/DDL.
+
+**Enable + connect (one-time, in the Fabric portal):**
+
+1. `rayfin/rayfin.yml` has `services.functions.enabled: true`.
+2. Deploy the UDF item, then open it → **Manage connections** → add the `eps_lakehouse`
+   **SQL analytics endpoint** connection. Fabric generates a connection **alias** and
+   handles auth via the UDF item identity — **no connection string or credentials live in
+   code**. The lakehouse SQL endpoint is inherently read-only.
+
+**Environment variables:**
+
+| Variable | Where | Purpose |
+|---|---|---|
+| `EPS_LAKEHOUSE_SQL_ALIAS` | **Function** app setting (`rayfin/functions/local.settings.json` for local dev) | The portal-generated managed-connection alias the UDF binds to. Defaults to `eps_lakehouse_sql`. The lakehouse id is **not** in code — the managed connection encapsulates it. |
+| `VITE_RAYFIN_FUNCTIONS_URL` | **App** (`.env.local`) | Local UDF host URL (e.g. `http://localhost:7071`) so `invoke()` routes to the locally running function runtime during dev. Unset in production → calls the deployed item's `/functions/<name>/invoke`. |
+
+The existing `VITE_RAYFIN_API_URL`, `VITE_RAYFIN_PUBLISHABLE_KEY`, and `VITE_FABRIC_*`
+variables are unchanged.
+
+> **Column-name caveat.** The application-grain `gold_fact_application` star is built by a
+> notebook whose DDL is not in this branch, so the physical table/column names in
+> `rayfin/functions/src/schema.ts` follow the repo's naming convention and **must be
+> reconciled against the live endpoint** before first deploy. `schema.ts` is the single
+> place to fix them, and its header carries the exact `INFORMATION_SCHEMA.COLUMNS` query to
+> run. See [`rayfin/functions/README.md`](./rayfin/functions/README.md) for details.
+
 ## Getting started
 
 Build the Fabric backend first, then run the app.
