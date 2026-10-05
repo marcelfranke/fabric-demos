@@ -1,5 +1,5 @@
-id: pmi-state-regulatory-monitor
-name: pmi-state-regulatory-monitor
+id: pmi-state-regulatory-monitorv2
+name: pmi-state-regulatory-monitorv2
 version: 1.0.0
 services:
   auth:
@@ -11,6 +11,10 @@ services:
     allowedRedirectUris:
       - http://localhost:5173
       - https://avid-poppy-6efd266772-westus.webapp.fabricapps.net
+      - https://hale-dale-df4f9c838c-westus.webapp.fabricapps.net
+      - https://kind-shard-d3a401b6fb-westus.webapp.fabricapps.net
+      - https://human-heath-29fbef87a0-westus.webapp.fabricapps.net
+      - https://naive-oak-f1fc3ed69a-westus.webapp.fabricapps.net
   data:
     enabled: true
     dialect: mssql

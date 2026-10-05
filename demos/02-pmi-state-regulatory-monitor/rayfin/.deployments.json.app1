@@ -1,0 +1,15 @@
+{
+  "deployments": {
+    "dynamic-pricing": {
+      "fabricItemId": "91369857-c06d-4066-b1b4-23cc8753d3ea",
+      "fabricApiUrl": "https://ddddda30aaa347f5bd1173194639ea8b.pbidedicated.windows.net/webapi/capacities/ddddda30-aaa3-47f5-bd11-73194639ea8b/workloads/BaaS/BaaSService/automatic/v1/workspaces/aa0aa5fa-e638-4e4a-a0a2-a6da3e515f05/appbackends/91369857-c06d-4066-b1b4-23cc8753d3ea/",
+      "fabricWorkspaceId": "aa0aa5fa-e638-4e4a-a0a2-a6da3e515f05",
+      "fabricTenantId": "1cf0faf3-5363-470a-8369-df15f6562c64",
+      "publishableKey": "pk-XBaHbRLou1OhsHrQNN7Q",
+      "hostingUrl": "https://human-heath-29fbef87a0-westus.webapp.fabricapps.net",
+      "fabricDeepLink": "https://app.fabric.microsoft.com/groups/aa0aa5fa-e638-4e4a-a0a2-a6da3e515f05/appbackends/91369857-c06d-4066-b1b4-23cc8753d3ea?ctid=1cf0faf3-5363-470a-8369-df15f6562c64",
+      "deployedAt": "2026-07-23T04:58:22.557Z"
+    }
+  },
+  "active": "dynamic-pricing"
+}
