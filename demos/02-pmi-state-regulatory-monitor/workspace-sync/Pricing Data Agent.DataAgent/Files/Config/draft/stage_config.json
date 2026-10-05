@@ -1,4 +1,4 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/dataAgent/definition/stageConfiguration/1.0.0/schema.json",
-  "aiInstructions": null
+  "aiInstructions": "This source is the PMI Dynamic Pricing semantic model. It is the system of record\nfor per-state/per-program pricing status and revenue at risk.\n\nValid values:\n- PricingSignal[Product Code]: \"ZYN\", \"IQOS\"\n- PricingSignal[Pricing Action]: \"price_freely\", \"adjust_for_tax\",\n  \"delist_banned\", \"restricted_assortment\", \"watch_pending\"\n\nRules:\n- \"delisted\" / \"banned\" / \"flavor-banned\" ALWAYS means Pricing Action = \"delist_banned\".\n- To count ban states, filter PricingSignal[Product Code] and [Pricing Action] and\n  DISTINCTCOUNT PricingSignal[State].\n- Revenue at risk is the measure [Revenue at Risk] in SalesMonthly. It MUST be filtered\n  through Program[Product Code] and 'State'[State Name] — NEVER through PricingSignal\n  columns (that relationship is one-directional and returns 0 or the grand total).\n- Never answer 0 for ZYN delist without checking Product Code=\"ZYN\" AND Action=\"delist_banned\"."
 }

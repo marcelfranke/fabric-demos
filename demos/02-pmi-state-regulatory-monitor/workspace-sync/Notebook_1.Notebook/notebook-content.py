@@ -22,24 +22,33 @@
 
 # CELL ********************
 
-# Welcome to your new notebook
-# Type here in the cell editor to add code!
+# MAGIC %%sql
+# MAGIC 
+# MAGIC update fact_sales_daily
+# MAGIC set sku_code = 'IQOS-BB'
+# MAGIC where sku_code = 'VEEV-BB'
 
-sql_query = """
-select
-	fs.*,
-	ds.id as state_id,
-	dp.id as program_id
-from fact_sales_daily fs
-left join gold_dim_state ds on fs.state = ds.state
-left join gold_dim_program dp on fs.program = dp.name
-"""
+# METADATA ********************
 
-# 2. Führt die Abfrage aus und speichert das Ergebnis in einem DataFrame
-df = spark.sql(sql_query)
+# META {
+# META   "language": "sparksql",
+# META   "language_group": "synapse_pyspark"
+# META }
 
-# 3. Schreibt das Ergebnis als neue Delta-Tabelle in Ihr Lakehouse
-df.write.format("delta").mode("overwrite").saveAsTable("fact_sales_daily_2")
+# CELL ********************
+
+# MAGIC %%sql
+# MAGIC SELECT * FROM gold_pricing_signal
+
+# METADATA ********************
+
+# META {
+# META   "language": "sparksql",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
 
 # METADATA ********************
 
