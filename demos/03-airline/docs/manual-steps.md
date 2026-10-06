@@ -27,5 +27,11 @@ No gap from phase 2. Phase 2 works out the recovery rules in `src/hubdemo/rules.
 and the scenario file on the build machine. It calls no Microsoft SDK or REST API, needs no cloud
 resource and asks nothing new of a person.
 
+No gap from phase 3. Phase 3 generates the row-level tables and the event timeline on the build
+machine. Parquet comes from pyarrow and the event file is JSON lines written with the standard
+library, so there is no Microsoft SDK or REST API in the phase at all. The files land in the
+gitignored `data/` folder; nothing has to exist in a cloud tenant yet, and a person is asked nothing
+new. Phase 4 is the first phase that needs `az login` and a Fabric workspace.
+
 Points that are in preview, undocumented or contradictory but not yet blocking are tracked in
 `verify-list.md`, not here. A point moves from there to here only when a phase stops on it.

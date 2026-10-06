@@ -10,7 +10,7 @@ States: `not started`, `in progress`, `done`, `blocked`.
 | 00 bootstrap | done | `ruff check .` clean, `pytest -q` 8 passed, `scripts/check_prereqs.py --env example --dry-run` lists all 19 empty keys | CI workflow does not run from this path (V32), Fabric CLI not installed, `config/env.demo.yaml` not created yet, Learn MCP search returns nothing (V31) |
 | 01 scenario contract | done | `ruff check .` clean, `pytest -q` 19 passed, `hubdemo describe --scenario scenario/qr004.yaml` prints the expected totals line, `hubdemo docs` writes `docs/data-dictionary.md` | The window formula lives in `scenario.py` for now and moves to `rules.py` in phase 2 (rule 4) |
 | 02 rules engine | done | `ruff check .` clean, `pytest -q` 100 passed, `pytest -q --cov=hubdemo.rules --cov-branch` 100 percent statement and branch coverage of `rules.py`, no number from the scenario file written as a literal in `rules.py` | The wording of `explain`, `plan_text`, `member_text` and the action lines is invented (V34), `cargo_protected` is true when no shipment is affected (V35), `bags_protected` counts only kept connections whose bags make it (V36), `min_transfer_min` on the shipments is unused (V37), `Platinum` is named in code as the top tier (V38) |
-| 03 synthetic data | not started | — | — |
+| 03 synthetic data | done | `ruff check .` clean, `pytest -q` 133 passed, `hubdemo generate --out data` writes ten Parquet files plus `flight_events.jsonl`, `hubdemo validate --data data` reports the rows reproduce the scenario file, `--scale 20` leaves the result unchanged, no number from the scenario file written as a literal in `generate.py` or `events.py` | Background arrivals get an empty `origin` because the scenario names a city but no airport code (V39), next flights get an empty `gate_id` (V40), `concourse` is derived from the first letter of the gate (V41), the `transfer_rules` descriptions are invented (V42), the `tier_benefits` source note is invented (V43), the event texts are invented (V44), `departure_delay_min` is read from the scenario during validation because no row model carries it (V45), `expected.at_risk_totals` is deliberately not re-checked (V46), the given and family name lists are invented (V47) |
 | 04 fabric foundation | not started | — | First phase that needs cloud resources. `az login` and the Fabric CLI are prerequisites, see `manual-steps.md` |
 | 05 real time | not started | — | — |
 | 06 ontology | not started | — | — |
@@ -155,3 +155,71 @@ the same one phase 0 and phase 1 used. No cloud resource was touched.
   `bags_protected` counts bags only where the connection is kept and the bags make the window;
   the shipment field `min_transfer_min` is not read, `rules.cargo_min` is; and `Platinum` is the
   top tier name in code.
+
+## Phase 3 — synthetic data
+
+**Built**
+
+- `src/hubdemo/generate.py`. The row generator. It builds every lakehouse table from section 2.1
+  of the demo spec out of the loaded scenario and one seeded `random.Random`, writes them as
+  Parquet with an explicit Arrow schema per table, reads them back, and rebuilds a `Scenario`
+  object from the rows so the result can be compared with the file. Public names:
+  `build_dataset`, `write_dataset`, `read_dataset`, `read_table`, `dataset_digest`,
+  `rebuild_scenario`, `check_dataset`, `schema_for`, `data_dir`, `Dataset` and `GenerateError`.
+- `src/hubdemo/events.py`. The event timeline. One `departed` event per background arrival, the
+  trigger event at its own time, and a `landed` event for the inbound at the new eta. Seven rows,
+  sorted by time then flight then type, written as JSON lines. It imports `hubdemo.models` only.
+- No number from `scenario/qr004.yaml` is written in `generate.py` or `events.py` as a literal,
+  the same rule that governs `rules.py`. Every count, threshold, time and identifier comes off the
+  loaded scenario. The two generator constants that were close to a scenario number, the remark
+  spacing and the passengers per scaled flight, were moved off those values on purpose and say so
+  in a comment.
+- `hubdemo generate` and `hubdemo validate` in `src/hubdemo/cli.py`. `generate` takes
+  `--scenario`, `--seed`, `--out`, `--scale` and `--dry-run` and prints a count per table.
+  `validate` takes `--scenario` and `--data`, recomputes the totals, the windows, the at risk set
+  and the outcome of the proposed plan from the rows, and exits 1 with a list of differences if
+  anything disagrees with the `expected` block.
+- `tests/test_generate.py`. 33 cases. They cover the four properties the phase asks for, that
+  validation passes for seed 42 and for two other seeds, that the poisoned remark appears exactly
+  once and on the right onward flight, that no generated passport or phone matches a realistic
+  pattern, and that `--scale 20` leaves every expected result unchanged. They also cover
+  determinism through a content hash rather than file bytes, the read back path, the
+  `GenerateError` paths and the shape of the event timeline. Every expectation is read from the
+  scenario object, so the tests assert the contract and not the code.
+
+**Verified**
+
+Everything below ran from `demos/03-airline` on the local Python 3.11.17 virtual environment,
+the same one phase 0, phase 1 and phase 2 used. No cloud resource was touched.
+
+| Check | Result |
+| --- | --- |
+| `ruff check .` | `All checks passed!`, exit code 0 |
+| `pytest -q` | `133 passed in 2.43s`, exit code 0. Phase 2 ended at 100, so phase 3 adds 33. |
+| `hubdemo generate --out data` | exit code 0. `flights 20`, `gates 17`, `passengers 268`, `members 63`, `bookings 268`, `bags 299`, `cargo_shipments 3`, `next_flights 3`, `transfer_rules 7`, `tier_benefits 4`, `flight_events 7`. 268 is `inbound.pax_onboard`, 63 is `expected.totals.connecting_members`, 299 bags is 195 transfer bags plus one bag each for the 104 passengers who end in Doha, and the 20 flights are the inbound, 11 onward, 3 next and 5 background arrivals. |
+| `hubdemo validate --data data` | `the rows reproduce the scenario file`, exit code 0 |
+| `hubdemo generate --out data --scale 20` | exit code 0. `flights 80`, `gates 77`, `passengers 628`, `bookings 628`, `bags 659`. Members, cargo, next flights, transfer rules, tier benefits and events are unchanged at 63, 3, 3, 7, 4 and 7. |
+| `hubdemo validate --data data` after `--scale 20` | `the rows reproduce the scenario file`, exit code 0. This is rule 9 of the phase, proven at run time as well as in a test. |
+| No scenario number as a literal in `generate.py` or `events.py` | Searched both files for every number in `scenario/qr004.yaml`. Zero matches, exit code 0. |
+
+The written files land in `demos/03-airline/data`, which is already in `.gitignore` and is not
+committed. At the default scale that is 11 files and about 33 KB, the largest being
+`passengers.parquet` at just under 9 KB.
+
+**Open**
+
+- Phase 3 produces nothing that has to exist in a cloud tenant. The generator writes local
+  Parquet and JSON lines, reads them back locally, and makes no network call. Phase 4 is the
+  first phase that touches Fabric or Azure.
+- Nine points went on the verify list for a human to confirm, V39 to V47. In short: background
+  arrivals carry an empty `origin` and next flights an empty `gate_id`, because the scenario names
+  a city and a time but no airport code and no gate; `concourse` is derived from the first letter
+  of the gate; the transfer rule descriptions, the tier benefit source note, the event texts and
+  the given and family name lists are all invented here because the spec fixes the numbers but not
+  the words; `departure_delay_min` is read from the scenario during validation because no row
+  model carries it; and `expected.at_risk_totals` is deliberately not re-checked, because summing
+  passengers, bags and members over the at risk flights would re-implement impact maths outside
+  `rules.py`, which rule 4 forbids. The proposed plan outcome already exercises the per flight
+  passenger, bag, member and tier counts for all three at risk flights.
+- V31 stays open. The Microsoft Learn MCP server still returns empty results. Phase 3 needed no
+  platform API, so nothing was blocked by it.
