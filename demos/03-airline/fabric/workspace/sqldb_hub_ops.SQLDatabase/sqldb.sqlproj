@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Project file for the SQL database sqldb_hub_ops.
+
+  The SQL database definition article
+  https://learn.microsoft.com/rest/api/fabric/articles/item-management/definitions/sql-database-definition
+  describes two formats, dacpac and sqlproj. This item uses sqlproj because the
+  parts are plain text and can be read in a pull request. The article requires
+  exactly one .sqlproj file; the SDK picks up every .sql file below this folder,
+  so the table scripts in dbo/Tables are included without being listed here.
+-->
+<Project Sdk="Microsoft.Build.Sql/1.0.0">
+  <PropertyGroup>
+    <Name>sqldb_hub_ops</Name>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.SqlAzureV12DatabaseSchemaProvider</DSP>
+    <ModelCollation>1033, CI</ModelCollation>
+  </PropertyGroup>
+</Project>

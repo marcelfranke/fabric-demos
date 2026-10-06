@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "KQLDatabase",
+    "displayName": "hubdb",
+    "description": "KQL database with flight_events, reference copies and the ConnectionWindows function."
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "7b1f0a52-4c3d-4a0e-9f21-0a1b2c3d0003"
+  }
+}

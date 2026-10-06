@@ -11,7 +11,7 @@ States: `not started`, `in progress`, `done`, `blocked`.
 | 01 scenario contract | done | `ruff check .` clean, `pytest -q` 19 passed, `hubdemo describe --scenario scenario/qr004.yaml` prints the expected totals line, `hubdemo docs` writes `docs/data-dictionary.md` | The window formula lives in `scenario.py` for now and moves to `rules.py` in phase 2 (rule 4) |
 | 02 rules engine | done | `ruff check .` clean, `pytest -q` 100 passed, `pytest -q --cov=hubdemo.rules --cov-branch` 100 percent statement and branch coverage of `rules.py`, no number from the scenario file written as a literal in `rules.py` | The wording of `explain`, `plan_text`, `member_text` and the action lines is invented (V34), `cargo_protected` is true when no shipment is affected (V35), `bags_protected` counts only kept connections whose bags make it (V36), `min_transfer_min` on the shipments is unused (V37), `Platinum` is named in code as the top tier (V38) |
 | 03 synthetic data | done | `ruff check .` clean, `pytest -q` 133 passed, `hubdemo generate --out data` writes ten Parquet files plus `flight_events.jsonl`, `hubdemo validate --data data` reports the rows reproduce the scenario file, `--scale 20` leaves the result unchanged, no number from the scenario file written as a literal in `generate.py` or `events.py` | Background arrivals get an empty `origin` because the scenario names a city but no airport code (V39), next flights get an empty `gate_id` (V40), `concourse` is derived from the first letter of the gate (V41), the `transfer_rules` descriptions are invented (V42), the `tier_benefits` source note is invented (V43), the event texts are invented (V44), `departure_delay_min` is read from the scenario during validation because no row model carries it (V45), `expected.at_risk_totals` is deliberately not re-checked (V46), the given and family name lists are invented (V47) |
-| 04 fabric foundation | not started | — | First phase that needs cloud resources. `az login` and the Fabric CLI are prerequisites, see `manual-steps.md` |
+| 04 fabric foundation | done | `ruff check .` clean, `pytest -q` 179 passed and 1 skipped, and `scripts/fabric_bootstrap.py`, `scripts/upload_landing.py` and `fabric/deploy.py` each ran `--env example --dry-run` and exited 0 without a network call | Neither of the two "Done when" items could be run, because no Fabric tenant exists yet. V48 to V58 wait for a first real deploy. Five new manual steps, 5 to 9, are now in `manual-steps.md` |
 | 05 real time | not started | — | — |
 | 06 ontology | not started | — | — |
 | 07 rules function | not started | — | — |
@@ -223,3 +223,102 @@ committed. At the default scale that is 11 files and about 33 KB, the largest be
   passenger, bag, member and tier counts for all three at risk flights.
 - V31 stays open. The Microsoft Learn MCP server still returns empty results. Phase 3 needed no
   platform API, so nothing was blocked by it.
+
+## Phase 4 — fabric foundation
+
+**Built**
+
+- `src/hubdemo/fabric_api.py` is the small Fabric REST client the scripts share. It reads a token
+  through `DefaultAzureCredential`, sends one request with a timeout, retries a 429 using the
+  `Retry-After` header, walks a list endpoint page by page through the continuation token and
+  finds an item by display name. Every constant and every call carries the documentation URL it
+  came from in a comment next to it, which is what rule 2 asks for.
+- `scripts/fabric_bootstrap.py` is deliverable 1. With `--dry-run` it prints the five things it
+  would do and the configuration keys that are still empty, and makes no network call at all.
+  Without it, it finds the capacity by display name, looks for a workspace with the configured
+  name and creates one on that capacity only when it is missing, so a second run changes nothing.
+- `fabric/workspace/` holds the item definitions, deliverable 2, sixteen files across five items:
+  `lh_hub.Lakehouse`, `eh_hub.Eventhouse`, `hubdb.KQLDatabase`, `sqldb_hub_ops.SQLDatabase` and
+  `nb_load_reference.Notebook`. Each one has a `.platform` file with a stable logical id. The KQL
+  database carries `DatabaseSchema.kql`, which creates the `flight_events` table from section 2.2
+  of the spec, its ingestion mapping and the `ConnectionWindows` function. The SQL database is a
+  `sqlproj` with one `.sql` file per table for `plans`, `approvals`, `actions` and
+  `security_events`, each with named primary key, foreign key and check constraints.
+- `fabric/workspace/parameter.yml` holds the two placeholder ids the notebook needs, the default
+  lakehouse and its workspace, so fabric-cicd can replace them per environment. It sits next to
+  the item folders rather than at `fabric/parameter.yml`, because fabric-cicd requires the file in
+  the root of the directory it is given. That deviation from the prompt is V54.
+- `scripts/upload_landing.py` is deliverable 3. It finds the generated Parquet files, refuses to
+  start when one is missing and names the command that produces them, then uploads each one to
+  `lh_hub.Lakehouse/Files/landing` through the OneLake DFS endpoint with overwrite on, so running
+  it twice leaves the same ten files. It uploads Parquet only. `flight_events.jsonl` is left for
+  the phase 5 eventstream.
+- `fabric/deploy.py` is deliverable 4. It reads the item folders, resolves the workspace by name
+  and hands the directory to fabric-cicd's `publish_all_items`. It deliberately does not call
+  `unpublish_all_orphan_items`, because that removes anything in the workspace the repository does
+  not know about, and nothing in this demo should delete a resource a person created.
+- `tests/live/test_fabric_foundation.py` is deliverable 5. It compares the row count of every
+  lakehouse table against the row count of the generated file it came from, by querying the
+  lakehouse SQL analytics endpoint over ODBC. It skips itself unless `HUBDEMO_LIVE` is set and
+  `pyodbc` is installed, so it never blocks the offline suite.
+- `tests/test_fabric_assets.py` checks everything about phase 4 that can be checked without a
+  tenant: that each item folder exists, that the `.platform` files are complete and their logical
+  ids unique, that the KQL schema uses only the commands a definition file is allowed to contain,
+  that each SQL file creates the table its name promises, that the notebook reads the landing path
+  and writes a table, that `parameter.yml` names both placeholders, and that all three scripts
+  produce a sensible plan and a clean `--dry-run`.
+- `src/hubdemo/config.py` gained `get_optional`, which returns a default instead of raising when a
+  key is empty. `get` still fails loudly and is still what the live paths use. The dry runs need
+  the softer one, because `config/env.example.yaml` is empty on purpose.
+- `pyproject.toml` gained four dependencies, `fabric-cicd`, `azure-identity`,
+  `azure-storage-file-datalake` and `requests`, and a ruff exclude for `fabric/workspace`, because
+  the item definition files are platform artefacts and not project source.
+
+**Verified**
+
+Everything below ran from `demos/03-airline` on the local Python 3.11.17 virtual environment,
+the same one phase 0 to phase 3 used. No cloud resource was touched and no network call was made.
+
+| Check | Result |
+| --- | --- |
+| `ruff check .` | `All checks passed!`, exit code 0 |
+| `pytest -q` | `179 passed, 1 skipped in 2.40s`, exit code 0 |
+| `python scripts/fabric_bootstrap.py --env example --dry-run` | printed the five planned steps, listed `fabric.capacity_name` and `fabric.workspace_name` as still empty, ended with `no network call was made`, exit code 0 |
+| `python scripts/upload_landing.py --env example --dry-run` | listed all ten Parquet files with their sizes and target paths under `lh_hub.Lakehouse/Files/landing`, ended with `dry run, no network call was made`, exit code 0 |
+| `python fabric/deploy.py --env example --dry-run` | listed the five item types and the five items it would publish, said it removes nothing, ended with `dry run, no network call was made`, exit code 0 |
+| `python fabric/deploy.py --env demo` run twice | not run, see below |
+| `tests/live/test_fabric_foundation.py` with `HUBDEMO_LIVE=1` | not run, see below |
+
+Phase 3 ended at 133 tests, so phase 4 adds 46 and breaks nothing. The one skip is the live
+module. It skips because `pyodbc` is not installed, which is correct for an offline machine.
+
+**Open**
+
+- Neither of the prompt's two "Done when" items could be run, because there is no Fabric tenant
+  yet. `python fabric/deploy.py --env demo` needs a workspace on a capacity, and the live test
+  needs that workspace plus its SQL analytics endpoint. Both are written, both are exercised
+  offline as far as they can be, and both stay open until a person completes manual steps 5 to 9.
+- Eleven points went on the verify list, V48 to V58, all of which a first real deploy will settle.
+  In short: the eventhouse copies of `flights` and `bookings` are empty until phase 5 decides how
+  to fill them, so `ConnectionWindows` returns nothing yet; the logical ids in the `.platform`
+  files are written by this repository rather than issued by Fabric; `lakehouse.metadata.json`
+  names a default schema that may need to be dropped; the ingestion mapping in `DatabaseSchema.kql`
+  is written as adjacent quoted fragments and is the most likely first failure; the notebook is
+  bound through `parameter.yml` rather than a `notebook-settings.json` file, because the REST
+  article and the one real synced notebook in this repository both say so while the fabric-cicd
+  guide says otherwise; `parameter.yml` sits one folder deeper than the prompt says; the OneLake
+  item type suffix case is unconfirmed; workspace names are assumed unique ignoring case; the ODBC
+  connection uses interactive sign in, because the access token route was not fully documented on
+  the page that describes it; and the live test assumes the lakehouse tables appear in schema
+  `dbo`.
+- V1 and V4 are now closed. Qatar Central carries Power BI only, so the capacity has to live
+  somewhere else and UAE North is the recommendation, which is V1. fabric-cicd does support all
+  five item types this phase needs, including SQL database, which is V4.
+- Five manual steps were added, 5 to 9: create the capacity in a full workload region, turn on the
+  tenant settings, create the workspace on a paid F2 or larger capacity, switch the lakehouse SQL
+  analytics endpoint to user identity access mode before anything is built on it, and install the
+  ODBC driver for the live test. Step 8 has to happen before step 9 and before phase 5, because
+  switching the access mode briefly takes every SQL endpoint in the workspace offline.
+- V31 stays open. The Microsoft Learn MCP server still returns empty results. Phase 4 needed nine
+  documentation pages and several more besides, and every one of them was fetched from
+  `learn.microsoft.com` directly instead, with the confirmed URL recorded next to the call.

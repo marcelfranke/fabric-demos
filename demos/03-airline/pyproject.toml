@@ -15,6 +15,11 @@ dependencies = [
     "typer>=0.12",
     "pandas>=2.0",
     "pyarrow>=15.0",
+    # Phase 4: deploy item definitions and upload reference data to OneLake.
+    "fabric-cicd>=0.1",
+    "azure-identity>=1.17",
+    "azure-storage-file-datalake>=12.14",
+    "requests>=2.31",
 ]
 
 [project.optional-dependencies]
@@ -41,7 +46,7 @@ markers = [
 line-length = 100
 target-version = "py311"
 src = ["src", "scripts", "tests"]
-exclude = [".venv", "data", "fabric/workspace-sync"]
+exclude = [".venv", "data", "fabric/workspace", "fabric/workspace-sync"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]

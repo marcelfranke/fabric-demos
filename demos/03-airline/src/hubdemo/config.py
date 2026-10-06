@@ -146,3 +146,20 @@ def get(values: dict[str, Any], key: str) -> Any:
     if _is_empty(value):
         raise ConfigError(f"Configuration key {key} has no value.")
     return value
+
+
+def get_optional(values: dict[str, Any], key: str, default: Any = "") -> Any:
+    """Return one configuration value, or ``default`` when it is absent or empty.
+
+    Use this on dry run and plan paths, where the example environment file is
+    empty on purpose and the script must still print what it would do. Use
+    :func:`get` on live paths, where an empty value must fail loudly before any
+    network call is made.
+    """
+    if key not in REQUIRED_KEYS:
+        raise ConfigError(
+            f"{key} is not a known configuration key. "
+            f"Known keys: {', '.join(REQUIRED_KEYS)}"
+        )
+    value = values.get(key)
+    return default if _is_empty(value) else value

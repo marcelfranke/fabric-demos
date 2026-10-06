@@ -13,10 +13,19 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 import yaml
 
 import hubdemo
-from hubdemo.config import REQUIRED_KEYS, ConfigError, config_path, missing_keys, read_config
+from hubdemo.config import (
+    REQUIRED_KEYS,
+    ConfigError,
+    config_path,
+    get,
+    get_optional,
+    missing_keys,
+    read_config,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCENARIO_PATH = REPO_ROOT / "scenario" / "qr004.yaml"
@@ -101,3 +110,29 @@ def test_loading_the_example_config_fails_with_a_clear_message() -> None:
             assert key in message, f"the error message should name {key}"
     else:
         raise AssertionError("loading an empty template should raise ConfigError")
+
+
+def test_get_fails_loud_on_an_empty_value() -> None:
+    """Live paths must stop before a network call when a key is still empty."""
+    values = read_config("example")
+    with pytest.raises(ConfigError):
+        get(values, REQUIRED_KEYS[0])
+
+
+def test_get_optional_returns_the_default_for_an_empty_value() -> None:
+    """Dry run paths keep working against the empty template."""
+    values = read_config("example")
+    assert get_optional(values, REQUIRED_KEYS[0]) == ""
+    assert get_optional(values, REQUIRED_KEYS[0], "<not set>") == "<not set>"
+
+
+def test_get_optional_returns_a_filled_value() -> None:
+    values = dict.fromkeys(REQUIRED_KEYS, "")
+    values[REQUIRED_KEYS[0]] = "a value"
+    assert get_optional(values, REQUIRED_KEYS[0], "<not set>") == "a value"
+
+
+def test_get_optional_rejects_an_unknown_key() -> None:
+    """A typo in a key name is a mistake, not a missing value."""
+    with pytest.raises(ConfigError):
+        get_optional({}, "fabric.not_a_real_key")

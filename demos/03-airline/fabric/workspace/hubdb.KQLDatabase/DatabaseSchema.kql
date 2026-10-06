@@ -1,0 +1,115 @@
+// Schema for the KQL database hubdb, inside the eventhouse eh_hub.
+//
+// A KQL database definition accepts only these commands:
+//   .create-merge table
+//   .create-or-alter function
+//   .alter table ... policy update
+//   .alter ... encoding policy
+//   .create-or-alter materialized-view
+//   .create-or-alter table ... ingestion ... mapping
+// Documented at
+// https://learn.microsoft.com/fabric/real-time-intelligence/git-eventhouse-kql-database
+//
+// Columns come from the row models in src/hubdemo/models.py and from
+// docs/demo-spec.md section 2.2. Nothing here holds a number from
+// scenario/qr004.yaml.
+
+// The live flight feed. One row per event, eight columns, as in demo-spec
+// section 2.2 and FlightEventRow in src/hubdemo/models.py.
+.create-merge table flight_events (
+    event_time: datetime,
+    flight_id: string,
+    flight_no: string,
+    event_type: string,
+    eta_local: datetime,
+    delay_min: int,
+    source: string,
+    text: string
+)
+
+// Ingestion mapping for the JSON the eventstream delivers in phase 5.
+// Mapping syntax from
+// https://learn.microsoft.com/fabric/real-time-intelligence/git-eventhouse-kql-database
+.create-or-alter table flight_events ingestion json mapping 'flight_events_mapping'
+"["
+"{'column':'event_time','Properties':{'Path':'$.event_time'}},"
+"{'column':'flight_id','Properties':{'Path':'$.flight_id'}},"
+"{'column':'flight_no','Properties':{'Path':'$.flight_no'}},"
+"{'column':'event_type','Properties':{'Path':'$.event_type'}},"
+"{'column':'eta_local','Properties':{'Path':'$.eta_local'}},"
+"{'column':'delay_min','Properties':{'Path':'$.delay_min'}},"
+"{'column':'source','Properties':{'Path':'$.source'}},"
+"{'column':'text','Properties':{'Path':'$.text'}}"
+"]"
+
+// Reference copies of two small lakehouse tables.
+//
+// ConnectionWindows needs the booking inbound-to-onward links and the onward
+// scheduled departure times, which live in the lakehouse lh_hub. A OneLake
+// shortcut cannot be created from a KQL database definition: the definition
+// accepts only the commands listed at the top of this file, and the lakehouse
+// definition article
+// https://learn.microsoft.com/rest/api/fabric/articles/item-management/definitions/lakehouse-definition
+// describes shortcuts that point from a lakehouse at a KQL database, which is
+// the opposite direction. The phase 4 prompt allows loading a copy of the small
+// tables instead, which is what these two tables are. They are loaded by the
+// notebook in phase 4 and hold tens to hundreds of rows, not millions.
+// This choice is recorded in docs/status.md.
+
+// Columns taken from FlightRow in src/hubdemo/models.py, only the ones the
+// function reads.
+.create-merge table flights (
+    flight_id: string,
+    flight_no: string,
+    direction: string,
+    sched_time_local: datetime
+)
+
+// Columns taken from BookingRow in src/hubdemo/models.py.
+.create-merge table bookings (
+    booking_id: string,
+    passenger_id: string,
+    inbound_flight_id: string,
+    onward_flight_id: string
+)
+
+// ConnectionWindows(inbound_flight_id) joins the latest ETA of the inbound
+// flight to the onward departures and returns one row per onward flight with
+// window_min, as described in docs/demo-spec.md section 2.2.
+//
+// The parameter has the same name as a column of bookings. The Kusto
+// user-defined function reference
+// https://learn.microsoft.com/kusto/query/functions/user-defined-functions
+// does not state which of the two wins inside the function body, so this
+// function does not rely on that. It renames the column first, after which
+// every mention of inbound_flight_id is the parameter and nothing is ambiguous.
+//
+// window_min is the whole number of minutes between the latest ETA of the
+// inbound flight and the scheduled departure of the onward flight. The same
+// calculation lives in src/hubdemo/rules.py, which stays the single place that
+// decides anything; this function only reports the window.
+.create-or-alter function
+with (docstring = "Connection windows in minutes for one inbound flight.", folder = "hub")
+ConnectionWindows(inbound_flight_id: string) {
+    let latest_eta = toscalar(
+        flight_events
+        | where flight_id == inbound_flight_id
+        | where event_type == "eta_update"
+        | summarize arg_max(event_time, eta_local)
+        | project eta_local
+    );
+    let onward_departures =
+        flights
+        | where direction == "outbound"
+        | project onward_flight_id = flight_id, flight_no, sched_time_local;
+    bookings
+    | project-rename booked_inbound = inbound_flight_id
+    | where booked_inbound == inbound_flight_id
+    | where isnotempty(onward_flight_id)
+    | distinct onward_flight_id
+    | join kind=inner onward_departures on onward_flight_id
+    | extend eta_local = latest_eta
+    | extend window_min = datetime_diff('minute', sched_time_local, latest_eta)
+    | project onward_flight_id, flight_no, sched_time_local, eta_local, window_min
+    | order by window_min asc
+}
