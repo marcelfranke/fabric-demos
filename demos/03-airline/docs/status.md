@@ -8,7 +8,7 @@ States: `not started`, `in progress`, `done`, `blocked`.
 | Phase | State | Verified how | Open points |
 | --- | --- | --- | --- |
 | 00 bootstrap | done | `ruff check .` clean, `pytest -q` 8 passed, `scripts/check_prereqs.py --env example --dry-run` lists all 19 empty keys | CI workflow does not run from this path (V32), Fabric CLI not installed, `config/env.demo.yaml` not created yet, Learn MCP search returns nothing (V31) |
-| 01 scenario contract | not started | — | — |
+| 01 scenario contract | done | `ruff check .` clean, `pytest -q` 19 passed, `hubdemo describe --scenario scenario/qr004.yaml` prints the expected totals line, `hubdemo docs` writes `docs/data-dictionary.md` | The window formula lives in `scenario.py` for now and moves to `rules.py` in phase 2 (rule 4) |
 | 02 rules engine | not started | — | — |
 | 03 synthetic data | not started | — | — |
 | 04 fabric foundation | not started | — | First phase that needs cloud resources. `az login` and the Fabric CLI are prerequisites, see `manual-steps.md` |
@@ -68,3 +68,49 @@ All three checks were run from `demos/03-airline` against a local Python 3.11.17
 - `az login` has not been run. Not needed before phase 4. See manual step 3.
 - The Microsoft Learn MCP server returns an empty result set for every query tried, so
   documentation was confirmed by fetching the Learn URLs directly instead. See verify list V31.
+
+## Phase 1 — scenario contract
+
+**Built**
+
+- `src/hubdemo/models.py`, holding the typed models for `scenario/qr004.yaml` and one row model per
+  table and event in section 2 of `docs/demo-spec.md`. The scenario models reject unknown keys, so a
+  typo in the scenario file is an error rather than a silently ignored line. The fifteen row models
+  are listed in `ROW_TABLES` together with the store, table and key each one belongs to.
+- `src/hubdemo/scenario.py`, holding `load_scenario`, the window and totals helpers, and the five
+  consistency checks the phase asks for: the connecting passenger counts add up to the inbound
+  figure, no flight carries more members than connecting passengers, every cargo shipment points at
+  a flight that exists, every flight below the standard connection time has a next flight, and every
+  tier named on a flight is defined under `tiers`. Each check raises `ScenarioError` with a sentence
+  that names the flight or value at fault.
+- `hubdemo describe --scenario scenario/qr004.yaml`, which prints the totals and the connection
+  window for each onward flight, and marks the ones below the standard.
+- `hubdemo docs`, which writes `docs/data-dictionary.md` from the row models.
+- `tests/test_scenario.py`, eleven tests: four compare the totals, the windows and the at risk list
+  computed from the file against the `expected` block in the same file, two cover the loader
+  failures, and one per validation rule feeds the loader a broken copy of the scenario.
+- `docs/data-dictionary.md`, generated. It is written by `hubdemo docs` and must not be edited by
+  hand; change the models and run the command again.
+
+**Verified**
+
+All four checks were run from `demos/03-airline` against the same local Python 3.11.17 environment
+as phase 0. No number in the tests or in the `describe` output is written in the code; they are all
+read from `scenario/qr004.yaml`.
+
+| Check | Result |
+| --- | --- |
+| `ruff check .` | `All checks passed!`, exit 0. One `E501` long line was found on the first run, in `models.py`, and fixed by wrapping the line. |
+| `pytest -q` | `19 passed in 0.83s`, exit 0. Eight smoke tests from phase 0 and the eleven new scenario tests. |
+| `hubdemo describe --scenario scenario/qr004.yaml` | Exit 0. Prints `11 onward flights, 164 connecting passengers, 195 transfer bags, 63 members and 3 shipments`, which is the sentence the phase asks for, then the eleven windows, which match `expected.windows_min` value for value, then `at risk below the standard of 45 minutes: MCT, SIN, SYD`, which matches `expected.at_risk`. |
+| `hubdemo docs` | Exit 0. Writes `docs/data-dictionary.md` with one section per store and one table per row model. Every type cell was read back afterwards: fourteen distinct type names, no raw Python type left in the file. |
+
+**Open**
+
+- The window is still worked out in `scenario.py`, in one helper, `window_minutes`. Rule 4 puts that
+  calculation in `src/hubdemo/rules.py`; phase 2 creates that module and the helper moves into it.
+  Keeping it in one place now means the move is a cut and paste, not a rewrite.
+- `docs/data-dictionary.md` is generated. Anyone editing it by hand will lose the change the next
+  time `hubdemo docs` runs.
+- The first run of `hubdemo docs` printed optional columns as raw Python unions, which broke the
+  markdown table. Fixed and checked; see verify list V33.

@@ -19,5 +19,9 @@ No gap from phase 0. Phase 0 calls no Microsoft SDK or REST API. It shells out t
 and `fab --version` only, and both commands are documented; the confirmed documentation URLs sit in
 comments next to the calls in `scripts/check_prereqs.py`.
 
+No gap from phase 1. Phase 1 reads `scenario/qr004.yaml` and writes `docs/data-dictionary.md` on the
+build machine. It calls no Microsoft SDK or REST API, needs no cloud resource and asks nothing new of
+a person.
+
 Points that are in preview, undocumented or contradictory but not yet blocking are tracked in
 `verify-list.md`, not here. A point moves from there to here only when a phase stops on it.
