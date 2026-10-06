@@ -23,5 +23,9 @@ No gap from phase 1. Phase 1 reads `scenario/qr004.yaml` and writes `docs/data-d
 build machine. It calls no Microsoft SDK or REST API, needs no cloud resource and asks nothing new of
 a person.
 
+No gap from phase 2. Phase 2 works out the recovery rules in `src/hubdemo/rules.py` from the models
+and the scenario file on the build machine. It calls no Microsoft SDK or REST API, needs no cloud
+resource and asks nothing new of a person.
+
 Points that are in preview, undocumented or contradictory but not yet blocking are tracked in
 `verify-list.md`, not here. A point moves from there to here only when a phase stops on it.

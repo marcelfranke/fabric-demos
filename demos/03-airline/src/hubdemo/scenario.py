@@ -9,9 +9,9 @@ cannot be true, for example onward flights whose connecting passengers do not
 add up to the inbound flight's. Each raises :class:`ScenarioError` naming the
 field, what was expected and what was found.
 
-The connection window lives in :func:`window_minutes`. It is the one derivation
-this phase needs, and it stays in one place so phase 2 can move it into
-``src/hubdemo/rules.py`` without hunting for copies.
+The connection window lives in :func:`hubdemo.rules.window_minutes`. Rule 4
+says the rules are code and only ``src/hubdemo/rules.py`` computes them, so this
+module imports that one definition rather than carrying a copy.
 """
 
 from __future__ import annotations
@@ -21,7 +21,8 @@ from pathlib import Path
 import yaml
 
 from hubdemo.config import repo_root
-from hubdemo.models import InboundFlight, OnwardFlight, Scenario
+from hubdemo.models import Scenario
+from hubdemo.rules import window_minutes
 
 #: Where the scenario file sits when no path is given.
 DEFAULT_SCENARIO = "scenario/qr004.yaml"
@@ -42,17 +43,6 @@ def scenario_path(path: str | Path | None = None) -> Path:
     if candidate.is_absolute() or candidate.exists():
         return candidate
     return repo_root() / candidate
-
-
-def window_minutes(inbound: InboundFlight, onward: OnwardFlight, hold_min: int = 0) -> int:
-    """Minutes between the inbound flight landing and the onward flight leaving.
-
-    ``hold_min`` is the delay an option adds to the onward departure. It is zero
-    for every call in this phase and is here so holding a flight is a parameter
-    rather than a second formula.
-    """
-    delta = (onward.std_local - inbound.new_eta_local).total_seconds() / 60
-    return int(delta) + hold_min
 
 
 def windows(scenario: Scenario) -> dict[str, int]:

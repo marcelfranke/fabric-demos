@@ -9,7 +9,7 @@ States: `not started`, `in progress`, `done`, `blocked`.
 | --- | --- | --- | --- |
 | 00 bootstrap | done | `ruff check .` clean, `pytest -q` 8 passed, `scripts/check_prereqs.py --env example --dry-run` lists all 19 empty keys | CI workflow does not run from this path (V32), Fabric CLI not installed, `config/env.demo.yaml` not created yet, Learn MCP search returns nothing (V31) |
 | 01 scenario contract | done | `ruff check .` clean, `pytest -q` 19 passed, `hubdemo describe --scenario scenario/qr004.yaml` prints the expected totals line, `hubdemo docs` writes `docs/data-dictionary.md` | The window formula lives in `scenario.py` for now and moves to `rules.py` in phase 2 (rule 4) |
-| 02 rules engine | not started | — | — |
+| 02 rules engine | done | `ruff check .` clean, `pytest -q` 100 passed, `pytest -q --cov=hubdemo.rules --cov-branch` 100 percent statement and branch coverage of `rules.py`, no number from the scenario file written as a literal in `rules.py` | The wording of `explain`, `plan_text`, `member_text` and the action lines is invented (V34), `cargo_protected` is true when no shipment is affected (V35), `bags_protected` counts only kept connections whose bags make it (V36), `min_transfer_min` on the shipments is unused (V37), `Platinum` is named in code as the top tier (V38) |
 | 03 synthetic data | not started | — | — |
 | 04 fabric foundation | not started | — | First phase that needs cloud resources. `az login` and the Fabric CLI are prerequisites, see `manual-steps.md` |
 | 05 real time | not started | — | — |
@@ -107,10 +107,51 @@ read from `scenario/qr004.yaml`.
 
 **Open**
 
-- The window is still worked out in `scenario.py`, in one helper, `window_minutes`. Rule 4 puts that
-  calculation in `src/hubdemo/rules.py`; phase 2 creates that module and the helper moves into it.
-  Keeping it in one place now means the move is a cut and paste, not a rewrite.
+- Closed in phase 2. The window was worked out in `scenario.py`, in one helper, `window_minutes`.
+  Rule 4 puts that calculation in `src/hubdemo/rules.py`. Phase 2 created that module, moved the
+  helper into it and left `scenario.py` importing it, so there is one definition and no copy.
 - `docs/data-dictionary.md` is generated. Anyone editing it by hand will lose the change the next
   time `hubdemo docs` runs.
 - The first run of `hubdemo docs` printed optional columns as raw Python unions, which broke the
   markdown table. Fixed and checked; see verify list V33.
+
+## Phase 2 — rules engine
+
+**Built**
+
+- `src/hubdemo/rules.py`. The rules from demo spec sections 3, 3.1 and 4, written as pure
+  functions over the models. It imports the standard library and `hubdemo.models` and nothing
+  else, so it can be copied into a Fabric function later. Ten public functions:
+  `window_min`, `at_risk`, `judge`, `propose`, `explain`, `evaluate_plan`, `actions_for`,
+  `approval_stages`, `plan_text` and `member_text`.
+- No number from `scenario/qr004.yaml` is written in `rules.py` as a literal. Every threshold,
+  count and time comes off the loaded scenario.
+- `window_minutes` moved out of `scenario.py` and into `rules.py`, which is what rule 4 asks for.
+  `scenario.py` now imports it. There is one definition and no copy.
+- `tests/test_rules.py`. Around 45 test functions, 81 cases once the parametrised ones expand.
+  They read `expected.option_results`, `expected.proposal`, `expected.proposed_plan` and both
+  override cases straight out of the scenario file, so the tests assert the contract and not the
+  code. There is also a property test that `propose` never returns a risky or failing option, and
+  a test that shuffling tiers does not change a proposal.
+
+**Verified**
+
+Everything below ran from `demos/03-airline` on the local Python 3.11.17 virtual environment,
+the same one phase 0 and phase 1 used. No cloud resource was touched.
+
+| Check | Result |
+| --- | --- |
+| `ruff check .` | `All checks passed!`, exit code 0 |
+| `pytest -q` | `100 passed in 1.11s`, exit code 0. Phase 1 ended at 19, so phase 2 adds 81. |
+| `pytest -q --cov=hubdemo.rules --cov-branch` | `100 passed in 2.65s`, exit code 0. `src\hubdemo\rules.py` 237 statements, 0 missed, 78 branches, 0 partial, 100 percent. The phase asks for 95 percent branch coverage. |
+| No scenario number as a literal in `rules.py` | Searched the file for every number in `scenario/qr004.yaml`. `No matches found.` A follow up search for any digit returned 30 lines, all of them section references in comments, the path `scenario/qr004.yaml`, structural zeros, the two `/ 60` conversions from seconds to minutes, and list indexing. |
+| `window_minutes` lives in one place | Searched `src` for `def window_minutes` and the window arithmetic. Three hits, all in `rules.py` at lines 57, 67 and 123. None in `scenario.py`. The passing test run proves the import back from `scenario.py` does not loop. |
+
+**Open**
+
+- Five points went on the verify list for a human to confirm, V34 to V38. In short: the wording of
+  `explain`, `plan_text`, `member_text` and the action texts was written here because the spec
+  fixes the numbers but not the sentences; `cargo_protected` is true when no shipment is affected;
+  `bags_protected` counts bags only where the connection is kept and the bags make the window;
+  the shipment field `min_transfer_min` is not read, `rules.cargo_min` is; and `Platinum` is the
+  top tier name in code.
