@@ -29,7 +29,7 @@ find_replace:
   # Replace the value under demo with the real item ID after the first deploy.
   - find_value: "11111111-1111-1111-1111-111111111111"
     replace_value:
-      demo: "11111111-1111-1111-1111-111111111111"
+      demo: "3418be24-10f4-43a5-a9a9-3edf41cac7f9"
     item_type: "Notebook"
     item_name: "nb_load_reference"
 
@@ -38,6 +38,6 @@ find_replace:
   # workspace. Replace the value under demo with it.
   - find_value: "22222222-2222-2222-2222-222222222222"
     replace_value:
-      demo: "22222222-2222-2222-2222-222222222222"
+      demo: "04d71fb5-47c4-448d-8ed0-727fb8fcc4a9"
     item_type: "Notebook"
     item_name: "nb_load_reference"
