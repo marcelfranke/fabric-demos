@@ -28,6 +28,7 @@ from hubdemo.generate import (
     check_dataset,
     data_dir,
     write_dataset,
+    write_events_table,
 )
 from hubdemo.models import data_dictionary_markdown
 from hubdemo.scenario import (
@@ -165,6 +166,7 @@ def generate_command(
     else:
         write_dataset(dataset, out_dir)
         write_events(events, out_dir / EVENTS_FILE)
+        write_events_table(events, out_dir)
         typer.echo(f"wrote {out_dir}")
 
     typer.echo(f"seed {seed}, scale {scale}")

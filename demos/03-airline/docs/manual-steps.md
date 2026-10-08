@@ -20,6 +20,9 @@ an API.
 | Resume the Fabric capacity before any run that touches the tenant, and pause it again afterwards | Azure portal, or `az resource invoke-action --action resume --ids <capacity resource id>` | A Fabric capacity pauses, either by hand or on a schedule, and every Fabric API call then fails with `CapacityNotActive`. Resuming starts billing again, so it is a spending decision for the person paying and a script must not make it. Nothing in the repository needs changing when this error appears; it is a state problem, not a code problem. | https://learn.microsoft.com/fabric/enterprise/pause-resume | `GET /v1/capacities` reports `state: Active` for the capacity named under `fabric.capacity_name`, which `python scripts/fabric_bootstrap.py --env demo --dry-run` prints |
 | Run `python scripts/eventstream_endpoint.py --env demo` and paste the two values it prints into `eventstream.namespace` and `eventstream.event_hub` | Build machine, after the eventstream is published | The address is created by Fabric when the eventstream is published, so it cannot be known before the first deploy. Reading it is scripted: the Get Eventstream Topology and Get Eventstream Source Connection REST operations return the Event hub namespace and the Event hub name, so this is no longer the portal click phase 5 first assumed it was (V69). Writing the values is still manual, because `config/env.demo.yaml` is the person's own file and stays out of git. The script never prints or stores the shared access keys that come back in the same response. The identity running it needs Contributor or higher on the workspace, and the person granting that needs Member or higher. | https://learn.microsoft.com/en-us/rest/api/fabric/eventstream/topology/get-eventstream-source-connection | `python scripts/check_prereqs.py --env demo` reports no missing keys, and `python scripts/replay_events.py --env demo --dry-run` prints the real namespace instead of `<eventstream.namespace>` |
 | Create the `act_connections_at_risk` Activator rule on the eventstream and start it | Fabric portal, `es_flight_events` eventstream > Set alert, or Real-Time hub > Set alert | The Reflex item behind Activator is deployable through the REST API, and the entity catalogue in its definition is documented, but the `ActStep` grammar for a `FabricItemInvocation` action is not: Learn shows a worked example for `TeamsMessage` only, and nothing documents how a rule value is passed into a pipeline parameter. Rule 2 forbids inventing that shape, so phase 5 stops here and the rule is built by hand. The clicks: open `es_flight_events`, choose Set alert, name the rule `act_connections_at_risk`, set the condition on the `at_risk` column of the `ConnectionWindows` result becoming true, choose "Run a Fabric item" as the action, pick the `pl_on_delay` pipeline, pass the inbound flight id into the pipeline's `inbound_flight_id` parameter, save, then press Start. A rule does nothing until it is started. | https://learn.microsoft.com/fabric/real-time-intelligence/data-activator/activator-get-data-eventstreams | The rule appears in the workspace as `act_connections_at_risk` with state Started, and a replay of the trigger event produces a run of `pl_on_delay` in the pipeline's run history |
+| Agree with the delivery partner which business domain this ontology covers, and keep one ontology per domain | A planning conversation, before the first ontology deploy | An ontology is a shared model of a business domain rather than a private artefact, and the guidance is one ontology per domain. If a second team publishes a second airline ontology into the same tenant the model splits instead of growing, and neither half answers a question that crosses the two. The decision is an organisational one, so a deploy script must not make it. | https://learn.microsoft.com/fabric/iq/ontology/overview | The workspace holds exactly one item of type `Ontology`, named `HubOntology`, and the delivery partner has agreed that it covers the hub recovery domain |
+| Open `HubOntology` in the portal once after the first deploy and check that every entity type lists instances | Fabric portal, `Airline Demo v2` > `HubOntology` | `fabric/deploy_ontology.py` proves the definition round-trips, which is a structural check only. Whether a binding actually resolves to rows is decided when the ontology reads the lakehouse, so a binding that points at a renamed or empty table deploys cleanly and returns nothing. Only the portal renders the instances, and no documented REST operation returns an instance count. | https://learn.microsoft.com/fabric/iq/ontology/how-to-bind-data | Each of the seven entity types, Flight, Gate, Passenger, Member, Connection, Bag and CargoShipment, shows a non-zero instance count, and Flight shows the `EtaUpdates` time series |
+| Publish the ontology if the portal offers it, and refresh it after the lakehouse tables are reloaded | Fabric portal, `HubOntology` | Publishing is a separate explicit action in the preview user interface and a definition-only deploy does not perform it. Upstream row changes also need a manual ontology refresh: reloading the lakehouse tables does not propagate into the ontology on its own. Both are preview behaviours, so neither is exposed as a documented REST operation. | https://learn.microsoft.com/fabric/iq/ontology/how-to-use-ontology-agent | The ontology shows no pending publish prompt, and the instance counts in the portal match the row counts the generator wrote |
 
 ## Known gaps
 
@@ -104,6 +107,33 @@ connection, works, and its `itemId` is the KQL database item id rather than the 
 (V79, V71). Neither fact appears on Learn; both came from Microsoft's own
 `microsoft/fabric-event-streams` repository and from the error text the publish returned, which
 rule 2 allows only with the note that is written next to the code and in `verify-list.md` (V80).
+
+Phase 6 recorded one documentation gap and stopped on one environment problem. The gap is the ETA
+time series. The data binding article lists an eventhouse as a supported time series source, but the
+ontology definition format carries only one partition form, `mode: directLake`, and has no KQL or
+eventhouse partition mode at all, so an eventhouse binding cannot be written into a definition file.
+Rule 2 forbids inventing one, so the phase took the fallback the prompt had already authorised and
+bound the ETA series to a lakehouse copy of the events, written by `write_events_table()` into
+`flight_events.parquet` and loaded with the other reference tables (V85). The eventhouse table stays
+where it is and nothing from phase 5 changed. Two smaller assumptions sit in the definition without
+a Learn page behind them and are flagged for the first live deploy to settle: that an entity
+relationship can be backed by a relationship marked `isActive: false`, which is how the two second
+paths between the same pair of tables are kept legal (V86), and the scope within which an entity
+property name has to be unique, which is sidestepped by giving every property a globally unique
+name (V87).
+
+The environment problem is why phase 6 has no live proof. The reference notebook job was run after
+the new events file was added to the landing folder and it failed with
+`System_Cancelled_Session_Statements_Failed`, a generic wrapper that says nothing about the cause.
+Both explanations that could be tested from the build machine were disproven: the new file has no
+all-null column, and its timestamp columns carry the same arrow type as two columns that loaded
+without complaint in phase 4. The next step was to read the Spark session for the real error, and
+that call returned `CapacityNotActive`: `fabricplaygroundcapacity` had paused part way through the
+run, as it did in phase 4 (V61). Resuming it starts billing, so the phase stops here rather than
+resuming it. What is left once a person resumes the capacity is to re-run the notebook job
+unchanged, which also tests whether the pause was the cause, then run
+`python fabric/deploy_ontology.py --env demo` twice and confirm the second run reports no read-back
+differences, then open the ontology in the portal as the three new rows above describe (V91).
 
 Points that are in preview, undocumented or contradictory but not yet blocking are tracked in
 `verify-list.md`, not here. A point moves from there to here only when a phase stops on it.

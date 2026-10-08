@@ -1,0 +1,63 @@
+entityRelationship 'Passenger Holds Connection'
+	lineageTag: 9c2e1b43-5d4e-4b1f-8a30-1b2c3d4e0301
+	fromEntity: Connection
+	toEntity: Passenger
+
+	backingConfiguration
+		relationship: rel_bookings_passenger
+
+entityRelationship 'Connection Arrives On Flight'
+	lineageTag: 9c2e1b43-5d4e-4b1f-8a30-1b2c3d4e0302
+	fromEntity: Connection
+	toEntity: Flight
+
+	backingConfiguration
+		relationship: rel_bookings_inbound_flight
+
+entityRelationship 'Connection Departs On Flight'
+	lineageTag: 9c2e1b43-5d4e-4b1f-8a30-1b2c3d4e0303
+	fromEntity: Connection
+	toEntity: Flight
+
+	backingConfiguration
+		relationship: rel_bookings_onward_flight
+
+entityRelationship 'Passenger Is Member'
+	lineageTag: 9c2e1b43-5d4e-4b1f-8a30-1b2c3d4e0304
+	fromEntity: Member
+	toEntity: Passenger
+
+	backingConfiguration
+		relationship: rel_members_passenger
+
+entityRelationship 'Bag Belongs To Passenger'
+	lineageTag: 9c2e1b43-5d4e-4b1f-8a30-1b2c3d4e0305
+	fromEntity: Bag
+	toEntity: Passenger
+
+	backingConfiguration
+		relationship: rel_bags_passenger
+
+entityRelationship 'Bag Transfers To Flight'
+	lineageTag: 9c2e1b43-5d4e-4b1f-8a30-1b2c3d4e0306
+	fromEntity: Bag
+	toEntity: Flight
+
+	backingConfiguration
+		relationship: rel_bags_onward_flight
+
+entityRelationship 'Flight Uses Gate'
+	lineageTag: 9c2e1b43-5d4e-4b1f-8a30-1b2c3d4e0307
+	fromEntity: Flight
+	toEntity: Gate
+
+	backingConfiguration
+		relationship: rel_flights_gate
+
+entityRelationship 'Cargo Shipment Transfers To Flight'
+	lineageTag: 9c2e1b43-5d4e-4b1f-8a30-1b2c3d4e0308
+	fromEntity: CargoShipment
+	toEntity: Flight
+
+	backingConfiguration
+		relationship: rel_cargo_onward_flight

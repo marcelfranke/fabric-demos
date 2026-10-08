@@ -1,0 +1,78 @@
+/// A flight at the hub, either an arrival or a departure.
+entity Flight
+	lineageTag: 9c2e1b43-5d4e-4b1f-8a30-1b2c3d4e0201
+	backingTable: flights
+	keyProperty: FlightId
+
+	additionalBackingTable
+		table: flight_events
+		relationship: rel_flight_events_flight
+
+	/// Stable identifier of the flight.
+	property FlightId
+		dataType: string
+
+		backingConfiguration
+			valueColumn: flights.flight_id
+
+	/// The published flight number, for example the number printed on a boarding pass.
+	property FlightNumber
+		dataType: string
+
+		backingConfiguration
+			valueColumn: flights.flight_no
+
+	/// Arrival or departure.
+	property Direction
+		dataType: string
+
+		backingConfiguration
+			valueColumn: flights.direction
+
+	property Origin
+		dataType: string
+
+		backingConfiguration
+			valueColumn: flights.origin
+
+	property Destination
+		dataType: string
+
+		backingConfiguration
+			valueColumn: flights.destination
+
+	/// The city the flight comes from or goes to, in plain words.
+	property City
+		dataType: string
+
+		backingConfiguration
+			valueColumn: flights.city
+
+	/// Scheduled arrival or departure time in hub local time.
+	property ScheduledTimeLocal
+		dataType: dateTime
+
+		backingConfiguration
+			valueColumn: flights.sched_time_local
+
+	property GateId
+		dataType: string
+
+		backingConfiguration
+			valueColumn: flights.gate_id
+
+	/// Passengers already on board who are not part of this connection bank.
+	property OtherPassengersOnboard
+		dataType: int64
+
+		backingConfiguration
+			valueColumn: flights.other_pax_onboard
+
+	/// Every estimated arrival time reported for this flight, newest last.
+	property EtaUpdates
+		dataType: TimeSeries<dateTime>
+
+		backingConfiguration
+			type: timeSeries
+			orderingColumn: flight_events.event_time
+			valueColumn: flight_events.eta_local

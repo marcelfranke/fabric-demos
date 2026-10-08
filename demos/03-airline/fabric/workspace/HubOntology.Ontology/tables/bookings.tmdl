@@ -1,0 +1,25 @@
+table bookings
+	lineageTag: 9c2e1b43-5d4e-4b1f-8a30-1b2c3d4e0105
+
+	column booking_id
+		dataType: string
+		sourceColumn: booking_id
+
+	column passenger_id
+		dataType: string
+		sourceColumn: passenger_id
+
+	column inbound_flight_id
+		dataType: string
+		sourceColumn: inbound_flight_id
+
+	column onward_flight_id
+		dataType: string
+		sourceColumn: onward_flight_id
+
+	partition bookings = entity
+		mode: directLake
+		source
+			entityName: bookings
+			schemaName: dbo
+			expressionSource: DatabaseQuery

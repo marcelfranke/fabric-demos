@@ -1,0 +1,20 @@
+model Model
+
+ref table flights
+ref table gates
+ref table passengers
+ref table members
+ref table bookings
+ref table bags
+ref table cargo_shipments
+ref table flight_events
+
+ref entity Flight
+ref entity Gate
+ref entity Passenger
+ref entity Member
+ref entity Connection
+ref entity Bag
+ref entity CargoShipment
+
+ref namespace default

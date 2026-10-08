@@ -1,0 +1,49 @@
+table flights
+	lineageTag: 9c2e1b43-5d4e-4b1f-8a30-1b2c3d4e0101
+
+	column flight_id
+		dataType: string
+		sourceColumn: flight_id
+
+	column flight_no
+		dataType: string
+		sourceColumn: flight_no
+
+	column direction
+		dataType: string
+		sourceColumn: direction
+
+	column origin
+		dataType: string
+		sourceColumn: origin
+
+	column destination
+		dataType: string
+		sourceColumn: destination
+
+	column city
+		dataType: string
+		sourceColumn: city
+
+	column sched_time_local
+		dataType: dateTime
+		sourceColumn: sched_time_local
+
+	column gate_id
+		dataType: string
+		sourceColumn: gate_id
+
+	column other_pax_onboard
+		dataType: int64
+		sourceColumn: other_pax_onboard
+
+	column is_synthetic
+		dataType: boolean
+		sourceColumn: is_synthetic
+
+	partition flights = entity
+		mode: directLake
+		source
+			entityName: flights
+			schemaName: dbo
+			expressionSource: DatabaseQuery

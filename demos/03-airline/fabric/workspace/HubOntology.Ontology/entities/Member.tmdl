@@ -1,0 +1,42 @@
+/// A member of the loyalty programme and the service the tier entitles them to.
+entity Member
+	lineageTag: 9c2e1b43-5d4e-4b1f-8a30-1b2c3d4e0204
+	backingTable: members
+	keyProperty: MemberNumber
+
+	property MemberNumber
+		dataType: string
+
+		backingConfiguration
+			valueColumn: members.member_id
+
+	property MemberPassengerId
+		dataType: string
+
+		backingConfiguration
+			valueColumn: members.passenger_id
+
+	/// The tier of the member. The tier never changes which option the rules propose.
+	property Tier
+		dataType: string
+
+		backingConfiguration
+			valueColumn: members.tier
+
+	property LoungeAccess
+		dataType: boolean
+
+		backingConfiguration
+			valueColumn: members.lounge_access
+
+	property PriorityStandby
+		dataType: boolean
+
+		backingConfiguration
+			valueColumn: members.priority_standby
+
+	property MeetAssist
+		dataType: boolean
+
+		backingConfiguration
+			valueColumn: members.meet_assist

@@ -13,7 +13,7 @@ States: `not started`, `in progress`, `done`, `blocked`.
 | 03 synthetic data | done | `ruff check .` clean, `pytest -q` 133 passed, `hubdemo generate --out data` writes ten Parquet files plus `flight_events.jsonl`, `hubdemo validate --data data` reports the rows reproduce the scenario file, `--scale 20` leaves the result unchanged, no number from the scenario file written as a literal in `generate.py` or `events.py` | Background arrivals get an empty `origin` because the scenario names a city but no airport code (V39), next flights get an empty `gate_id` (V40), `concourse` is derived from the first letter of the gate (V41), the `transfer_rules` descriptions are invented (V42), the `tier_benefits` source note is invented (V43), the event texts are invented (V44), `departure_delay_min` is read from the scenario during validation because no row model carries it (V45), `expected.at_risk_totals` is deliberately not re-checked (V46), the given and family name lists are invented (V47) |
 | 04 fabric foundation | done | `ruff check .` clean, `pytest -q` 179 passed, the three scripts each ran `--env example --dry-run` and exited 0 without a network call, and both "Done when" items then ran for real against the workspace `Airline Demo v2`: `fabric/deploy.py --env demo` exited 0 twice and the ten Delta tables appeared under `Tables/dbo`, and `tests/live/test_fabric_foundation.py` with `HUBDEMO_LIVE=1` reported 11 passed | V48 to V58 are closed by the first real deploy. The new points are V59 to V66. Only V59 needs a decision: the capacity sits in East US, which manual step 5 tells the reader to avoid. Five manual steps, 5 to 9, are in `manual-steps.md` |
 | 05 real time | done | `ruff check .` clean, `pytest -q` 235 passed and 16 skipped, the three new scripts each ran `--dry-run` and exited 0 without a network call, and the live chain then ran for real against `Airline Demo v2`: `fabric/deploy.py --env demo` published all seven items, `scripts/load_kql_reference.py --env demo` loaded 295 rows into `hubdb`, `scripts/eventstream_endpoint.py --env demo` read the custom endpoint address over REST, `scripts/replay_events.py --env demo --until-trigger` sent 6 events, `flight_events` counted 6 on the first poll, `ConnectionWindows("QR004")` returned 11 rows with exactly 3 at risk, and `tests/live/test_real_time.py` with `HUBDEMO_LIVE=1` reported 16 passed | The new points are V67 to V83. Two need a person: V59 is still the East US region conflict carried over from phase 4, and V74 leaves the Activator rule as a portal click because the `FabricItemInvocation` action has no documented example. Manual steps 10 to 12 cover the Activator clicks |
-| 06 ontology | not started | — | — |
+| 06 ontology | blocked | `ruff check .` clean, `pytest -q` 295 passed and 16 skipped, `fabric/deploy_ontology.py --env example --dry-run` exited 0 without a network call and reported 35 definition parts and 13 generated rules, the dataset regenerated and the 11 landing files uploaded against `Airline Demo v2`, and no number from `scenario/qr004.yaml` appears as a literal in the new code | The live half did not finish. The reference notebook job failed with `System_Cancelled_Session_Statements_Failed` and both data shape explanations were disproven, then the capacity went `Inactive` and every Fabric call answers `CapacityNotActive`, so the two deployment runs with read back and the portal check are all still pending, V91. V85 records that the ETA time series is bound to a lakehouse copy because the definition format cannot express an eventhouse binding. V86 and V87 are unverified assumptions. V59 is still the East US region conflict |
 | 07 rules function | not started | — | — |
 | 08 fabric agents | not started | — | — |
 | 09 foundry planner | not started | — | — |
@@ -457,3 +457,87 @@ nothing to do with the scenario. Searching for `QR004`, `QR 1126` and `2026-11` 
 - V31 still stays open. The Learn MCP server returned empty results for every query in this phase
   as well, so all documentation was fetched from `learn.microsoft.com` directly and each confirmed
   URL sits in a comment next to the call it justifies.
+
+## Phase 6 — ontology
+
+**Built**
+
+- `fabric/workspace/HubOntology.Ontology/` is the ontology item, twenty two definition parts. Seven
+  entity types, `Flight`, `Gate`, `Passenger`, `Member`, `Connection`, `Bag` and `CargoShipment`,
+  each one backed by a table that already exists in the lakehouse `lh_hub`.
+- `entityRelationships.tmdl` names the eight business relationships a person would say out loud, for
+  example `Connection Arrives On Flight` and `Bag Transfers To Flight`. Each one points at a plain
+  model relationship in `relationships.tmdl`, so the graph edge and the join stay in one place.
+- Two of the nine model relationships are written with `isActive: false`. Analysis Services refuses
+  two active paths between the same pair of tables, and bookings and bags both reach flights twice,
+  once for the inbound leg and once for the onward leg.
+- The `Flight` entity carries an `EtaUpdates` property typed `TimeSeries<dateTime>`. It is bound to a
+  lakehouse copy of the flight events rather than to the eventhouse, because the definition format has
+  no eventhouse partition mode, V85. The prompt allows this fallback and asks for it to be noted here.
+- `src/hubdemo/generate.py` gained `EVENTS_TABLE` and `write_events_table`, and `src/hubdemo/cli.py`
+  calls it, so the generator now also writes `flight_events.parquet` next to the ten lakehouse tables.
+  Nothing else changed. The event store string in `models.py` and the dataset digest are untouched.
+- `fabric/deploy_ontology.py` creates or updates the item through the item definition API, reads the
+  definition back and reports any difference outside the parts the service owns. It resolves the SQL
+  endpoint and the lakehouse id live rather than asking for two more configuration keys.
+- The thirteen rules are generated at deployment time from `scenario/qr004.yaml`. Every minute in a
+  rule statement is interpolated from the scenario file, so changing a threshold there changes the
+  deployed rule text and nothing else.
+- `fabric/deploy.py` now filters the workspace folders by item type, so the ontology folder is skipped
+  by the general deployment and only `deploy_ontology.py` owns it, V88. A test holds that split in place.
+- `docs/ontology.md` carries the diagram, the entity table, the relationship table, the rule list, the
+  columns that are deliberately not exposed, and the portal path to use if the script cannot run.
+
+**Verified**
+
+Everything below ran from `demos/03-airline` on the same local Python 3.11.17 virtual environment the
+earlier phases used. The first four rows are offline and make no network call. The rest talk to the
+tenant, and each one was preceded by a capacity state check, because the capacity auto pauses and every
+Fabric call then fails with `CapacityNotActive`, V61. That is exactly what happened part way through.
+
+| Check | Result |
+| --- | --- |
+| `ruff check .` | `All checks passed!`, exit code 0 |
+| `pytest -q` | `295 passed, 16 skipped in 6.16s`, exit code 0 |
+| `fabric/deploy_ontology.py --env example --dry-run` | exit code 0, `definition parts: 35`, `generated rules: 13`, one part still holding a placeholder, and no network call was made |
+| no scenario numbers as literals | a search over the new and changed Python files for every number, flight number, city and programme name in the scenario file found nothing |
+| capacity state check, before the live chain | `fabricplaygroundcapacity`, state `Active`, sku `F32`, region `East US` |
+| `hubdemo.cli generate` | exit code 0, twelve files in `data/`, including `flight_events.parquet` at 3070 bytes and seven rows |
+| `fabric/upload_landing.py --env demo` | exit code 0, `uploaded 11 file(s) to lh_hub.Lakehouse/Files/landing` |
+| reference notebook job | `Failed` after about seventy seconds, `System_Cancelled_Session_Statements_Failed`, job instance `21b1ff61-59bf-426a-85d9-ff4824cc9d4d` |
+| capacity state check, after the failure | `fabricplaygroundcapacity`, state `Inactive`, and every later Fabric call answers `CapacityNotActive` |
+| `fabric/deploy_ontology.py --env demo`, twice with read back | not run, blocked by the inactive capacity |
+| portal check, seven entity types showing data | not run, blocked by the inactive capacity |
+
+Phase 5 ended at 235 offline tests, so phase 6 adds 60 offline tests and breaks nothing. The live suite
+is unchanged at 16, and those 16 are the skips in the offline run.
+
+The literal search covered `fabric/deploy_ontology.py`, `fabric/deploy.py`, `src/hubdemo/generate.py`,
+`src/hubdemo/cli.py` and `src/hubdemo/fabric_api.py`. The only numeric hits were an HTTP status code, a
+sleep length, a slice length and a tab width, none of which come from the scenario file. The rule text
+is built by interpolating `scenario.rules` and `scenario.approval_policy`, so the minutes never appear
+in the source.
+
+**Open**
+
+- V91 is the main one. The live half of this phase did not finish. The reference notebook job failed
+  with `System_Cancelled_Session_Statements_Failed`, which is the generic wrapper for a Spark statement
+  error, and the two obvious data shape explanations were both disproven. The new parquet file is fully
+  typed, and the timestamp columns in it are the same kind as the timestamp columns in `flights` and
+  `next_flights`, which have loaded cleanly since phase 4. The capacity then went `Inactive`, so the
+  Spark session detail could not be read and nothing further could be tried.
+- The cheapest next test, once the capacity is `Active` again, is to re run the notebook job unchanged.
+  If it completes, the capacity pausing mid run was the cause. If it fails again, the Livy session list
+  gives the real Spark error, and removing `flight_events.parquet` from the landing folder isolates it.
+- V85 is a documented conflict. The data binding article lists eventhouse as a supported time series
+  source, but the ontology definition format has no partition mode for it. The ETA series is therefore
+  bound to the lakehouse copy of the events. If that mode is added later, the binding can move.
+- V86 and V87 are unverified assumptions. V86 is whether a relationship written with `isActive: false`
+  still works as the backing for a named entity relationship. V87 is the scope in which property names
+  must be unique, which was sidestepped by making every property name unique across the whole model.
+- V90 records that the ontology item type is in preview. Two tenant settings have to be on before any
+  of this works, and both are already in `docs/manual-steps.md`.
+- V59 is still the East US region conflict carried over from phase 4, and V61 is the capacity auto
+  pausing, which is what stopped this phase.
+- V31 still stays open. The Learn MCP server returned empty results again, so every page was fetched
+  from `learn.microsoft.com` directly and each confirmed URL sits in a comment next to the call.

@@ -326,6 +326,45 @@ def eventhouse_query_uri(eventhouse: Mapping[str, Any]) -> str:
     return uri
 
 
+def get_lakehouse(
+    token: str,
+    workspace_id: str,
+    lakehouse_id: str,
+    *,
+    fetch: Any = None,
+) -> dict[str, Any]:
+    """Return one lakehouse with its properties.
+
+    https://learn.microsoft.com/rest/api/fabric/lakehouse/items/get-lakehouse
+    """
+    call = fetch if fetch is not None else request_json
+    return call(
+        "GET",
+        f"{FABRIC_API_ROOT}/workspaces/{workspace_id}/lakehouses/{lakehouse_id}",
+        token,
+    )
+
+
+def lakehouse_sql_endpoint(lakehouse: Mapping[str, Any]) -> str:
+    """Return the SQL analytics endpoint address of a lakehouse.
+
+    The ontology reaches its tables through this endpoint. The address is
+    generated when the lakehouse is created, so it is read at run time rather
+    than kept as a configuration key.
+    https://learn.microsoft.com/rest/api/fabric/lakehouse/items/get-lakehouse
+    """
+    properties = lakehouse.get("properties")
+    if not isinstance(properties, Mapping):
+        raise FabricApiError("lakehouse came back without properties")
+    endpoint = properties.get("sqlEndpointProperties")
+    if not isinstance(endpoint, Mapping):
+        raise FabricApiError("lakehouse came back without sqlEndpointProperties")
+    address = str(endpoint.get("connectionString", "")).strip()
+    if not address:
+        raise FabricApiError("lakehouse came back without a SQL endpoint connection string")
+    return address
+
+
 def eventstream_topology(
     token: str,
     workspace_id: str,
@@ -652,4 +691,256 @@ def kusto_set_or_replace(table: str, expression: str) -> str:
     if not expression.strip():
         raise FabricApiError("datatable expression is empty")
     return f".set-or-replace {table} <|\n{expression}"
+
+
+# ---------------------------------------------------------------------------
+# Item definitions
+#
+# The ontology is published through the generic item definition APIs instead of
+# fabric-cicd, because fabric-cicd does not list Ontology among the item types it
+# accepts. The prompt for this phase asks for the item definition API anyway.
+# ---------------------------------------------------------------------------
+
+#: Display name of the ontology item this demo publishes.
+ONTOLOGY_ITEM = "HubOntology"
+
+# PREVIEW: Fabric ontology items
+# The item type string used by the Fabric item APIs for an ontology.
+# https://learn.microsoft.com/fabric/governance/ontology/ontology-overview
+ONTOLOGY_TYPE = "Ontology"
+
+#: The definition part the platform owns: it carries the display name and the
+#: logical id, and the service rewrites it, so a read back never matches byte
+#: for byte. Comparisons skip it.
+PLATFORM_PART = ".platform"
+
+# The only payload encoding the item definition APIs accept today.
+# https://learn.microsoft.com/rest/api/fabric/core/items/update-item-definition
+PAYLOAD_TYPE = "InlineBase64"
+
+#: Seconds to wait between two polls of a long running operation when the
+#: service does not say how long to wait.
+DEFAULT_POLL_SECONDS = 5
+
+#: How many times to poll a long running operation before giving up.
+MAX_POLL_ATTEMPTS = 60
+
+
+def encode_part(path: str, text: str) -> dict[str, str]:
+    """Turn one definition file into an item definition part.
+
+    https://learn.microsoft.com/rest/api/fabric/core/items/update-item-definition
+    """
+    import base64
+
+    if not path.strip():
+        raise FabricApiError("definition part path is empty")
+    payload = base64.b64encode(text.encode("utf-8")).decode("ascii")
+    return {"path": path, "payload": payload, "payloadType": PAYLOAD_TYPE}
+
+
+def decode_part(part: Mapping[str, Any]) -> str:
+    """Return the text carried by one definition part."""
+    import base64
+
+    kind = str(part.get("payloadType", ""))
+    if kind != PAYLOAD_TYPE:
+        raise FabricApiError(f"definition part uses payload type {kind!r}, expected {PAYLOAD_TYPE}")
+    return base64.b64decode(str(part.get("payload", ""))).decode("utf-8")
+
+
+def definition_body(parts: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """Wrap definition parts in the body that both item definition APIs expect."""
+    if not parts:
+        raise FabricApiError("an item definition needs at least one part")
+    return {"definition": {"parts": [dict(part) for part in parts]}}
+
+
+def part_texts(payload: Mapping[str, Any]) -> dict[str, str]:
+    """Return a definition answer as a mapping of part path to part text."""
+    definition = payload.get("definition") or {}
+    parts = definition.get("parts") or []
+    return {str(part.get("path", "")): decode_part(part) for part in parts}
+
+
+def request_operation(
+    method: str,
+    url: str,
+    token: str,
+    *,
+    json_body: Mapping[str, Any] | None = None,
+    expected: Sequence[int] = (200, 201, 202),
+    sleep: Any = time.sleep,
+) -> tuple[int, dict[str, str], dict[str, Any]]:
+    """Call the Fabric API and return the status code, the headers and the body.
+
+    request_json throws the headers away. The long running operation protocol
+    needs them, because a 202 answer carries the polling URL in Location and
+    says how long to wait in Retry-After.
+    https://learn.microsoft.com/rest/api/fabric/articles/long-running-operation
+    """
+    import requests  # imported here so the module imports without the network stack
+
+    headers = auth_headers(token)
+    for attempt in range(MAX_THROTTLE_RETRIES + 1):
+        response = requests.request(
+            method,
+            url,
+            headers=headers,
+            json=dict(json_body) if json_body is not None else None,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        if response.status_code == 429 and attempt < MAX_THROTTLE_RETRIES:
+            sleep(retry_after_seconds(response.headers))
+            continue
+        if response.status_code not in expected:
+            raise FabricApiError(
+                f"{method} {url} answered {response.status_code}: {response.text[:500]}"
+            )
+        body: dict[str, Any] = {}
+        if response.content:
+            try:
+                body = response.json()
+            except ValueError:
+                body = {}
+        return response.status_code, dict(response.headers), body
+    raise FabricApiError(f"{method} {url} stayed throttled after {MAX_THROTTLE_RETRIES} retries")
+
+
+def operation_location(headers: Mapping[str, str]) -> str:
+    """Return the polling URL of a long running operation, case insensitively.
+
+    https://learn.microsoft.com/rest/api/fabric/articles/long-running-operation
+    """
+    for key, value in headers.items():
+        if key.lower() == "location":
+            return str(value).strip()
+    return ""
+
+
+def wait_for_operation(
+    location: str,
+    token: str,
+    *,
+    want_result: bool = False,
+    sleep: Any = time.sleep,
+    fetch: Any = None,
+) -> dict[str, Any]:
+    """Poll a long running operation until it finishes.
+
+    While the operation runs, Location points at the operation state. The state
+    body reports Running, then Succeeded or Failed. Operations that produce a
+    result serve it from the same URL with /result appended; creating an item
+    has a result, updating a definition does not.
+    https://learn.microsoft.com/rest/api/fabric/articles/long-running-operation
+    https://learn.microsoft.com/rest/api/fabric/core/long-running-operations/get-operation-result
+    """
+    call = fetch or request_operation
+    if not location.strip():
+        raise FabricApiError("the answer carried no Location header, cannot poll the operation")
+    for _ in range(MAX_POLL_ATTEMPTS):
+        _status, headers, body = call("GET", location, token, expected=(200, 202))
+        state = str(body.get("status", ""))
+        if state == "Failed":
+            raise FabricApiError(f"the operation failed: {body.get('error')}")
+        if state == "Succeeded":
+            if not want_result:
+                return body
+            _code, _head, result = call(
+                "GET", f"{location.rstrip('/')}/result", token, expected=(200,)
+            )
+            return result
+        sleep(retry_after_seconds(headers))
+    raise FabricApiError(f"the operation at {location} did not finish in time")
+
+
+def create_item_definition(
+    token: str,
+    workspace_id: str,
+    display_name: str,
+    item_type: str,
+    parts: Sequence[Mapping[str, Any]],
+    *,
+    sleep: Any = time.sleep,
+    fetch: Any = None,
+) -> dict[str, Any]:
+    """Create one item from a definition and return the created item.
+
+    https://learn.microsoft.com/rest/api/fabric/core/items/create-item
+    """
+    call = fetch or request_operation
+    if not workspace_id.strip():
+        raise FabricApiError("workspace id is empty")
+    if not display_name.strip():
+        raise FabricApiError("item display name is empty")
+    body = {"displayName": display_name, "type": item_type, **definition_body(parts)}
+    status, headers, answer = call(
+        "POST",
+        f"{FABRIC_API_ROOT}/workspaces/{workspace_id}/items",
+        token,
+        json_body=body,
+        expected=(200, 201, 202),
+    )
+    if status == 202:
+        return wait_for_operation(
+            operation_location(headers), token, want_result=True, sleep=sleep, fetch=fetch
+        )
+    return answer
+
+
+def update_item_definition(
+    token: str,
+    workspace_id: str,
+    item_id: str,
+    parts: Sequence[Mapping[str, Any]],
+    *,
+    update_metadata: bool = True,
+    sleep: Any = time.sleep,
+    fetch: Any = None,
+) -> None:
+    """Replace the definition of one item.
+
+    The .platform part is only honoured when updateMetadata is true, so the
+    display name in the repository stays the display name in the workspace.
+    https://learn.microsoft.com/rest/api/fabric/core/items/update-item-definition
+    """
+    call = fetch or request_operation
+    if not item_id.strip():
+        raise FabricApiError("item id is empty")
+    url = f"{FABRIC_API_ROOT}/workspaces/{workspace_id}/items/{item_id}/updateDefinition"
+    if update_metadata:
+        url = f"{url}?updateMetadata=True"
+    status, headers, _answer = call(
+        "POST", url, token, json_body=definition_body(parts), expected=(200, 202)
+    )
+    if status == 202:
+        wait_for_operation(operation_location(headers), token, sleep=sleep, fetch=fetch)
+
+
+def get_item_definition(
+    token: str,
+    workspace_id: str,
+    item_id: str,
+    *,
+    sleep: Any = time.sleep,
+    fetch: Any = None,
+) -> dict[str, str]:
+    """Read the definition of one item back, as a mapping of part path to text.
+
+    https://learn.microsoft.com/rest/api/fabric/core/items/get-item-definition
+    """
+    call = fetch or request_operation
+    if not item_id.strip():
+        raise FabricApiError("item id is empty")
+    status, headers, answer = call(
+        "POST",
+        f"{FABRIC_API_ROOT}/workspaces/{workspace_id}/items/{item_id}/getDefinition",
+        token,
+        expected=(200, 202),
+    )
+    if status == 202:
+        answer = wait_for_operation(
+            operation_location(headers), token, want_result=True, sleep=sleep, fetch=fetch
+        )
+    return part_texts(answer)
 

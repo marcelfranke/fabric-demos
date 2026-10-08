@@ -1,0 +1,41 @@
+table flight_events
+	lineageTag: 9c2e1b43-5d4e-4b1f-8a30-1b2c3d4e0108
+
+	column event_time
+		dataType: dateTime
+		sourceColumn: event_time
+
+	column flight_id
+		dataType: string
+		sourceColumn: flight_id
+
+	column flight_no
+		dataType: string
+		sourceColumn: flight_no
+
+	column event_type
+		dataType: string
+		sourceColumn: event_type
+
+	column eta_local
+		dataType: dateTime
+		sourceColumn: eta_local
+
+	column delay_min
+		dataType: int64
+		sourceColumn: delay_min
+
+	column 'source'
+		dataType: string
+		sourceColumn: source
+
+	column 'text'
+		dataType: string
+		sourceColumn: text
+
+	partition flight_events = entity
+		mode: directLake
+		source
+			entityName: flight_events
+			schemaName: dbo
+			expressionSource: DatabaseQuery

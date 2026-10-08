@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -28,6 +29,9 @@ from hubdemo.fabric_api import (
     KUSTO_SCOPE,
     LAKEHOUSE_ITEM,
     LANDING_PATH,
+    ONTOLOGY_ITEM,
+    ONTOLOGY_TYPE,
+    PLATFORM_PART,
     FabricApiError,
     create_workspace_body,
     custom_endpoint_source,
@@ -47,6 +51,7 @@ from hubdemo.fabric_api import (
     kusto_rows,
     kusto_set_or_replace,
     kusto_url,
+    lakehouse_sql_endpoint,
     landing_path,
     next_token,
     onelake_path,
@@ -894,3 +899,332 @@ def test_endpoint_dry_run_makes_no_call(capsys: pytest.CaptureFixture[str]) -> N
     out = capsys.readouterr().out
     assert "no network call" in out
     assert module.NAMESPACE_KEY in out
+
+
+# ---------------------------------------------------------------------- the ontology
+
+ONTOLOGY_DIR = WORKSPACE_DIR / "HubOntology.Ontology"
+
+#: The seven entity types the demo spec asks the ontology to carry.
+ENTITY_NAMES = (
+    "Flight",
+    "Gate",
+    "Passenger",
+    "Member",
+    "Connection",
+    "Bag",
+    "CargoShipment",
+)
+
+#: The eight named relationships between those entity types.
+ENTITY_RELATIONSHIPS = (
+    "Passenger Holds Connection",
+    "Connection Arrives On Flight",
+    "Connection Departs On Flight",
+    "Passenger Is Member",
+    "Bag Belongs To Passenger",
+    "Bag Transfers To Flight",
+    "Flight Uses Gate",
+    "Cargo Shipment Transfers To Flight",
+)
+
+#: Columns that must never reach the ontology, from the security fixtures.
+PII_COLUMNS = ("passport_no", "contact_phone")
+
+
+def _ontology_text(relative: str) -> str:
+    """Read one definition file of the ontology."""
+    return (ONTOLOGY_DIR / relative).read_text(encoding="utf-8")
+
+
+def _table_columns() -> dict[str, set[str]]:
+    """Return the columns declared by each table part of the ontology."""
+    tables: dict[str, set[str]] = {}
+    for path in sorted((ONTOLOGY_DIR / "tables").glob("*.tmdl")):
+        text = path.read_text(encoding="utf-8")
+        name = re.findall(r"^table (\S+)", text, flags=re.MULTILINE)[0]
+        columns = re.findall(r"^\tcolumn '?([A-Za-z_]\w*)'?$", text, flags=re.MULTILINE)
+        tables[name] = set(columns)
+    return tables
+
+
+def _entity_text(name: str) -> str:
+    """Read one entity part of the ontology."""
+    return _ontology_text(f"entities/{name}.tmdl")
+
+
+def test_ontology_platform_file_declares_an_ontology() -> None:
+    data = json.loads(_ontology_text(".platform"))
+    assert data["metadata"]["type"] == ONTOLOGY_TYPE
+    assert data["metadata"]["displayName"] == ONTOLOGY_ITEM
+    assert data["config"]["version"] == "2.0"
+
+
+def test_ontology_database_sets_the_compatibility_level() -> None:
+    assert "compatibilityLevel: 1000000" in _ontology_text("database.tmdl")
+
+
+@pytest.mark.parametrize("name", ENTITY_NAMES)
+def test_every_entity_type_exists_with_a_key(name: str) -> None:
+    text = _entity_text(name)
+    assert re.search(rf"^entity {name}$", text, flags=re.MULTILINE)
+    assert re.search(r"^\tbackingTable: \w+$", text, flags=re.MULTILINE)
+    assert re.search(r"^\tkeyProperty: \w+$", text, flags=re.MULTILINE)
+
+
+@pytest.mark.parametrize("name", ENTITY_NAMES)
+def test_entity_key_property_is_declared(name: str) -> None:
+    text = _entity_text(name)
+    key = re.findall(r"^\tkeyProperty: (\w+)$", text, flags=re.MULTILINE)[0]
+    assert re.search(rf"^\tproperty {key}$", text, flags=re.MULTILINE)
+
+
+@pytest.mark.parametrize("name", ENTITY_NAMES)
+def test_entity_properties_point_at_real_columns(name: str) -> None:
+    """Every binding must name a column that one of the table parts declares."""
+    tables = _table_columns()
+    pairs = re.findall(
+        r"^\t+(?:value|ordering)Column: (\w+)\.(\w+)$", _entity_text(name), flags=re.MULTILINE
+    )
+    assert pairs
+    for table, column in pairs:
+        assert table in tables, f"{name} binds to an unknown table {table}"
+        assert column in tables[table], f"{name} binds to an unknown column {table}.{column}"
+
+
+@pytest.mark.parametrize("name", ENTITY_NAMES)
+def test_entity_backing_table_exists(name: str) -> None:
+    tables = _table_columns()
+    backing = re.findall(r"^\tbackingTable: (\w+)$", _entity_text(name), flags=re.MULTILINE)[0]
+    assert backing in tables
+
+
+def test_the_passenger_entity_hides_the_personal_columns() -> None:
+    """Security moment S1: the ontology never exposes passport or phone numbers."""
+    text = _entity_text("Passenger")
+    for column in PII_COLUMNS:
+        assert column not in text
+
+
+def test_no_table_part_exposes_the_personal_columns() -> None:
+    for columns in _table_columns().values():
+        assert not set(PII_COLUMNS) & columns
+
+
+def test_arrival_times_are_bound_as_a_time_series() -> None:
+    """The eventhouse cannot be named in a definition, so the lakehouse copy is used."""
+    text = _entity_text("Flight")
+    assert "dataType: TimeSeries<dateTime>" in text
+    assert "type: timeSeries" in text
+    assert "orderingColumn: flight_events.event_time" in text
+    assert "valueColumn: flight_events.eta_local" in text
+
+
+def test_every_named_relationship_is_present() -> None:
+    text = _ontology_text("entityRelationships.tmdl")
+    for name in ENTITY_RELATIONSHIPS:
+        assert f"entityRelationship '{name}'" in text
+
+
+def test_entity_relationships_join_known_entities_and_relationships() -> None:
+    text = _ontology_text("entityRelationships.tmdl")
+    declared = set(
+        re.findall(r"^relationship (\w+)$", _ontology_text("relationships.tmdl"), re.MULTILINE)
+    )
+    for entity in re.findall(r"^\t(?:from|to)Entity: (\w+)$", text, flags=re.MULTILINE):
+        assert entity in ENTITY_NAMES
+    backings = re.findall(r"^\t\trelationship: (\w+)$", text, flags=re.MULTILINE)
+    assert len(backings) == len(ENTITY_RELATIONSHIPS)
+    for backing in backings:
+        assert backing in declared
+
+
+def test_relationships_join_real_columns() -> None:
+    tables = _table_columns()
+    pairs = re.findall(
+        r"^\t(?:from|to)Column: (\w+)\.(\w+)$", _ontology_text("relationships.tmdl"), re.MULTILINE
+    )
+    assert pairs
+    for table, column in pairs:
+        assert column in tables.get(table, set()), f"relationship names {table}.{column}"
+
+
+def test_only_one_path_between_bookings_and_flights_is_active() -> None:
+    """Two active joins between the same pair of tables are rejected by the model."""
+    text = _ontology_text("relationships.tmdl")
+    assert re.search(r"relationship rel_bookings_onward_flight\n\tisActive: false", text)
+    assert re.search(r"relationship rel_bags_onward_flight\n\tisActive: false", text)
+
+
+def test_every_table_part_reads_from_the_lakehouse() -> None:
+    for name, _ in sorted(_table_columns().items()):
+        text = _ontology_text(f"tables/{name}.tmdl")
+        assert "mode: directLake" in text
+        assert "schemaName: dbo" in text
+        assert "expressionSource: DatabaseQuery" in text
+
+
+def test_every_table_column_declares_a_type() -> None:
+    allowed = {"string", "int64", "double", "dateTime", "boolean", "decimal"}
+    for path in sorted((ONTOLOGY_DIR / "tables").glob("*.tmdl")):
+        text = path.read_text(encoding="utf-8")
+        types = re.findall(r"^\t\tdataType: (\w+)$", text, flags=re.MULTILINE)
+        columns = re.findall(r"^\tcolumn ", text, flags=re.MULTILINE)
+        assert len(types) == len(columns), f"{path.name} has a column without a type"
+        assert set(types) <= allowed
+
+
+def test_the_model_refers_to_every_table_and_entity() -> None:
+    text = _ontology_text("model.tmdl")
+    for name in _table_columns():
+        assert f"ref table {name}" in text
+    for name in ENTITY_NAMES:
+        assert f"ref entity {name}" in text
+    assert "ref namespace default" in text
+
+
+def test_the_default_namespace_is_present() -> None:
+    assert "namespace default" in _ontology_text("namespaces/default.tmdl")
+
+
+def test_tmdl_parts_indent_with_tabs() -> None:
+    for path in sorted(ONTOLOGY_DIR.rglob("*.tmdl")):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            assert not line.startswith(" "), f"{path.name} indents with spaces"
+
+
+# ------------------------------------------------------------ the ontology deployment
+
+
+def test_the_deployment_builds_one_rule_for_every_business_rule() -> None:
+    module = _load_script("deploy_ontology")
+    parts = module.build_parts(load_scenario())
+    rules = [path for path in parts if path.startswith("rules/")]
+    assert len(rules) == len(module.RULE_REFERENCES)
+    model_text = parts["model.tmdl"]
+    for path in rules:
+        name = path.removeprefix("rules/").removesuffix(".tmdl")
+        assert f"ref rule {name}" in model_text
+
+
+def test_rule_texts_carry_the_scenario_minutes() -> None:
+    """Rule 5: the minutes are written down in the scenario file only."""
+    module = _load_script("deploy_ontology")
+    scenario = load_scenario()
+    statements = module.rule_statements(scenario)
+    assert f"{scenario.rules.pax_fasttrack_min} minutes" in statements["OptionResult"]
+    assert f"{scenario.rules.margin_min} minutes" in statements["OptionResult"]
+    assert f"{scenario.rules.bag_priority_min} minutes" in statements["BagsMakeIt"]
+    assert f"{scenario.rules.cargo_min} minutes" in statements["CargoMakesIt"]
+    assert f"{scenario.rules.pax_standard_min} minutes" in statements["ConnectionAtRisk"]
+    assert f"{scenario.rules.max_hold_min} minutes" in statements["HoldOption"]
+    assert f"{scenario.approval_policy.timeout_min} minutes" in statements["ApprovalTimeout"]
+
+
+def test_rules_only_name_entities_and_relationships_that_exist() -> None:
+    module = _load_script("deploy_ontology")
+    for name, references in module.RULE_REFERENCES.items():
+        for entity, properties in references["entities"]:
+            text = _entity_text(entity)
+            for item in properties:
+                assert f"property {item}" in text, f"{name} names a missing property {item}"
+        for relationship in references["relationships"]:
+            assert relationship in ENTITY_RELATIONSHIPS
+
+
+def test_rule_parts_indent_the_reference_blocks_correctly() -> None:
+    """Indentation is positional: a relationship is a sibling of an entity, not a child."""
+    module = _load_script("deploy_ontology")
+    text = module.rule_tmdl("CargoMakesIt", "A sentence.", 7)
+    assert "\truleReferencedEntity CargoShipment\n\t\tpropertyScope: specific\n" in text
+    assert "\n\truleReferencedRelationship 'Cargo Shipment Transfers To Flight'" in text
+    assert text.startswith("rule CargoMakesIt\n\tlineageTag: ")
+
+
+def test_a_rule_without_properties_has_no_scope_of_specific() -> None:
+    module = _load_script("deploy_ontology")
+    text = module.rule_tmdl("ProposalChoice", "A sentence.", 9)
+    assert "\t\tpropertyScope: none" in text
+    assert "ruleReferencedProperty" not in text
+
+
+def test_placeholders_are_filled_and_reported() -> None:
+    module = _load_script("deploy_ontology")
+    parts = module.build_parts(load_scenario())
+    assert module.unresolved_placeholders(parts) == ["expressions.tmdl"]
+    filled = module.fill_placeholders(parts, "endpoint.example", "0000-id")
+    assert module.unresolved_placeholders(filled) == []
+    assert 'Sql.Database("endpoint.example", "0000-id")' in filled["expressions.tmdl"]
+
+
+def test_filling_placeholders_refuses_an_empty_address() -> None:
+    module = _load_script("deploy_ontology")
+    with pytest.raises(FabricApiError):
+        module.fill_placeholders({"a": "x"}, "", "id")
+
+
+def test_reading_parts_needs_a_model() -> None:
+    module = _load_script("deploy_ontology")
+    with pytest.raises(FabricApiError):
+        module.read_parts(ONTOLOGY_DIR / "tables")
+
+
+def test_reading_parts_reports_a_missing_folder(tmp_path: Path) -> None:
+    module = _load_script("deploy_ontology")
+    with pytest.raises(FabricApiError):
+        module.read_parts(tmp_path / "nothing")
+
+
+def test_the_read_back_comparison_ignores_layout_and_the_platform_part() -> None:
+    module = _load_script("deploy_ontology")
+    sent = {"a.tmdl": "table a\n\tlineageTag: 1\n", PLATFORM_PART: "{}"}
+    back = {"a.tmdl": "\ntable a\n\n\tlineageTag: 1  \n", PLATFORM_PART: '{"other": 1}'}
+    assert module.differences(sent, back) == []
+
+
+def test_the_read_back_comparison_reports_a_real_change() -> None:
+    module = _load_script("deploy_ontology")
+    report = module.differences({"a.tmdl": "table a\n"}, {"a.tmdl": "table b\n"})
+    assert len(report) == 1
+    assert report[0].startswith("a.tmdl: 1 line(s) missing, 1 line(s) added")
+
+
+def test_the_read_back_comparison_reports_missing_and_added_parts() -> None:
+    module = _load_script("deploy_ontology")
+    report = module.differences({"a.tmdl": "x"}, {"b.tmdl": "y"})
+    assert "a.tmdl: sent but not read back" in report
+    assert "b.tmdl: added by the service" in report
+
+
+def test_the_lakehouse_endpoint_is_read_from_the_item() -> None:
+    answer = {"properties": {"sqlEndpointProperties": {"connectionString": "host.example"}}}
+    assert lakehouse_sql_endpoint(answer) == "host.example"
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        {},
+        {"properties": {}},
+        {"properties": {"sqlEndpointProperties": {"connectionString": "  "}}},
+    ],
+)
+def test_a_lakehouse_without_an_endpoint_is_an_error(answer: dict) -> None:
+    with pytest.raises(FabricApiError):
+        lakehouse_sql_endpoint(answer)
+
+
+def test_the_ontology_dry_run_makes_no_call(capsys: pytest.CaptureFixture[str]) -> None:
+    module = _load_script("deploy_ontology")
+    assert module.main(["--env", "example", "--dry-run"]) == 0
+    out = capsys.readouterr().out
+    assert "no network call" in out
+    assert f"item: {ONTOLOGY_ITEM} ({ONTOLOGY_TYPE})" in out
+    assert "generated rules: 13" in out
+
+
+def test_the_ontology_is_not_published_by_the_other_deploy_script() -> None:
+    """fabric/deploy.py leaves the ontology alone, deploy_ontology.py owns it."""
+    module = _load_script("deploy")
+    assert "HubOntology.Ontology" not in module.item_folders(WORKSPACE_DIR)
+    assert ONTOLOGY_TYPE not in module.ITEM_TYPES

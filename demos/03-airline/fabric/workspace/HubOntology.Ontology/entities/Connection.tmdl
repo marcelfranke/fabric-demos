@@ -1,0 +1,31 @@
+/// One passenger travelling from an arriving flight onto a departing flight.
+entity Connection
+	lineageTag: 9c2e1b43-5d4e-4b1f-8a30-1b2c3d4e0205
+	backingTable: bookings
+	keyProperty: BookingId
+
+	property BookingId
+		dataType: string
+
+		backingConfiguration
+			valueColumn: bookings.booking_id
+
+	property ConnectingPassengerId
+		dataType: string
+
+		backingConfiguration
+			valueColumn: bookings.passenger_id
+
+	/// The flight the passenger arrives on.
+	property InboundFlightId
+		dataType: string
+
+		backingConfiguration
+			valueColumn: bookings.inbound_flight_id
+
+	/// The flight the passenger departs on, empty when the passenger ends the journey here.
+	property OnwardFlightId
+		dataType: string
+
+		backingConfiguration
+			valueColumn: bookings.onward_flight_id

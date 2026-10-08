@@ -89,10 +89,16 @@ def _credential():
 
 
 def item_folders(directory: Path) -> list[str]:
-    """Return the item folder names under `directory`, sorted."""
+    """Return the item folder names this script publishes, sorted.
+
+    The ontology folder is skipped on purpose. It is published by
+    fabric/deploy_ontology.py instead, because its definition carries the
+    lakehouse address, which is read from the workspace at run time.
+    """
     if not directory.is_dir():
         return []
-    return sorted(path.name for path in directory.iterdir() if path.is_dir())
+    names = (path.name for path in directory.iterdir() if path.is_dir())
+    return sorted(name for name in names if name.split(".")[-1] in ITEM_TYPES)
 
 
 def plan(workspace_name: str, directory: Path) -> list[str]:

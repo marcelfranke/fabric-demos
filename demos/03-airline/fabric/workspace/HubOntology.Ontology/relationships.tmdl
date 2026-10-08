@@ -1,0 +1,37 @@
+relationship rel_bookings_passenger
+	fromColumn: bookings.passenger_id
+	toColumn: passengers.passenger_id
+
+relationship rel_bookings_inbound_flight
+	fromColumn: bookings.inbound_flight_id
+	toColumn: flights.flight_id
+
+relationship rel_bookings_onward_flight
+	isActive: false
+	fromColumn: bookings.onward_flight_id
+	toColumn: flights.flight_id
+
+relationship rel_members_passenger
+	fromColumn: members.passenger_id
+	toColumn: passengers.passenger_id
+
+relationship rel_bags_passenger
+	fromColumn: bags.passenger_id
+	toColumn: passengers.passenger_id
+
+relationship rel_bags_onward_flight
+	isActive: false
+	fromColumn: bags.onward_flight_id
+	toColumn: flights.flight_id
+
+relationship rel_flights_gate
+	fromColumn: flights.gate_id
+	toColumn: gates.gate_id
+
+relationship rel_cargo_onward_flight
+	fromColumn: cargo_shipments.onward_flight_id
+	toColumn: flights.flight_id
+
+relationship rel_flight_events_flight
+	fromColumn: flight_events.flight_id
+	toColumn: flights.flight_id

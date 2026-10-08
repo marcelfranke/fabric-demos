@@ -53,6 +53,9 @@ from hubdemo.scenario import at_risk_ids, totals, windows
 LAKEHOUSE = "lakehouse lh_hub"
 PARQUET_TABLES = tuple(table for table in ROW_TABLES if table.store == LAKEHOUSE)
 
+#: The event timeline is landed in the lakehouse as well, so the ontology can bind to it.
+EVENTS_TABLE = "flight_events"
+
 DEFAULT_SEED = 42
 DEFAULT_DATA_DIR = "data"
 
@@ -563,6 +566,22 @@ def write_dataset(dataset: Dataset, out_dir: Path) -> list[Path]:
         pq.write_table(arrow, path)
         written.append(path)
     return written
+
+
+def write_events_table(events: list[FlightEventRow], out_dir: Path) -> Path:
+    """Writes the event timeline as a Parquet file as well, next to the reference tables.
+
+    The eventhouse holds the live copy of these events. The ontology binds its arrival
+    time series to the lakehouse copy instead, because the ontology definition format has
+    no way to name an eventhouse table. Running it again overwrites the file.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    arrow = pa.Table.from_pylist(
+        [row.model_dump() for row in events], schema=schema_for(FlightEventRow)
+    )
+    path = out_dir / f"{EVENTS_TABLE}.parquet"
+    pq.write_table(arrow, path)
+    return path
 
 
 def read_table(path: Path, model: type[BaseModel]) -> list[BaseModel]:

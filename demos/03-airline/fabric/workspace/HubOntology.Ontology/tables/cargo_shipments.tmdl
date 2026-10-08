@@ -1,0 +1,29 @@
+table cargo_shipments
+	lineageTag: 9c2e1b43-5d4e-4b1f-8a30-1b2c3d4e0107
+
+	column shipment_id
+		dataType: string
+		sourceColumn: shipment_id
+
+	column inbound_flight_id
+		dataType: string
+		sourceColumn: inbound_flight_id
+
+	column onward_flight_id
+		dataType: string
+		sourceColumn: onward_flight_id
+
+	column temperature_controlled
+		dataType: boolean
+		sourceColumn: temperature_controlled
+
+	column min_transfer_min
+		dataType: int64
+		sourceColumn: min_transfer_min
+
+	partition cargo_shipments = entity
+		mode: directLake
+		source
+			entityName: cargo_shipments
+			schemaName: dbo
+			expressionSource: DatabaseQuery
