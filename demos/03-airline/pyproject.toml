@@ -20,6 +20,11 @@ dependencies = [
     "azure-identity>=1.17",
     "azure-storage-file-datalake>=12.14",
     "requests>=2.31",
+    # Phase 5: send events to the custom endpoint of the eventstream.
+    "azure-eventhub>=5.15",
+    # The async DefaultAzureCredential builds an async pipeline, and that pipeline
+    # needs an async http transport. Without aiohttp it raises at construction time.
+    "aiohttp>=3.9",
 ]
 
 [project.optional-dependencies]

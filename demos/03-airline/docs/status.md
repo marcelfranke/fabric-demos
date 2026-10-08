@@ -12,7 +12,7 @@ States: `not started`, `in progress`, `done`, `blocked`.
 | 02 rules engine | done | `ruff check .` clean, `pytest -q` 100 passed, `pytest -q --cov=hubdemo.rules --cov-branch` 100 percent statement and branch coverage of `rules.py`, no number from the scenario file written as a literal in `rules.py` | The wording of `explain`, `plan_text`, `member_text` and the action lines is invented (V34), `cargo_protected` is true when no shipment is affected (V35), `bags_protected` counts only kept connections whose bags make it (V36), `min_transfer_min` on the shipments is unused (V37), `Platinum` is named in code as the top tier (V38) |
 | 03 synthetic data | done | `ruff check .` clean, `pytest -q` 133 passed, `hubdemo generate --out data` writes ten Parquet files plus `flight_events.jsonl`, `hubdemo validate --data data` reports the rows reproduce the scenario file, `--scale 20` leaves the result unchanged, no number from the scenario file written as a literal in `generate.py` or `events.py` | Background arrivals get an empty `origin` because the scenario names a city but no airport code (V39), next flights get an empty `gate_id` (V40), `concourse` is derived from the first letter of the gate (V41), the `transfer_rules` descriptions are invented (V42), the `tier_benefits` source note is invented (V43), the event texts are invented (V44), `departure_delay_min` is read from the scenario during validation because no row model carries it (V45), `expected.at_risk_totals` is deliberately not re-checked (V46), the given and family name lists are invented (V47) |
 | 04 fabric foundation | done | `ruff check .` clean, `pytest -q` 179 passed, the three scripts each ran `--env example --dry-run` and exited 0 without a network call, and both "Done when" items then ran for real against the workspace `Airline Demo v2`: `fabric/deploy.py --env demo` exited 0 twice and the ten Delta tables appeared under `Tables/dbo`, and `tests/live/test_fabric_foundation.py` with `HUBDEMO_LIVE=1` reported 11 passed | V48 to V58 are closed by the first real deploy. The new points are V59 to V66. Only V59 needs a decision: the capacity sits in East US, which manual step 5 tells the reader to avoid. Five manual steps, 5 to 9, are in `manual-steps.md` |
-| 05 real time | not started | — | — |
+| 05 real time | done | `ruff check .` clean, `pytest -q` 235 passed and 16 skipped, the three new scripts each ran `--dry-run` and exited 0 without a network call, and the live chain then ran for real against `Airline Demo v2`: `fabric/deploy.py --env demo` published all seven items, `scripts/load_kql_reference.py --env demo` loaded 295 rows into `hubdb`, `scripts/eventstream_endpoint.py --env demo` read the custom endpoint address over REST, `scripts/replay_events.py --env demo --until-trigger` sent 6 events, `flight_events` counted 6 on the first poll, `ConnectionWindows("QR004")` returned 11 rows with exactly 3 at risk, and `tests/live/test_real_time.py` with `HUBDEMO_LIVE=1` reported 16 passed | The new points are V67 to V83. Two need a person: V59 is still the East US region conflict carried over from phase 4, and V74 leaves the Activator rule as a portal click because the `FabricItemInvocation` action has no documented example. Manual steps 10 to 12 cover the Activator clicks |
 | 06 ontology | not started | — | — |
 | 07 rules function | not started | — | — |
 | 08 fabric agents | not started | — | — |
@@ -344,3 +344,116 @@ offline suite must never need a database driver.
 - V31 stays open. The Microsoft Learn MCP server still returns empty results. Phase 4 needed nine
   documentation pages and several more besides, and every one of them was fetched from
   `learn.microsoft.com` directly instead, with the confirmed URL recorded next to the call.
+
+## Phase 5 — real time
+
+**Built**
+
+- `fabric/workspace/es_flight_events.Eventstream/eventstream.json`, the eventstream item. One custom
+  endpoint source feeds one default stream, which fans out to two destinations: a lakehouse table
+  for the durable copy and the `flight_events` KQL table for the queries the demo actually runs.
+  The eventhouse destination uses push mode, `dataIngestionMode: ProcessedIngestion`, which is the
+  shape that works for a definition only deploy. See the open points below for why.
+- `fabric/workspace/pl_on_delay.DataPipeline/pipeline-content.json`, the pipeline the Activator rule
+  will invoke in a later phase. It is deliberately a stub with no activities, because phase 5 only
+  needs the item to exist and to have a stable id that a rule can point at.
+- `fabric/workspace/hubdb.KQLDatabase/DatabaseSchema.kql` grew the parts the live story needs: an
+  `event_id` column on `flight_events` so a replayed event can be identified, a `city` column on
+  `flights` so a window result is readable without a join to reference data, a new
+  `transfer_rules` table so the minimum connect time comes from data rather than from a literal,
+  and two functions. `LatestEta` returns the newest ETA for a flight. `ConnectionWindows` joins
+  that ETA against the onward departures and flags the ones that no longer make the connection.
+- `scripts/load_kql_reference.py`, which loads `flights`, `bookings` and `transfer_rules` into the
+  KQL database. The notebook from phase 4 only writes lakehouse Delta tables, so without this the
+  eventhouse has the event stream but nothing to join it to. It uses `.set-or-replace`, so running
+  it twice leaves the same three tables.
+- `scripts/eventstream_endpoint.py`, which reads the custom endpoint namespace and event hub name
+  out of the published eventstream over REST and prints the two lines to paste into the config.
+  Phase 5 first assumed this was a portal click. It is not, see V69.
+- `scripts/replay_events.py`, which sends the generated event timeline to that endpoint. It has
+  three dry run modes and a `--until-trigger` flag that stops after the QR004 ETA update, so a
+  presenter can show the delay arriving without also sending the landing event that ends the story.
+- `src/hubdemo/fabric_api.py` gained two groups of helpers. Four eventstream helpers read the
+  topology, pick out the custom endpoint source, fetch its connection and return the address. A
+  Kusto section wraps the query and management endpoints, including literal rendering for
+  `.set-or-replace`. Both are in the existing client, no second client was written.
+- `config/env.example.yaml` and `src/hubdemo/config.py` grew to twenty one keys, adding
+  `eventstream.namespace` and `eventstream.event_hub`. `pyproject.toml` declares `azure-eventhub`
+  and `aiohttp`, the second because the async credential needs an async transport, V82.
+- `tests/test_fabric_assets.py` gained fifty one offline tests covering the two new item
+  definitions, the KQL schema additions, the Kusto helpers and all three scripts.
+  `tests/live/test_real_time.py` adds five live tests that only run with `HUBDEMO_LIVE=1`.
+
+**Verified**
+
+Everything below ran from `demos/03-airline` on the same local Python 3.11.17 virtual environment
+phases 0 to 4 used. The first five rows are offline and make no network call. The rest talk to the
+tenant, and every one of them was preceded by a capacity state check, because the capacity auto
+pauses and every Fabric call then fails with `CapacityNotActive`, V61.
+
+| Check | Result |
+| --- | --- |
+| `ruff check .` | `All checks passed!`, exit code 0 |
+| `pytest -q` | `235 passed, 16 skipped in 4.72s`, exit code 0 |
+| `python scripts/load_kql_reference.py --env example --dry-run` | prints the plan, `dry run, no network call was made`, exit code 0 |
+| `python scripts/eventstream_endpoint.py --env example --dry-run` | prints the plan, `dry run, no network call was made`, exit code 0 |
+| `python scripts/replay_events.py --env example --dry-run` | prints the six event timeline, `dry run, no network call was made`, exit code 0 |
+| capacity state check | `fabricplaygroundcapacity`, state `Active`, sku `F32`, region `East US` |
+| `python fabric/deploy.py --env demo` | `Published Eventstream 'es_flight_events'`, `published 7 item definition(s)`, exit code 0 |
+| eventstream topology poll | four nodes, source, stream, lakehouse destination and eventhouse destination, all `Running` on the first poll |
+| `python scripts/load_kql_reference.py --env demo` | `loaded 295 row(s) into hubdb`, exit code 0, and a follow up query reports `flights 20`, `bookings 268`, `transfer_rules 7` |
+| `python scripts/eventstream_endpoint.py --env demo` | prints the namespace and event hub name, exit code 0, address unchanged across a republish |
+| `python scripts/replay_events.py --env demo --until-trigger` | `sent 6 event(s)`, exit code 0 |
+| a row count on `flight_events` after the replay | `poll 0 flight_events = 6`, exit code 0 |
+| `ConnectionWindows("QR004")` | 11 rows, exactly 3 at risk, Muscat 20, Singapore 30, Sydney 35, matching `scenario/qr004.yaml` value for value |
+| `pytest -q -m live tests/live` with `HUBDEMO_LIVE=1` | `16 passed in 31.84s`, exit code 0 |
+
+Phase 4 ended at 179 tests, so phase 5 adds 56 offline tests and breaks nothing. The live suite went
+from 11 to 16, the five new ones being `tests/live/test_real_time.py`. The skip count stays at 16,
+which is the live suite being skipped during the offline run.
+
+The no literals rule was checked the same way it was for `rules.py` in phase 2. Searching the four
+new or heavily changed files for every number in `scenario/qr004.yaml` returns one hit,
+`DEFAULT_RETRY_AFTER_SECONDS = 20` in `fabric_api.py`, which is a retry delay in seconds and has
+nothing to do with the scenario. Searching for `QR004`, `QR 1126` and `2026-11` returns nothing.
+
+**Open**
+
+- The eventhouse destination cost most of this phase and the story is worth keeping. The first
+  version used `DirectIngestion`, which is what most of the documentation shows. It deployed, but
+  the destination sat at `Warning` forever and `flight_events` stayed at zero while the lakehouse
+  destination next to it was writing rows normally. Nothing reported an error: the topology JSON
+  had no error field and a direct read of the destination returned 200 with nothing wrong in it.
+  The clue came from asking the service to resume the destination, which failed with
+  `Current operation 'resume' is not supported for the data source type 'KustoPullMode'`.
+  `DirectIngestion` is a pull mode that needs a connection the service creates for you, and a
+  definition only deploy never creates one. The fix is push mode, `ProcessedIngestion`, which takes
+  `databaseName` and `inputSerialization` instead of `connectionName` and `mappingRuleName` and
+  needs no connection at all. All of this is V79.
+- Push mode has one surprise that no documentation page states: `itemId` on the eventhouse
+  destination is the id of the KQL database, not of the eventhouse. The service said so itself,
+  refusing the publish with `Unable to extract cluster URL from the Eventhouse KQL database item ID`
+  followed by the eventhouse id. Swapping `parameter.yml` to the `hubdb` id made the publish
+  succeed. `databaseName` is still required alongside it. This is V71.
+- The JSON shape for the eventstream item was confirmed against
+  `https://github.com/microsoft/fabric-event-streams`, the Microsoft owned template repository,
+  because the REST reference describes the operations but not the destination payloads. That is a
+  weaker source than Microsoft Learn, so it is recorded as such in V80.
+- V69 was wrong when it was first written and was corrected inside the same phase. Reading the
+  custom endpoint namespace and event hub name was assumed to be portal only. Two REST operations
+  do it, and `scripts/eventstream_endpoint.py` now does it. The connection call returns shared
+  access keys, which the script neither prints nor stores, because the replay authenticates with
+  `DefaultAzureCredential` instead. Manual step 11 is now a command rather than a click.
+- Republishing an eventstream recreates its source and destination nodes with new ids. The default
+  stream kept its id and, more usefully, the Event Hub address was preserved, so the two config
+  values did not have to change. That was observed once and is recorded as an observation, not a
+  promise, V81.
+- V59 is still open and still needs a person. The capacity sits in East US while manual step 5 says
+  to avoid that region. It remains the only F32 in the tenant.
+- V74 is the one real gap. The Activator rule that watches for an at risk connection and starts
+  `pl_on_delay` is left as a portal click, manual steps 10 to 12. The Reflex item definition is
+  documented and the `FabricItemInvocation` action is listed, but only `TeamsMessage` has a worked
+  example of the step grammar, and rule 2 forbids inventing the rest.
+- V31 still stays open. The Learn MCP server returned empty results for every query in this phase
+  as well, so all documentation was fetched from `learn.microsoft.com` directly and each confirmed
+  URL sits in a comment next to the call it justifies.

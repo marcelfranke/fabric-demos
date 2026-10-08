@@ -11,3 +11,7 @@ These files hold names and identifiers only. No secrets belong here: Azure acces
 comes from `DefaultAzureCredential` after `az login`.
 
 Check a file with `python scripts/check_prereqs.py --env <name>`.
+
+Two keys cannot be read from any API: `eventstream.namespace` and
+`eventstream.event_hub`. They are copied by hand from the custom endpoint on the
+eventstream `es_flight_events` in the Fabric portal. See `docs/manual-steps.md`.

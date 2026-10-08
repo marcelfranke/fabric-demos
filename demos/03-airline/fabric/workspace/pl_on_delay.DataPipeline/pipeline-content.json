@@ -1,0 +1,20 @@
+{
+  "properties": {
+    "activities": [
+      {
+        "name": "Placeholder step",
+        "type": "Wait",
+        "dependsOn": [],
+        "typeProperties": {
+          "waitTimeInSeconds": 1
+        }
+      }
+    ],
+    "parameters": {
+      "inbound_flight_id": {
+        "type": "String",
+        "defaultValue": ""
+      }
+    }
+  }
+}

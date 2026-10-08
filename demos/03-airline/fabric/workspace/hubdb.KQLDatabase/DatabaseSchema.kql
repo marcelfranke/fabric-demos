@@ -14,8 +14,13 @@
 // docs/demo-spec.md section 2.2. Nothing here holds a number from
 // scenario/qr004.yaml.
 
-// The live flight feed. One row per event, eight columns, as in demo-spec
+// The live flight feed. The first eight columns are the ones in demo-spec
 // section 2.2 and FlightEventRow in src/hubdemo/models.py.
+//
+// event_id is a ninth column that the spec does not list. Phase 5 needs it:
+// the replay script gives every send a unique id so that replaying the same
+// event twice can be collapsed again on the way out. It is added last because
+// .create-merge table appends new columns at the end of an existing table.
 .create-merge table flight_events (
     event_time: datetime,
     flight_id: string,
@@ -24,7 +29,8 @@
     eta_local: datetime,
     delay_min: int,
     source: string,
-    text: string
+    text: string,
+    event_id: string
 )
 
 // Ingestion mapping for the JSON the eventstream delivers in phase 5.
@@ -39,10 +45,11 @@
 "{'column':'eta_local','Properties':{'Path':'$.eta_local'}},"
 "{'column':'delay_min','Properties':{'Path':'$.delay_min'}},"
 "{'column':'source','Properties':{'Path':'$.source'}},"
-"{'column':'text','Properties':{'Path':'$.text'}}"
+"{'column':'text','Properties':{'Path':'$.text'}},"
+"{'column':'event_id','Properties':{'Path':'$.event_id'}}"
 "]"
 
-// Reference copies of two small lakehouse tables.
+// Reference copies of three small lakehouse tables.
 //
 // ConnectionWindows needs the booking inbound-to-onward links and the onward
 // scheduled departure times, which live in the lakehouse lh_hub. A OneLake
@@ -52,17 +59,24 @@
 // https://learn.microsoft.com/rest/api/fabric/articles/item-management/definitions/lakehouse-definition
 // describes shortcuts that point from a lakehouse at a KQL database, which is
 // the opposite direction. The phase 4 prompt allows loading a copy of the small
-// tables instead, which is what these two tables are. They are loaded by the
-// notebook in phase 4 and hold tens to hundreds of rows, not millions.
+// tables instead, which is what these three tables are. They hold tens to
+// hundreds of rows, not millions.
+//
+// Nothing fills them automatically. The phase 4 notebook nb_load_reference
+// writes Delta tables into the lakehouse only; a KQL database definition cannot
+// carry an ingestion command. scripts/load_kql_reference.py loads them from the
+// same generated parquet files, which is why it exists.
 // This choice is recorded in docs/status.md.
 
 // Columns taken from FlightRow in src/hubdemo/models.py, only the ones the
-// function reads.
+// functions read. city is last because .create-merge table appends new columns
+// at the end of an existing table.
 .create-merge table flights (
     flight_id: string,
     flight_no: string,
     direction: string,
-    sched_time_local: datetime
+    sched_time_local: datetime,
+    city: string
 )
 
 // Columns taken from BookingRow in src/hubdemo/models.py.
@@ -73,35 +87,71 @@
     onward_flight_id: string
 )
 
+// Columns taken from TransferRuleRow in src/hubdemo/models.py. rule_name holds
+// the field names of the Rules model, which is what src/hubdemo/generate.py
+// writes. ConnectionWindows reads the minimum connection time from here instead
+// of carrying a number, so rule 5 still holds: the scenario file stays the only
+// place a number is written down.
+.create-merge table transfer_rules (
+    rule_name: string,
+    value: int,
+    unit: string,
+    description: string
+)
+
+// LatestEta(for_flight_id) returns the most recent ETA reported for one flight.
+//
+// The parameter is deliberately not called flight_id. The Kusto user-defined
+// function reference
+// https://learn.microsoft.com/kusto/query/functions/user-defined-functions
+// does not state whether a parameter or a column of the same name wins inside
+// the body, so no function in this file relies on that.
+//
+// The first summarize is the deduplication step phase 5 asks for. The replay
+// script gives every send a unique event_id, so sending the same event twice
+// produces two identical rows here; collapsing on event_id turns them back into
+// one before anything downstream counts them.
+.create-or-alter function
+with (docstring = "Latest reported ETA for one flight.", folder = "hub")
+LatestEta(for_flight_id: string) {
+    flight_events
+    | where flight_id == for_flight_id
+    | where event_type == "eta_update"
+    | summarize arg_max(event_time, eta_local) by event_id
+    | summarize arg_max(event_time, eta_local)
+    | project eta_local
+}
+
 // ConnectionWindows(inbound_flight_id) joins the latest ETA of the inbound
 // flight to the onward departures and returns one row per onward flight with
-// window_min, as described in docs/demo-spec.md section 2.2.
+// window_min, as described in docs/demo-spec.md section 2.2. Phase 5 adds the
+// city and the at_risk flag the real-time view needs.
 //
-// The parameter has the same name as a column of bookings. The Kusto
-// user-defined function reference
-// https://learn.microsoft.com/kusto/query/functions/user-defined-functions
-// does not state which of the two wins inside the function body, so this
-// function does not rely on that. It renames the column first, after which
-// every mention of inbound_flight_id is the parameter and nothing is ambiguous.
+// The parameter has the same name as a column of bookings, and as above the
+// documentation does not settle which one wins. The function renames the column
+// first, after which every mention of inbound_flight_id is the parameter and
+// nothing is ambiguous.
 //
 // window_min is the whole number of minutes between the latest ETA of the
 // inbound flight and the scheduled departure of the onward flight. The same
 // calculation lives in src/hubdemo/rules.py, which stays the single place that
 // decides anything; this function only reports the window.
+//
+// at_risk compares that window against the standard passenger connection time
+// read from transfer_rules. No threshold is written down here.
 .create-or-alter function
 with (docstring = "Connection windows in minutes for one inbound flight.", folder = "hub")
 ConnectionWindows(inbound_flight_id: string) {
-    let latest_eta = toscalar(
-        flight_events
-        | where flight_id == inbound_flight_id
-        | where event_type == "eta_update"
-        | summarize arg_max(event_time, eta_local)
-        | project eta_local
+    let latest_eta = toscalar(LatestEta(inbound_flight_id));
+    let min_connect = toscalar(
+        transfer_rules
+        | where rule_name == "pax_standard_min"
+        | project value
     );
     let onward_departures =
         flights
         | where direction == "outbound"
-        | project onward_flight_id = flight_id, flight_no, sched_time_local;
+        | project onward_flight_id = flight_id, flight_no, city, sched_time_local;
     bookings
     | project-rename booked_inbound = inbound_flight_id
     | where booked_inbound == inbound_flight_id
@@ -110,6 +160,7 @@ ConnectionWindows(inbound_flight_id: string) {
     | join kind=inner onward_departures on onward_flight_id
     | extend eta_local = latest_eta
     | extend window_min = datetime_diff('minute', sched_time_local, latest_eta)
-    | project onward_flight_id, flight_no, sched_time_local, eta_local, window_min
+    | extend at_risk = window_min < min_connect
+    | project onward_flight_id, flight_no, city, sched_time_local, eta_local, window_min, at_risk
     | order by window_min asc
 }

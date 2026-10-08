@@ -56,14 +56,18 @@ WORKSPACE_KEY = "fabric.workspace_name"
 # The folder fabric-cicd reads. parameter.yml has to sit in the root of this folder.
 WORKSPACE_DIR = REPO_ROOT / "fabric" / "workspace"
 
-# The item types this demo deploys. All five are supported by fabric-cicd,
+# The item types this demo deploys. All seven are supported by fabric-cicd,
 # see the supported item types list at https://microsoft.github.io/fabric-cicd/latest/
+# and fabric_cicd.constants.ACCEPTED_ITEM_TYPES in the installed package.
+# Eventstream and DataPipeline were added in phase 5 for the real time path.
 ITEM_TYPES = [
     "Lakehouse",
     "Eventhouse",
     "KQLDatabase",
     "SQLDatabase",
     "Notebook",
+    "Eventstream",
+    "DataPipeline",
 ]
 
 

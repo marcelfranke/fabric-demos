@@ -15,10 +15,17 @@
 # the workspace and the lakehouse exist, so the notebook ships with placeholder
 # GUIDs and fabric-cicd replaces them at deploy time.
 #
-# The replacements below are no-ops until a person fills in the real values:
-# each replace_value repeats the placeholder. That keeps a first deploy honest
-# instead of silently writing an empty or wrong GUID. docs/manual-steps.md
-# records the step.
+# es_flight_events.Eventstream/eventstream.json does the same for three GUIDs:
+# the workspace, the lh_hub lakehouse it writes a delta table to, and the
+# hubdb KQL database it ingests into. fabric-cicd skips .platform when it
+# replaces text but it does process every other file in an item folder, so the
+# placeholders in eventstream.json are substituted the same way.
+#
+# Each entry is scoped by item_type and item_name, so the same placeholder GUID
+# can carry a different meaning in a different item. 11111111 and 22222222 mean
+# the same thing in both items here, which is why the values repeat.
+#
+# docs/manual-steps.md records the step that fills these in.
 #
 # The environment key below is "demo". It must match the environment argument
 # passed to FabricWorkspace(environment=...) in fabric/deploy.py. An unmatched
@@ -41,3 +48,36 @@ find_replace:
       demo: "04d71fb5-47c4-448d-8ed0-727fb8fcc4a9"
     item_type: "Notebook"
     item_name: "nb_load_reference"
+
+  # The same lakehouse ID, this time for the lakehouse destination of the
+  # eventstream. The eventstream writes the delta table dbo.flight_events.
+  - find_value: "11111111-1111-1111-1111-111111111111"
+    replace_value:
+      demo: "3418be24-10f4-43a5-a9a9-3edf41cac7f9"
+    item_type: "Eventstream"
+    item_name: "es_flight_events"
+
+  # The same workspace ID. eventstream.json names it twice, once per
+  # destination; fabric-cicd replaces every occurrence in the file.
+  - find_value: "22222222-2222-2222-2222-222222222222"
+    replace_value:
+      demo: "04d71fb5-47c4-448d-8ed0-727fb8fcc4a9"
+    item_type: "Eventstream"
+    item_name: "es_flight_events"
+
+  # Placeholder for the hubdb KQL database item ID.
+  #
+  # The eventhouse destination runs in processed ingestion mode, and in that
+  # mode itemId is the ID of the KQL database, not of the eventhouse around
+  # it. The service proved this: deploying the eventhouse item ID returned
+  # "Unable to extract cluster URL from the Eventhouse KQL database item ID
+  # ad32b09d-de8a-49b0-8acb-e35a0c970570", which is the eventhouse ID. The
+  # database is still named separately as databaseName, because the ID gives
+  # the cluster and the name picks the database on it.
+  #
+  # https://github.com/microsoft/fabric-event-streams/blob/main/API%20Templates/eventstream-definition.json
+  - find_value: "33333333-3333-3333-3333-333333333333"
+    replace_value:
+      demo: "734f33c6-666e-440c-b36e-0d20715b7ad6"
+    item_type: "Eventstream"
+    item_name: "es_flight_events"

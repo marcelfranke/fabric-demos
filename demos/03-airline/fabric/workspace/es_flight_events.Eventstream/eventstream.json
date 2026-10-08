@@ -1,0 +1,70 @@
+{
+  "sources": [
+    {
+      "name": "CustomEndpointSource",
+      "type": "CustomEndpoint",
+      "properties": {}
+    }
+  ],
+  "destinations": [
+    {
+      "name": "EventhouseProcessedIngestion",
+      "type": "Eventhouse",
+      "properties": {
+        "dataIngestionMode": "ProcessedIngestion",
+        "workspaceId": "22222222-2222-2222-2222-222222222222",
+        "itemId": "33333333-3333-3333-3333-333333333333",
+        "databaseName": "hubdb",
+        "tableName": "flight_events",
+        "inputSerialization": {
+          "type": "Json",
+          "properties": {
+            "encoding": "UTF8"
+          }
+        }
+      },
+      "inputNodes": [
+        {
+          "name": "flight_events_stream"
+        }
+      ]
+    },
+    {
+      "name": "LakehouseTable",
+      "type": "Lakehouse",
+      "properties": {
+        "workspaceId": "22222222-2222-2222-2222-222222222222",
+        "itemId": "11111111-1111-1111-1111-111111111111",
+        "schema": "dbo",
+        "deltaTable": "flight_events",
+        "minimumRows": 100000,
+        "maximumDurationInSeconds": 120,
+        "inputSerialization": {
+          "type": "Json",
+          "properties": {
+            "encoding": "UTF8"
+          }
+        }
+      },
+      "inputNodes": [
+        {
+          "name": "flight_events_stream"
+        }
+      ]
+    }
+  ],
+  "streams": [
+    {
+      "name": "flight_events_stream",
+      "type": "DefaultStream",
+      "properties": {},
+      "inputNodes": [
+        {
+          "name": "CustomEndpointSource"
+        }
+      ]
+    }
+  ],
+  "operators": [],
+  "compatibilityLevel": "1.1"
+}

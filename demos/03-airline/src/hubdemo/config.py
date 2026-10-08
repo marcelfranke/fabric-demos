@@ -18,7 +18,7 @@ from typing import Any
 
 import yaml
 
-# The nineteen keys every environment file must carry, in file order.
+# The twenty-one keys every environment file must carry, in file order.
 REQUIRED_KEYS: tuple[str, ...] = (
     "tenant_id",
     "subscription_id",
@@ -39,6 +39,8 @@ REQUIRED_KEYS: tuple[str, ...] = (
     "teams.channel_id",
     "sentinel.workspace_name",
     "purview.label_name",
+    "eventstream.namespace",
+    "eventstream.event_hub",
 )
 
 
