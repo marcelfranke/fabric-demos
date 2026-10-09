@@ -114,26 +114,26 @@ ontology definition format carries only one partition form, `mode: directLake`, 
 eventhouse partition mode at all, so an eventhouse binding cannot be written into a definition file.
 Rule 2 forbids inventing one, so the phase took the fallback the prompt had already authorised and
 bound the ETA series to a lakehouse copy of the events, written by `write_events_table()` into
-`flight_events.parquet` and loaded with the other reference tables (V85). The eventhouse table stays
-where it is and nothing from phase 5 changed. Two smaller assumptions sit in the definition without
-a Learn page behind them and are flagged for the first live deploy to settle: that an entity
+`ontology_flight_events.parquet` and loaded as `dbo.ontology_flight_events` (V85 and V92). The
+eventstream-owned `dbo.flight_events` table stays where it is and nothing from phase 5 changed. Two
+smaller assumptions sit in the definition without
+a Learn page behind them and are flagged for the first live portal review to settle: that an entity
 relationship can be backed by a relationship marked `isActive: false`, which is how the two second
 paths between the same pair of tables are kept legal (V86), and the scope within which an entity
 property name has to be unique, which is sidestepped by giving every property a globally unique
 name (V87).
 
-The environment problem is why phase 6 has no live proof. The reference notebook job was run after
-the new events file was added to the landing folder and it failed with
-`System_Cancelled_Session_Statements_Failed`, a generic wrapper that says nothing about the cause.
-Both explanations that could be tested from the build machine were disproven: the new file has no
-all-null column, and its timestamp columns carry the same arrow type as two columns that loaded
-without complaint in phase 4. The next step was to read the Spark session for the real error, and
-that call returned `CapacityNotActive`: `fabricplaygroundcapacity` had paused part way through the
-run, as it did in phase 4 (V61). Resuming it starts billing, so the phase stops here rather than
-resuming it. What is left once a person resumes the capacity is to re-run the notebook job
-unchanged, which also tests whether the pause was the cause, then run
-`python fabric/deploy_ontology.py --env demo` twice and confirm the second run reports no read-back
-differences, then open the ontology in the portal as the three new rows above describe (V91).
+The Phase 6 environment blocker is closed. After the owner resumed
+`fabricplaygroundcapacity`, the unchanged notebook failed again, which disproved the pause as the
+cause. An isolation run without the events Parquet file completed. The live lakehouse schema then
+showed why: the eventstream already owned `dbo.flight_events`, and its twelve-column streaming
+schema did not match the compact eight-column ontology copy. The copy moved to
+`dbo.ontology_flight_events`, the notebook completed with all eleven landing files, and two
+consecutive ontology deployments each read back all 35 parts with no differences (V91 and V92).
+The remaining human step is the portal review in the table above: confirm all seven entity types
+show instances, confirm `Flight.EtaUpdates` resolves despite the SQL endpoint currently omitting
+the two timestamp columns (V94), check the two relationships backed by inactive model
+relationships, and publish if the portal asks.
 
 Points that are in preview, undocumented or contradictory but not yet blocking are tracked in
 `verify-list.md`, not here. A point moves from there to here only when a phase stops on it.

@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -284,8 +285,6 @@ def rule_tmdl(name: str, statement: str, index: int) -> str:
         if properties:
             lines.append("\t\tpropertyScope: specific")
             lines.extend(f"\t\truleReferencedProperty {item}" for item in properties)
-        else:
-            lines.append("\t\tpropertyScope: none")
     lines.extend(f"\truleReferencedRelationship '{item}'" for item in references["relationships"])
     return "\n".join(lines) + "\n"
 
@@ -372,10 +371,16 @@ def differences(sent: dict[str, str], read_back: dict[str, str]) -> list[str]:
             report.append(f"{path}: added by the service")
             continue
         mine, theirs = normalise(sent[path]), normalise(read_back[path])
-        if mine == theirs:
+        theirs = [
+            line
+            for line in theirs
+            if not (line.strip().startswith("lineageTag:") and line not in mine)
+        ]
+        mine_lines, their_lines = Counter(mine), Counter(theirs)
+        if mine_lines == their_lines:
             continue
-        removed = [line for line in mine if line not in theirs]
-        added = [line for line in theirs if line not in mine]
+        removed = list((mine_lines - their_lines).elements())
+        added = list((their_lines - mine_lines).elements())
         detail = f"{path}: {len(removed)} line(s) missing, {len(added)} line(s) added"
         for line in (removed + added)[:4]:
             detail = f"{detail}\n      {line.strip()}"
@@ -410,7 +415,10 @@ def resolve_workspace(token: str, workspace_name: str) -> str:
 
 def resolve_lakehouse(token: str, workspace_id: str) -> tuple[str, str]:
     """Return the item id and the SQL endpoint address of the lakehouse."""
-    lakehouse = find_by_display_name(list_items(token, workspace_id), LAKEHOUSE_ITEM)
+    lakehouses = [
+        item for item in list_items(token, workspace_id) if item.get("type") == "Lakehouse"
+    ]
+    lakehouse = find_by_display_name(lakehouses, LAKEHOUSE_ITEM)
     if lakehouse is None:
         raise FabricApiError(f"no lakehouse named {LAKEHOUSE_ITEM} in the workspace")
     lakehouse_id = str(lakehouse["id"])
@@ -421,7 +429,10 @@ def resolve_lakehouse(token: str, workspace_id: str) -> tuple[str, str]:
 def find_ontology(token: str, workspace_id: str) -> dict[str, Any] | None:
     """Return the ontology item of this workspace, or None when it is not there yet."""
     for item in list_items(token, workspace_id):
-        if str(item.get("displayName", "")) == ONTOLOGY_ITEM:
+        if (
+            str(item.get("displayName", "")).casefold() == ONTOLOGY_ITEM.casefold()
+            and item.get("type") == ONTOLOGY_TYPE
+        ):
             return item
     return None
 

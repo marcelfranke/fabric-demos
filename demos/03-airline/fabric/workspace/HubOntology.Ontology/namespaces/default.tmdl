@@ -1,5 +1,2 @@
-// PREVIEW: ontology
-// The default namespace is required and must be referenced from model.tmdl.
-// https://learn.microsoft.com/rest/api/fabric/articles/item-management/definitions/ontology-definition
 namespace default
 	lineageTag: default

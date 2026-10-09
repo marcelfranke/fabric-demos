@@ -25,17 +25,17 @@ table flight_events
 		dataType: int64
 		sourceColumn: delay_min
 
-	column 'source'
+	column source
 		dataType: string
 		sourceColumn: source
 
-	column 'text'
+	column text
 		dataType: string
 		sourceColumn: text
 
 	partition flight_events = entity
 		mode: directLake
 		source
-			entityName: flight_events
+			entityName: ontology_flight_events
 			schemaName: dbo
 			expressionSource: DatabaseQuery

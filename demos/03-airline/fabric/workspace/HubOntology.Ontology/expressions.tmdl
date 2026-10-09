@@ -1,2 +1,6 @@
-expression DatabaseQuery = Sql.Database("__SQL_ENDPOINT__", "__LAKEHOUSE_ID__")
+expression DatabaseQuery =
+		let
+		    Source = Sql.Database("__SQL_ENDPOINT__", "__LAKEHOUSE_ID__")
+		in
+		    Source
 	lineageTag: 9c2e1b43-5d4e-4b1f-8a30-1b2c3d4e0001

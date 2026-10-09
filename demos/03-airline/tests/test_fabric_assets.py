@@ -59,6 +59,7 @@ from hubdemo.fabric_api import (
     paged_url,
     retry_after_seconds,
 )
+from hubdemo.generate import EVENTS_TABLE
 from hubdemo.scenario import load_scenario
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -1014,10 +1015,13 @@ def test_no_table_part_exposes_the_personal_columns() -> None:
 def test_arrival_times_are_bound_as_a_time_series() -> None:
     """The eventhouse cannot be named in a definition, so the lakehouse copy is used."""
     text = _entity_text("Flight")
+    table = _ontology_text("tables/flight_events.tmdl")
     assert "dataType: TimeSeries<dateTime>" in text
     assert "type: timeSeries" in text
     assert "orderingColumn: flight_events.event_time" in text
     assert "valueColumn: flight_events.eta_local" in text
+    assert f"entityName: {EVENTS_TABLE}" in table
+    assert EVENTS_TABLE != "flight_events"
 
 
 def test_every_named_relationship_is_present() -> None:
@@ -1144,7 +1148,7 @@ def test_rule_parts_indent_the_reference_blocks_correctly() -> None:
 def test_a_rule_without_properties_has_no_scope_of_specific() -> None:
     module = _load_script("deploy_ontology")
     text = module.rule_tmdl("ProposalChoice", "A sentence.", 9)
-    assert "\t\tpropertyScope: none" in text
+    assert "propertyScope" not in text
     assert "ruleReferencedProperty" not in text
 
 
@@ -1154,6 +1158,8 @@ def test_placeholders_are_filled_and_reported() -> None:
     assert module.unresolved_placeholders(parts) == ["expressions.tmdl"]
     filled = module.fill_placeholders(parts, "endpoint.example", "0000-id")
     assert module.unresolved_placeholders(filled) == []
+    assert "\t\tlet\n" in filled["expressions.tmdl"]
+    assert "\t\tin\n" in filled["expressions.tmdl"]
     assert 'Sql.Database("endpoint.example", "0000-id")' in filled["expressions.tmdl"]
 
 
@@ -1178,7 +1184,14 @@ def test_reading_parts_reports_a_missing_folder(tmp_path: Path) -> None:
 def test_the_read_back_comparison_ignores_layout_and_the_platform_part() -> None:
     module = _load_script("deploy_ontology")
     sent = {"a.tmdl": "table a\n\tlineageTag: 1\n", PLATFORM_PART: "{}"}
-    back = {"a.tmdl": "\ntable a\n\n\tlineageTag: 1  \n", PLATFORM_PART: '{"other": 1}'}
+    back = {"a.tmdl": "\n\tlineageTag: 1  \n\ntable a\n", PLATFORM_PART: '{"other": 1}'}
+    assert module.differences(sent, back) == []
+
+
+def test_the_read_back_comparison_ignores_service_added_lineage_tags() -> None:
+    module = _load_script("deploy_ontology")
+    sent = {"a.tmdl": "table a\n\tcolumn id\n"}
+    back = {"a.tmdl": "table a\n\tcolumn id\n\t\tlineageTag: service-owned\n"}
     assert module.differences(sent, back) == []
 
 
@@ -1199,6 +1212,33 @@ def test_the_read_back_comparison_reports_missing_and_added_parts() -> None:
 def test_the_lakehouse_endpoint_is_read_from_the_item() -> None:
     answer = {"properties": {"sqlEndpointProperties": {"connectionString": "host.example"}}}
     assert lakehouse_sql_endpoint(answer) == "host.example"
+
+
+def test_the_lakehouse_resolver_ignores_the_same_named_sql_endpoint(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _load_script("deploy_ontology")
+    items = [
+        {"id": "sql-id", "type": "SQLEndpoint", "displayName": LAKEHOUSE_ITEM},
+        {"id": "lake-id", "type": "Lakehouse", "displayName": LAKEHOUSE_ITEM},
+    ]
+    detail = {"properties": {"sqlEndpointProperties": {"connectionString": "host.example"}}}
+    monkeypatch.setattr(module, "list_items", lambda _token, _workspace: items)
+    monkeypatch.setattr(module, "get_lakehouse", lambda _token, _workspace, _item: detail)
+    assert module.resolve_lakehouse("token", "workspace") == ("lake-id", "host.example")
+
+
+def test_the_ontology_lookup_ignores_another_item_type(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _load_script("deploy_ontology")
+    ontology = {"id": "ontology-id", "type": ONTOLOGY_TYPE, "displayName": ONTOLOGY_ITEM}
+    items = [
+        {"id": "other-id", "type": "Report", "displayName": ONTOLOGY_ITEM},
+        ontology,
+    ]
+    monkeypatch.setattr(module, "list_items", lambda _token, _workspace: items)
+    assert module.find_ontology("token", "workspace") == ontology
 
 
 @pytest.mark.parametrize(

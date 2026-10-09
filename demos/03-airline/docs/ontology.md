@@ -73,8 +73,10 @@ ordered by `flight_events.event_time` and takes its value from
 
 The events arrive in the eventhouse. The ontology reads them from a lakehouse
 copy of the same rows, written by `write_events_table` in
-`src/hubdemo/generate.py` as `flight_events.parquet` and landed as the Delta
-table `dbo.flight_events`.
+`src/hubdemo/generate.py` as `ontology_flight_events.parquet` and landed as the
+Delta table `dbo.ontology_flight_events`. The separate physical name is
+intentional: the eventstream already owns `dbo.flight_events`, whose streaming
+metadata columns do not match the compact ontology copy.
 
 The reason is in the definition format, not in the product. A TMDL partition has
 exactly one mode, `directLake`, and there is no eventhouse or KQL partition mode
@@ -82,6 +84,10 @@ to write. Binding an entity to an eventhouse is something the portal agent does
 for you; it is not something the item definition can say. Rather than invent a
 mode, the Phase 6 prompt allows this fallback, and this is it. See V85 in
 `docs/verify-list.md`.
+
+The logical ontology table remains `flight_events`, so the entity and relationship
+definitions stay readable. Its DirectLake partition maps that logical table to the
+physical `dbo.ontology_flight_events` Delta table.
 
 ## The business rules
 

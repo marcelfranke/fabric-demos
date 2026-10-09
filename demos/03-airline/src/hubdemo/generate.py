@@ -54,7 +54,7 @@ LAKEHOUSE = "lakehouse lh_hub"
 PARQUET_TABLES = tuple(table for table in ROW_TABLES if table.store == LAKEHOUSE)
 
 #: The event timeline is landed in the lakehouse as well, so the ontology can bind to it.
-EVENTS_TABLE = "flight_events"
+EVENTS_TABLE = "ontology_flight_events"
 
 DEFAULT_SEED = 42
 DEFAULT_DATA_DIR = "data"
