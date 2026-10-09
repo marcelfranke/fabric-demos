@@ -13,7 +13,7 @@ States: `not started`, `in progress`, `done`, `blocked`.
 | 03 synthetic data | done | `ruff check .` clean, `pytest -q` 133 passed, `hubdemo generate --out data` writes ten Parquet files plus `flight_events.jsonl`, `hubdemo validate --data data` reports the rows reproduce the scenario file, `--scale 20` leaves the result unchanged, no number from the scenario file written as a literal in `generate.py` or `events.py` | Background arrivals get an empty `origin` because the scenario names a city but no airport code (V39), next flights get an empty `gate_id` (V40), `concourse` is derived from the first letter of the gate (V41), the `transfer_rules` descriptions are invented (V42), the `tier_benefits` source note is invented (V43), the event texts are invented (V44), `departure_delay_min` is read from the scenario during validation because no row model carries it (V45), `expected.at_risk_totals` is deliberately not re-checked (V46), the given and family name lists are invented (V47) |
 | 04 fabric foundation | done | `ruff check .` clean, `pytest -q` 179 passed, the three scripts each ran `--env example --dry-run` and exited 0 without a network call, and both "Done when" items then ran for real against the workspace `Airline Demo v2`: `fabric/deploy.py --env demo` exited 0 twice and the ten Delta tables appeared under `Tables/dbo`, and `tests/live/test_fabric_foundation.py` with `HUBDEMO_LIVE=1` reported 11 passed | V48 to V58 are closed by the first real deploy. The new points are V59 to V66. Only V59 needs a decision: the capacity sits in East US, which manual step 5 tells the reader to avoid. Five manual steps, 5 to 9, are in `manual-steps.md` |
 | 05 real time | done | `ruff check .` clean, `pytest -q` 235 passed and 16 skipped, the three new scripts each ran `--dry-run` and exited 0 without a network call, and the live chain then ran for real against `Airline Demo v2`: `fabric/deploy.py --env demo` published all seven items, `scripts/load_kql_reference.py --env demo` loaded 295 rows into `hubdb`, `scripts/eventstream_endpoint.py --env demo` read the custom endpoint address over REST, `scripts/replay_events.py --env demo --until-trigger` sent 6 events, `flight_events` counted 6 on the first poll, `ConnectionWindows("QR004")` returned 11 rows with exactly 3 at risk, and `tests/live/test_real_time.py` with `HUBDEMO_LIVE=1` reported 16 passed | The new points are V67 to V83. Two need a person: V59 is still the East US region conflict carried over from phase 4, and V74 leaves the Activator rule as a portal click because the `FabricItemInvocation` action has no documented example. Manual steps 10 to 12 cover the Activator clicks |
-| 06 ontology | blocked | `ruff check .` clean, `pytest -q` 298 passed and 16 skipped, `fabric/deploy_ontology.py --env example --dry-run` exited 0 without a network call and reported 35 definition parts and 13 generated rules, notebook job `cb2c5ced-482e-478d-9b24-cacc1d09ee2d` completed after loading all 11 reference files, and two consecutive live ontology deployments each published and read back 35 parts with no differences | The scripted live gate is green. The remaining prompt gate is the human portal check that all seven entity types show instances; it is already in `docs/manual-steps.md`. V85 records the lakehouse fallback, V86 still needs that portal check, V91 records the closed notebook failure, V92 records why the ontology copy has a separate physical table name, V93 records the same-named SQL endpoint lookup, V94 records the incomplete SQL endpoint timestamp metadata, and V59 is still the East US region conflict |
+| 06 ontology | done | `ruff check .` clean, `pytest -q` 298 passed and 16 skipped, `fabric/deploy_ontology.py --env example --dry-run` exited 0 without a network call and reported 35 definition parts and 13 generated rules, notebook job `cb2c5ced-482e-478d-9b24-cacc1d09ee2d` completed after loading all 11 reference files, two consecutive live ontology deployments each published and read back 35 parts with no differences, and the owner reviewed and approved the ontology graph in the Fabric portal | V85 records the lakehouse fallback, V86 is closed by the portal review, V91 records the closed notebook failure, V92 records why the ontology copy has a separate physical table name, V93 records the same-named SQL endpoint lookup, V94 remains a non-blocking SQL endpoint metadata observation, and V59 is still the East US region conflict |
 | 07 rules function | not started | — | — |
 | 08 fabric agents | not started | — | — |
 | 09 foundry planner | not started | — | — |
@@ -510,7 +510,7 @@ Fabric call then fails with `CapacityNotActive`, V61. That is exactly what happe
 | corrected Delta table | `Tables/dbo/ontology_flight_events` exists in OneLake with seven rows and eight physical columns; a later SQL endpoint recheck counted all seven rows but still exposed only six columns, omitting both `timestamp_ntz` columns, V94 |
 | `fabric/deploy_ontology.py --env demo`, first canonical run | exit code 0, updated item `af706ca6-85f2-4874-adf9-feb80184f7aa`, published and read back 35 parts, no differences |
 | `fabric/deploy_ontology.py --env demo`, second canonical run | exit code 0, updated the same item, published and read back 35 parts, no differences |
-| portal check, seven entity types showing data | pending manual step; no documented REST API returns ontology instance counts |
+| portal check, seven entity types and relationships | owner reviewed the deployed Fabric portal graph and approved it on 9 October 2026; no documented REST API returns ontology instance counts |
 
 Phase 5 ended at 235 offline tests, so phase 6 adds 63 offline tests and breaks nothing. The live suite
 is unchanged at 16, and those 16 are the skips in the offline run.
@@ -524,21 +524,19 @@ page safety cap and the long-running-operation poll interval. The rule text is b
 
 **Open**
 
-- The one remaining prompt gate is manual: open `HubOntology` in the Fabric portal and confirm that
-  all seven entity types show instances. No documented REST API returns ontology instance counts.
 - V85 is a documented conflict. The data binding article lists eventhouse as a supported time series
   source, but the ontology definition format has no partition mode for it. The ETA series is therefore
   bound to the lakehouse copy of the events. If that mode is added later, the binding can move.
-- V86 still needs the portal check: it asks whether a named entity relationship can use a backing
-  relationship with `isActive: false`. V87 remains sidestepped by globally unique property names.
+- V86 is closed by the owner's portal review of the deployed entity and relationship graph. V87
+  remains sidestepped by globally unique property names.
 - V90 records that the ontology item type is in preview. The successful create proves the two tenant
   settings needed by the item were enabled for this run.
 - V91 is closed. The streaming destination already owned `dbo.flight_events`; the ontology copy tried
   to overwrite it with a different schema. V92 records the separate physical name that fixes the
   collision without touching the live stream table.
-- V94 remains open. OneLake and the Delta log show all eight physical columns, but the SQL analytics
-  endpoint exposes only six and omits `event_time` and `eta_local`. The portal instance check must
-  therefore confirm that `Flight.EtaUpdates` resolves before this phase can move to `done`.
+- V94 remains a non-blocking observation. OneLake and the Delta log show all eight physical columns,
+  but the SQL analytics endpoint exposes only six and omits `event_time` and `eta_local`. The owner
+  accepted the portal ontology; recheck the endpoint before relying on those timestamps through SQL.
 - V59 is still the East US region conflict carried over from phase 4. V61 remains operational advice:
   check the auto-pausing capacity before every live chain.
 - V31 still stays open. The Learn MCP server returned empty results again, so every page was fetched
